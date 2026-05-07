@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import "./App.css";
 import { ScientificDashboard } from "./ScientificDashboard";
 import {
+  BOUSSINESQ_MODEL_SIZES,
+  BOUSSINESQ_REFERENCE_CASES,
   CONTROL_LIMITS,
   celsiusToKelvin,
   configWarnings,
@@ -650,6 +652,9 @@ function SimulationControls({
   onPresetChange: (presetSlug: string) => void;
   onConfigChange: (config: SimulationConfig) => void;
 }) {
+  const [selectedReferenceCase, setSelectedReferenceCase] = useState("");
+  const [selectedModelSize, setSelectedModelSize] = useState("medium");
+
   if (!config) {
     return (
       <section className="controls-panel" aria-labelledby="controls-title">
@@ -679,7 +684,39 @@ function SimulationControls({
     onConfigChange({ ...config, solver_type: solverType });
   }
 
+  function applyReferenceCase(referenceSlug: string) {
+    if (!config) {
+      return;
+    }
+
+    setSelectedReferenceCase(referenceSlug);
+    const referenceCase = BOUSSINESQ_REFERENCE_CASES.find((candidate) => {
+      return candidate.slug === referenceSlug;
+    });
+    if (referenceCase) {
+      onConfigChange(referenceCase.apply(config));
+    }
+  }
+
+  function applyModelSize(sizeSlug: string) {
+    if (!config) {
+      return;
+    }
+
+    setSelectedModelSize(sizeSlug);
+    const modelSize = BOUSSINESQ_MODEL_SIZES.find((candidate) => candidate.slug === sizeSlug);
+    if (modelSize) {
+      onConfigChange(modelSize.apply(config));
+    }
+  }
+
   const activeSolver = solvers.find((solver) => solver.solver_type === config.solver_type);
+  const activeReferenceCase = BOUSSINESQ_REFERENCE_CASES.find((candidate) => {
+    return candidate.slug === selectedReferenceCase;
+  });
+  const activeModelSize = BOUSSINESQ_MODEL_SIZES.find((candidate) => {
+    return candidate.slug === selectedModelSize;
+  });
 
   return (
     <section className="controls-panel" aria-labelledby="controls-title">
@@ -724,6 +761,32 @@ function SimulationControls({
               )}
             </select>
           </label>
+
+          <label className="preset-select">
+            Reference case
+            <select
+              value={selectedReferenceCase}
+              onChange={(event) => applyReferenceCase(event.target.value)}
+            >
+              <option value="">Custom controls</option>
+              {BOUSSINESQ_REFERENCE_CASES.map((referenceCase) => (
+                <option key={referenceCase.slug} value={referenceCase.slug}>
+                  {referenceCase.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="preset-select">
+            Model size
+            <select value={selectedModelSize} onChange={(event) => applyModelSize(event.target.value)}>
+              {BOUSSINESQ_MODEL_SIZES.map((modelSize) => (
+                <option key={modelSize.slug} value={modelSize.slug}>
+                  {modelSize.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </div>
 
@@ -733,6 +796,10 @@ function SimulationControls({
             {activeSolver?.description ??
               "Educational 2-D solver for local fair-weather cumulus experiments."}
           </p>
+          {activeReferenceCase ? (
+            <p className="control-note">{activeReferenceCase.description}</p>
+          ) : null}
+          {activeModelSize ? <p className="control-note">{activeModelSize.description}</p> : null}
           {activeSolver?.limitations.length ? (
             <ul className="control-note-list">
               {activeSolver.limitations.map((limitation) => (

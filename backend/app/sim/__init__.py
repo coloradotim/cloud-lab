@@ -34,10 +34,21 @@ from app.sim.solver import (
     stream_simulation_frames,
 )
 from app.sim.streaming import stream_run
+from app.sim.validation import (
+    BoussinesqDiagnostics,
+    BoussinesqModelSize,
+    BoussinesqReferenceCase,
+    boussinesq_model_sizes,
+    boussinesq_reference_cases,
+    compute_boussinesq_diagnostics,
+)
 
 __all__ = [
     "AtmosphereState",
     "BackgroundWindConfig",
+    "BoussinesqDiagnostics",
+    "BoussinesqModelSize",
+    "BoussinesqReferenceCase",
     "DisplayScale",
     "DomainConfig",
     "FieldMetadata",
@@ -57,6 +68,9 @@ __all__ = [
     "SurfaceHeatingConfig",
     "TimeConfig",
     "build_grid_metadata",
+    "boussinesq_model_sizes",
+    "boussinesq_reference_cases",
+    "compute_boussinesq_diagnostics",
     "create_sample_frame",
     "fair_weather_cumulus_preset",
     "initialize_state",

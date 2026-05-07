@@ -27,6 +27,8 @@ As the model matures, evaluate PySDM or a similar library for more credible warm
 
 The v1 frame schema already reserves `water_vapor_kg_per_kg`, `cloud_liquid_water_kg_per_kg`, and `rain_water_kg_per_kg` fields with units metadata so later warm-cloud work can evolve without inventing new transport names in the frontend.
 
+Do not add advanced microphysics until the current Boussinesq reference cases in `docs/boussinesq-validation.md` remain stable and understandable. Those cases are the current science gate for deciding whether the dynamics are trustworthy enough to build on.
+
 ## Fluid Dynamics Assumptions To Start
 
 The starting dynamics can be simplified and educational, but the assumptions must be explicit. Initial work may use coarse approximations for advection, buoyancy, and diffusion while tests cover shape consistency, non-negative moisture fields, deterministic output, and stable schemas.
@@ -41,8 +43,9 @@ The initial solver uses localized surface heating, first-order advection, simple
 2. Add fair-weather cumulus presets and validation notes.
 3. Stream live frames to the browser over WebSockets.
 4. Add visualization layers for velocity, vapor, cloud water, rain water, buoyancy, and condensation.
-5. Explore better numerical dynamics and warm-cloud microphysics.
-6. Evaluate PySDM integration for droplet-size distribution and rain formation.
-7. Add terrain forcing for orographic lift experiments.
-8. Extend toward 2.5-D where selected 3-D effects can be approximated.
-9. Move toward true 3-D only after the 2-D model, tests, schemas, and visualization pipeline are stable.
+5. Validate the Boussinesq solver against quiet, dry, humid, stable, and resolution/runtime reference cases.
+6. Explore better numerical dynamics and warm-cloud microphysics.
+7. Evaluate PySDM integration for droplet-size distribution and rain formation.
+8. Add terrain forcing for orographic lift experiments.
+9. Extend toward 2.5-D where selected 3-D effects can be approximated.
+10. Move toward true 3-D only after the 2-D model, tests, schemas, and visualization pipeline are stable.

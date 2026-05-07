@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { SimulationConfig } from "./simulationTypes";
 import {
+  BOUSSINESQ_MODEL_SIZES,
+  BOUSSINESQ_REFERENCE_CASES,
   celsiusToKelvin,
   configWarnings,
   kelvinToCelsius,
@@ -89,6 +91,39 @@ describe("simulation controls", () => {
       }),
     ).toContain(
       "Boussinesq runs use an iterative streamfunction solve and may slow down on larger grids.",
+    );
+  });
+
+  it("maps boussinesq reference cases to editable valid configs", () => {
+    const quiet = BOUSSINESQ_REFERENCE_CASES.find(
+      (referenceCase) => referenceCase.slug === "quiet-atmosphere",
+    );
+    const humid = BOUSSINESQ_REFERENCE_CASES.find(
+      (referenceCase) => referenceCase.slug === "humid-lifted-thermal",
+    );
+
+    expect(BOUSSINESQ_REFERENCE_CASES).toHaveLength(5);
+    expect(quiet?.apply(config)).toMatchObject({
+      solver_type: "boussinesq_2d",
+      surface_heating: { max_warming_rate_k_per_s: 0 },
+      background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
+    });
+    expect(humid?.apply(config).surface_heating.max_warming_rate_k_per_s).toBeGreaterThan(0);
+    expect(humid?.apply(config).initial_atmosphere.relative_humidity).toBe(1);
+  });
+
+  it("maps boussinesq model sizes to consistent domain grid and runtime configs", () => {
+    const small = BOUSSINESQ_MODEL_SIZES.find((modelSize) => modelSize.slug === "small");
+    const medium = BOUSSINESQ_MODEL_SIZES.find((modelSize) => modelSize.slug === "medium");
+    const large = BOUSSINESQ_MODEL_SIZES.find((modelSize) => modelSize.slug === "large");
+
+    expect(BOUSSINESQ_MODEL_SIZES).toHaveLength(3);
+    expect(small?.apply(config).grid.columns).toBeLessThan(medium?.apply(config).grid.columns ?? 0);
+    expect(large?.apply(config).grid.columns).toBeGreaterThan(
+      medium?.apply(config).grid.columns ?? 0,
+    );
+    expect(large?.apply(config).time.duration_seconds).toBeGreaterThan(
+      medium?.apply(config).time.duration_seconds ?? 0,
     );
   });
 });
