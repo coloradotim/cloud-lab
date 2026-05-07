@@ -438,6 +438,58 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.probe-diagnostics {
+  display: grid;
+  gap: 10px;
+}
+
+.probe-diagnostics div,
+.probe-diagnostics p {
+  margin: 0;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.probe-diagnostics span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #4f6f68;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.probe-diagnostics em {
+  border-radius: 999px;
+  padding: 2px 6px;
+  color: #39554f;
+  background: #e7f0eb;
+  font-size: 0.62rem;
+  font-style: normal;
+}
+
+.probe-diagnostics strong {
+  display: block;
+  margin-top: 4px;
+  color: #153137;
+  font-size: 1rem;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.probe-diagnostics small {
+  display: block;
+  margin-top: 5px;
+  color: #53615e;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 @media (max-width: 680px) {
   .app-shell {
     align-content: start;
