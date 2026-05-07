@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SimulationFrame } from "./simulationTypes";
 import {
+  colorForNormalizedValue,
   displayRangeForField,
   displayStatsForField,
   displayUnitForField,
@@ -111,6 +112,14 @@ describe("visualization helpers", () => {
     expect(displayRangeForField(velocity)).toEqual({ min: -0.4, max: 0.4 });
     expect(normalizedDisplayValueForField(velocity, 0)).toBeCloseTo(0.5);
     expect(normalizedDisplayValueForField(velocity, 0.4)).toBeCloseTo(1);
+  });
+
+  it("maps blue condensate colors from clear sky toward white cloud", () => {
+    const clearSky = colorForNormalizedValue(0, "Blues");
+    const cloud = colorForNormalizedValue(1, "Blues");
+
+    expect(clearSky[2]).toBeGreaterThan(clearSky[0]);
+    expect(cloud).toEqual([255, 255, 255]);
   });
 
   it("computes data range when display scale is absent", () => {

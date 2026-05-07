@@ -176,9 +176,9 @@ export function colorForNormalizedValue(normalizedValue: number, colorMap: strin
 
   if (colorMap === "Blues" || colorMap === "PuBu") {
     return [
-      Math.round(238 - value * 166),
-      Math.round(246 - value * 103),
-      Math.round(255 - value * 41),
+      Math.round(82 + value * 173),
+      Math.round(148 + value * 107),
+      Math.round(214 + value * 41),
     ];
   }
 
