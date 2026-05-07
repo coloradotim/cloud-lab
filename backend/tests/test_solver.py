@@ -207,7 +207,7 @@ def test_lifted_humid_plume_condenses_in_interior_by_thirty_minutes() -> None:
     assert interior_cloud_max > 4e-4
 
 
-def test_boundary_sponge_limits_edge_cloud_water_relative_to_main_plume() -> None:
+def test_top_boundary_sponge_limits_lid_cloud_water_relative_to_main_plume() -> None:
     preset = fair_weather_cumulus_preset()
     config = preset.config.model_copy(
         update={
@@ -222,11 +222,31 @@ def test_boundary_sponge_limits_edge_cloud_water_relative_to_main_plume() -> Non
     )
 
     final_cloud = run_simulation(config)[-1].fields.cloud_liquid_water_kg_per_kg.values
-    boundary_cloud_max = max(_max_value([final_cloud[0]]), _max_value([final_cloud[-1]]))
+    top_cloud_max = _max_value([final_cloud[-1]])
     interior_cloud_max = _max_value(final_cloud[1:-1])
 
-    assert boundary_cloud_max < 1e-6
-    assert interior_cloud_max > boundary_cloud_max * 100
+    assert top_cloud_max < 1e-6
+    assert interior_cloud_max > top_cloud_max * 100
+
+
+def test_top_boundary_sponge_does_not_damp_surface_heating() -> None:
+    config = _small_config()
+    initial_state = initialize_state(config)
+
+    final_state = step_state(config, initial_state)
+    grid = _solver_grid(config)
+    heated_columns = [
+        column_index
+        for column_index, x_m in enumerate(grid.x_coordinates_m)
+        if abs(x_m - config.surface_heating.patch_center_x_m)
+        <= config.surface_heating.patch_width_m / 2.0
+    ]
+    lowest_heated_delta = min(
+        final_state.temperature_k[0][column_index] - initial_state.temperature_k[0][column_index]
+        for column_index in heated_columns
+    )
+
+    assert lowest_heated_delta > 0.0
 
 
 def test_seeded_runs_are_reproducible() -> None:

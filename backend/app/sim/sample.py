@@ -64,6 +64,7 @@ def create_sample_frame(config: SimulationConfig | None = None) -> SimulationFra
         grid=grid,
         fields=make_simulation_fields(
             temperature=temperature,
+            temperature_perturbation=zero_grid,
             water_vapor=water_vapor,
             cloud_liquid_water=zero_grid,
             rain_water=zero_grid,
@@ -77,6 +78,7 @@ def create_sample_frame(config: SimulationConfig | None = None) -> SimulationFra
 def make_simulation_fields(
     *,
     temperature: list[list[float]],
+    temperature_perturbation: list[list[float]],
     water_vapor: list[list[float]],
     cloud_liquid_water: list[list[float]],
     rain_water: list[list[float]],
@@ -94,6 +96,18 @@ def make_simulation_fields(
                 display_name="Temperature",
                 description=f"Absolute air temperature {description_suffix}.",
                 display_scale=DisplayScale(min_value=270.0, max_value=305.0, color_map="magma"),
+            ),
+        ),
+        temperature_perturbation_k=ScalarField2D(
+            values=temperature_perturbation,
+            metadata=FieldMetadata(
+                unit="K",
+                display_name="Temperature perturbation",
+                description=(
+                    "Air temperature departure from the initial background profile "
+                    f"{description_suffix}."
+                ),
+                display_scale=DisplayScale(min_value=-5.0, max_value=5.0, color_map="coolwarm"),
             ),
         ),
         water_vapor_kg_per_kg=ScalarField2D(

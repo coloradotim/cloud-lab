@@ -188,6 +188,7 @@ class SimulationFields(BaseModel):
     """Core fields emitted in every frame."""
 
     temperature_k: ScalarField2D
+    temperature_perturbation_k: ScalarField2D
     water_vapor_kg_per_kg: ScalarField2D
     cloud_liquid_water_kg_per_kg: ScalarField2D
     rain_water_kg_per_kg: ScalarField2D

@@ -4,6 +4,7 @@ export const DEFAULT_FIELD_ORDER = [
   "cloud_liquid_water_kg_per_kg",
   "water_vapor_kg_per_kg",
   "temperature_k",
+  "temperature_perturbation_k",
   "vertical_velocity_m_per_s",
   "horizontal_velocity_m_per_s",
 ];
@@ -23,6 +24,11 @@ export type FieldStats = {
 export type GridPoint = {
   row: number;
   column: number;
+};
+
+export type VectorScale = {
+  stride: number;
+  pixelsPerMeterPerSecond: number;
 };
 
 export function fieldOptionsFromFrame(frame: SimulationFrame | null): FieldOption[] {
@@ -94,11 +100,15 @@ export function displayUnit(unit: string): string {
 }
 
 export function displayUnitForField(field: ScalarField): string {
+  if (isTemperaturePerturbationField(field)) {
+    return "K";
+  }
+
   return displayUnit(field.metadata.unit);
 }
 
 export function displayValueForField(field: ScalarField, value: number): number {
-  return field.metadata.unit === "K" ? value - 273.15 : value;
+  return isAbsoluteTemperatureField(field) ? value - 273.15 : value;
 }
 
 export function displayStatsForField(field: ScalarField): FieldStats {
@@ -116,7 +126,7 @@ export function displayRangeForField(field: ScalarField): FieldStats {
     return { min: -maxAbs, max: maxAbs };
   }
 
-  if (isTemperatureField(field)) {
+  if (isAbsoluteTemperatureField(field)) {
     const stats = displayStatsForField(field);
     const padding = Math.max(0.5, (stats.max - stats.min) * 0.08);
     return expandFlatRange({ min: stats.min - padding, max: stats.max + padding });
@@ -161,6 +171,25 @@ export function gridPointFromCanvas(
   const row = rows - 1 - visualRow;
 
   return { row, column };
+}
+
+export function vectorScaleForFrame(
+  frame: SimulationFrame,
+  width: number,
+  height: number,
+): VectorScale {
+  const rows = frame.grid.rows;
+  const columns = frame.grid.columns;
+  const cellWidth = width / columns;
+  const cellHeight = height / rows;
+  const maxSpeed = maxVectorSpeed(frame);
+  const maxArrowLength = Math.min(cellWidth, cellHeight) * 0.72;
+  const stride = rows <= 32 && columns <= 48 ? 1 : Math.max(2, Math.floor(Math.min(rows, columns) / 10));
+
+  return {
+    stride,
+    pixelsPerMeterPerSecond: maxArrowLength / Math.max(maxSpeed, 0.05),
+  };
 }
 
 export function colorForNormalizedValue(normalizedValue: number, colorMap: string): [number, number, number] {
@@ -218,8 +247,12 @@ function expandFlatRange(range: FieldStats): FieldStats {
   return { min: range.min - 0.5, max: range.max + 0.5 };
 }
 
-function isTemperatureField(field: ScalarField): boolean {
-  return field.metadata.unit === "K";
+function isAbsoluteTemperatureField(field: ScalarField): boolean {
+  return field.metadata.unit === "K" && !isTemperaturePerturbationField(field);
+}
+
+function isTemperaturePerturbationField(field: ScalarField): boolean {
+  return field.metadata.display_name.toLowerCase().includes("perturbation");
 }
 
 function isVelocityField(field: ScalarField): boolean {
@@ -229,4 +262,18 @@ function isVelocityField(field: ScalarField): boolean {
 function isCondensateField(field: ScalarField): boolean {
   const displayName = field.metadata.display_name.toLowerCase();
   return field.metadata.unit === "kg kg-1" && /cloud|rain/.test(displayName);
+}
+
+function maxVectorSpeed(frame: SimulationFrame): number {
+  const u = frame.fields.horizontal_velocity_m_per_s.values;
+  const w = frame.fields.vertical_velocity_m_per_s.values;
+  let maxSpeed = 0;
+
+  for (let rowIndex = 0; rowIndex < frame.grid.rows; rowIndex += 1) {
+    for (let columnIndex = 0; columnIndex < frame.grid.columns; columnIndex += 1) {
+      maxSpeed = Math.max(maxSpeed, Math.hypot(u[rowIndex][columnIndex], w[rowIndex][columnIndex]));
+    }
+  }
+
+  return maxSpeed;
 }

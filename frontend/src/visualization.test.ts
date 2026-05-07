@@ -13,6 +13,7 @@ import {
   gridPointFromCanvas,
   normalizedDisplayValueForField,
   valueRangeForField,
+  vectorScaleForFrame,
 } from "./visualization";
 
 const frame: SimulationFrame = {
@@ -50,6 +51,18 @@ const frame: SimulationFrame = {
         display_scale: { min_value: 0, max_value: 0.004, color_map: "Blues" },
       },
     },
+    temperature_perturbation_k: {
+      values: [
+        [0, 1],
+        [-1, 2],
+      ],
+      metadata: {
+        unit: "K",
+        display_name: "Temperature perturbation",
+        description: "Temperature departure.",
+        display_scale: { min_value: -5, max_value: 5, color_map: "coolwarm" },
+      },
+    },
     horizontal_velocity_m_per_s: {
       values: [
         [1, 1],
@@ -80,6 +93,7 @@ describe("visualization helpers", () => {
     expect(fieldOptionsFromFrame(frame)).toMatchObject([
       { key: "cloud_liquid_water_kg_per_kg", label: "Cloud liquid water", unit: "kg kg-1" },
       { key: "temperature_k", label: "Temperature", unit: "deg C" },
+      { key: "temperature_perturbation_k", label: "Temperature perturbation", unit: "K" },
       { key: "vertical_velocity_m_per_s", label: "Vertical velocity", unit: "m s-1" },
       { key: "horizontal_velocity_m_per_s", label: "Horizontal velocity", unit: "m s-1" },
     ]);
@@ -99,6 +113,14 @@ describe("visualization helpers", () => {
     expect(displayRangeForField(field).min).toBeCloseTo(14.35);
     expect(displayRangeForField(field).max).toBeCloseTo(18.35);
     expect(formatDisplayValue(field, 293.15)).toBe("20.00");
+  });
+
+  it("keeps temperature perturbations in kelvin differences", () => {
+    const field = frame.fields.temperature_perturbation_k;
+
+    expect(displayUnitForField(field)).toBe("K");
+    expect(displayValueForField(field, 2)).toBe(2);
+    expect(formatDisplayValue(field, 2)).toBe("2.00");
   });
 
   it("uses adaptive display normalization for condensate and velocity fields", () => {
@@ -133,5 +155,12 @@ describe("visualization helpers", () => {
   it("maps canvas coordinates to grid cells with z increasing upward", () => {
     expect(gridPointFromCanvas(10, 10, 100, 100, 2, 2)).toEqual({ row: 1, column: 0 });
     expect(gridPointFromCanvas(90, 90, 100, 100, 2, 2)).toEqual({ row: 0, column: 1 });
+  });
+
+  it("scales velocity vectors adaptively and samples compact grids at every cell", () => {
+    const vectorScale = vectorScaleForFrame(frame, 200, 100);
+
+    expect(vectorScale.stride).toBe(1);
+    expect(vectorScale.pixelsPerMeterPerSecond).toBeGreaterThan(10);
   });
 });
