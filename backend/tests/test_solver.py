@@ -15,7 +15,7 @@ from app.sim import (
     run_simulation,
     step_state,
 )
-from app.sim.solver import _advect, _apply_surface_heating, _constant_grid, _solver_grid
+from app.sim.educational_2d import _advect, _apply_surface_heating, _constant_grid, _solver_grid
 
 
 def test_solver_step_preserves_shapes_and_finite_values() -> None:

@@ -27,6 +27,7 @@ export type SimulationFrame = {
 
 export type SimulationConfig = {
   schema_version: "sim-config-v1";
+  solver_type: "educational_2d" | "boussinesq_2d";
   domain: {
     width_m: number;
     height_m: number;
@@ -56,6 +57,14 @@ export type SimulationConfig = {
     w_m_per_s: number;
   };
   seed: number;
+};
+
+export type SolverDescriptor = {
+  solver_type: SimulationConfig["solver_type"];
+  name: string;
+  description: string;
+  status: "available" | "planned" | string;
+  limitations: string[];
 };
 
 export type SimulationPreset = {

@@ -6,7 +6,7 @@ from app.sim.presets import fair_weather_cumulus_preset, simulation_presets
 from app.sim.runs import run_manager
 from app.sim.sample import create_sample_frame
 from app.sim.schemas import SimulationConfig
-from app.sim.solver import run_simulation
+from app.sim.solver import run_simulation, solver_descriptors
 from app.sim.streaming import stream_run
 
 router = APIRouter(prefix="/simulations", tags=["simulations"])
@@ -31,6 +31,22 @@ def sample_run() -> dict[str, object]:
     }
 
 
+@router.get("/solvers")
+def solvers() -> dict[str, object]:
+    return {
+        "solvers": [
+            {
+                "solver_type": descriptor.solver_type,
+                "name": descriptor.name,
+                "description": descriptor.description,
+                "status": descriptor.status,
+                "limitations": list(descriptor.limitations),
+            }
+            for descriptor in solver_descriptors()
+        ]
+    }
+
+
 @router.get("/presets")
 def presets() -> dict[str, object]:
     return {"presets": [preset.model_dump(mode="json") for preset in simulation_presets()]}
@@ -38,7 +54,14 @@ def presets() -> dict[str, object]:
 
 @router.post("/runs", status_code=status.HTTP_201_CREATED)
 def start_run(config: Annotated[SimulationConfig | None, Body()] = None) -> dict[str, object]:
-    run = run_manager.create_run(config or fair_weather_cumulus_preset().config)
+    resolved_config = config or fair_weather_cumulus_preset().config
+    if resolved_config.solver_type != "educational_2d":
+        raise HTTPException(
+            status_code=422,
+            detail=f"Solver backend '{resolved_config.solver_type}' is not available for runs yet.",
+        )
+
+    run = run_manager.create_run(resolved_config)
     return run.metadata()
 
 

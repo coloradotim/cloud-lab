@@ -1,10 +1,12 @@
-# Minimal 2-D Solver
+# Educational 2-D Solver
 
-Issue #3 introduces Cloud Lab's first intentionally simple 2-D vertical-slice atmosphere solver. It is designed for early visualization and regression testing, not for research-grade atmospheric prediction.
+Cloud Lab's first intentionally simple 2-D vertical-slice atmosphere solver is now frozen as the `educational_2d` backend. It is designed for learning, UI validation, local demos, and regression testing, not for research-grade atmospheric prediction.
+
+Future scientific credibility should come from new solver backends behind the shared solver interface, not from incrementally tuning this educational model.
 
 ## Scope
 
-The solver evolves row-major `x-z` fields for:
+The `educational_2d` solver evolves row-major `x-z` fields for:
 
 - temperature, `temperature_k`, in K
 - water vapor, `water_vapor_kg_per_kg`, in kg kg-1
@@ -13,11 +15,11 @@ The solver evolves row-major `x-z` fields for:
 - horizontal velocity, `horizontal_velocity_m_per_s`, in m s-1
 - vertical velocity, `vertical_velocity_m_per_s`, in m s-1
 
-Frames are emitted as `SimulationFrame` values, so API and frontend consumers use the same schema as future solver versions.
+Frames are emitted as `SimulationFrame` values, so API and frontend consumers use the same schema as future solver versions. The backend registry in `backend/app/sim/solver.py` dispatches by `SimulationConfig.solver_type`.
 
 ## Governing Assumptions
 
-This first solver uses a simplified warm-cloud slice:
+This educational solver uses a simplified warm-cloud slice:
 
 - 2-D vertical slice with no y dimension.
 - Explicit timestep update.
@@ -47,13 +49,13 @@ Each timestep applies:
 7. Buoyancy and circulation updates for horizontal and vertical velocity.
 8. Velocity damping and clipping to keep the toy model stable.
 
-The model prioritizes readable behavior over performance. It uses Python lists rather than NumPy so the initial dependency footprint stays small.
+The model prioritizes readable behavior over performance. It uses Python lists rather than NumPy so the educational dependency footprint stays small.
 
 ## Timestep And Stability Notes
 
 The default local sample run uses a small grid and a 2 second timestep. This is appropriate for the current toy dynamics and CI tests. Larger velocity, smaller grid spacing, stronger heating, or longer timesteps can violate the simple explicit stability assumptions.
 
-Named constants in `backend/app/sim/solver.py` document the current damping, diffusion, buoyancy, condensation, and clipping controls. They should be revisited when the solver becomes more physically complete.
+Named constants in `backend/app/sim/educational_2d.py` document the current damping, diffusion, buoyancy, condensation, and clipping controls. They are preserved for regression stability; new scientific work should start in a new backend.
 
 ## Validation Notes
 

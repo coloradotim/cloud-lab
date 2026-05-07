@@ -16,6 +16,7 @@ def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
     assert preset["slug"] == "fair-weather-cumulus"
     assert preset["name"] == "Fair-weather cumulus over heated ground"
     assert preset["config"]["schema_version"] == "sim-config-v1"
+    assert preset["config"]["solver_type"] == "educational_2d"
     assert preset["config"]["initial_atmosphere"]["relative_humidity"] == 1.0
     assert preset["config"]["surface_heating"]["max_warming_rate_k_per_s"] == 0.012
     assert preset["config"]["seed"] == 3
@@ -49,3 +50,27 @@ def test_start_run_accepts_custom_config_from_frontend_controls() -> None:
     payload = response.json()
     assert payload["duration_seconds"] == 180.0
     assert payload["frame_interval_seconds"] == 12.0
+
+
+def test_solver_catalog_exposes_available_educational_and_planned_backends() -> None:
+    client = TestClient(app)
+
+    response = client.get("/simulations/solvers")
+
+    assert response.status_code == 200
+    solvers = response.json()["solvers"]
+    assert solvers[0]["solver_type"] == "educational_2d"
+    assert solvers[0]["status"] == "available"
+    assert any(solver["solver_type"] == "boussinesq_2d" for solver in solvers)
+
+
+def test_start_run_rejects_planned_solver_backend() -> None:
+    client = TestClient(app)
+    config = fair_weather_cumulus_preset().config.model_copy(
+        update={"solver_type": "boussinesq_2d"}
+    )
+
+    response = client.post("/simulations/runs", json=config.model_dump(mode="json"))
+
+    assert response.status_code == 422
+    assert "not available" in response.json()["detail"]

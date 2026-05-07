@@ -8,6 +8,7 @@ Cloud Lab uses explicit Pydantic models for simulation configuration and frame o
 
 | Section | Field | Unit | Notes |
 | --- | --- | --- | --- |
+| root | `solver_type` | identifier | Selects the simulation backend. `educational_2d` is the current available solver; `boussinesq_2d` is reserved as a planned backend. |
 | `domain` | `width_m` | m | Horizontal domain width. Must be positive. |
 | `domain` | `height_m` | m | Vertical domain height. Must be positive. |
 | `grid` | `columns` | count | Horizontal grid cell count. Must be greater than 1. |
@@ -25,6 +26,17 @@ Cloud Lab uses explicit Pydantic models for simulation configuration and frame o
 | `background_wind` | `u_m_per_s` | m s-1 | Uniform horizontal background wind. |
 | `background_wind` | `w_m_per_s` | m s-1 | Uniform vertical background wind. |
 | root | `seed` | integer | Random seed for reproducible generated fields. |
+
+## Solver Interface
+
+Solver backends must emit the shared `SimulationFrame` schema. The API and frontend should depend on `solver_type` and frame fields, not concrete backend internals.
+
+Current solver descriptors are exposed by `GET /simulations/solvers`:
+
+- `educational_2d`: available. The frozen V1 educational solver for learning, UI validation, local demos, and regression tests.
+- `boussinesq_2d`: planned. A future backend for pressure-coupled 2-D dynamics.
+
+To add a backend, implement the solver interface, register a descriptor in the solver registry, ensure frames validate against `SimulationFrame`, and document any missing fields or approximations.
 
 ## Frame Schema
 
@@ -45,6 +57,7 @@ Every field must match `grid.rows x grid.columns`. Tests reject rectangular mism
 | Field | Unit | Initial status |
 | --- | --- | --- |
 | `temperature_k` | K | Absolute air temperature initialized from a smooth mixed-layer profile. |
+| `temperature_perturbation_k` | K | Departure from the initial background profile. |
 | `water_vapor_kg_per_kg` | kg kg-1 | Specific humidity placeholder. |
 | `cloud_liquid_water_kg_per_kg` | kg kg-1 | Cloud liquid water placeholder, initially zero. |
 | `rain_water_kg_per_kg` | kg kg-1 | Rain water placeholder, initially zero for schema stability. |

@@ -19,15 +19,19 @@ from app.sim.schemas import (
     SimulationConfig,
     SimulationFields,
     SimulationFrame,
+    SolverType,
     SurfaceHeatingConfig,
     TimeConfig,
 )
 from app.sim.solver import (
+    SUPPORTED_SOLVER_TYPES,
     AtmosphereState,
     initialize_state,
     run_simulation,
+    solver_descriptors,
     state_to_frame,
     step_state,
+    stream_simulation_frames,
 )
 from app.sim.streaming import stream_run
 
@@ -41,11 +45,13 @@ __all__ = [
     "GridMetadata",
     "InitialAtmosphereConfig",
     "RunStatus",
+    "SUPPORTED_SOLVER_TYPES",
     "ScalarField2D",
     "SimulationConfig",
     "SimulationFields",
     "SimulationFrame",
     "SimulationPreset",
+    "SolverType",
     "SimulationRun",
     "SimulationRunManager",
     "SurfaceHeatingConfig",
@@ -58,7 +64,9 @@ __all__ = [
     "run_simulation",
     "run_manager",
     "simulation_presets",
+    "solver_descriptors",
     "state_to_frame",
     "step_state",
+    "stream_simulation_frames",
     "stream_run",
 ]
