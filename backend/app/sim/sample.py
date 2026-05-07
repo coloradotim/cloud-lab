@@ -111,7 +111,7 @@ def make_simulation_fields(
                 unit="kg kg-1",
                 display_name="Cloud liquid water",
                 description="Condensed warm-cloud liquid water.",
-                display_scale=DisplayScale(min_value=0.0, max_value=0.002, color_map="Blues"),
+                display_scale=DisplayScale(min_value=0.0, max_value=0.0002, color_map="Blues"),
             ),
         ),
         rain_water_kg_per_kg=ScalarField2D(

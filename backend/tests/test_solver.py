@@ -170,6 +170,23 @@ def test_humid_seeded_run_condenses_cloud_water() -> None:
     assert all(value >= 0.0 for row in final_cloud for value in row)
 
 
+def test_max_heating_fair_weather_run_condenses_by_fifteen_minutes() -> None:
+    preset = fair_weather_cumulus_preset()
+    config = preset.config.model_copy(
+        update={
+            "time": preset.config.time.model_copy(update={"duration_seconds": 900.0}),
+            "surface_heating": preset.config.surface_heating.model_copy(
+                update={"max_warming_rate_k_per_s": 0.025}
+            ),
+        }
+    )
+
+    frames = run_simulation(config)
+    final_cloud = frames[-1].fields.cloud_liquid_water_kg_per_kg.values
+
+    assert _max_value(final_cloud) > 1e-4
+
+
 def test_seeded_runs_are_reproducible() -> None:
     config = _small_config(seed=9)
 

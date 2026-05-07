@@ -26,6 +26,8 @@ Current scalar rendering:
 - converts absolute temperature from Kelvin transport values to Celsius for browser display
 - overlays sampled velocity vectors from horizontal and vertical velocity fields
 
+The cloud liquid water display scale is tuned for the current toy solver's small condensate values, so early fair-weather condensation is visible before the model reaches unrealistically large liquid-water amounts.
+
 The field readout shows time, buffered frames, displayed frame index, range, local probe value, and local velocity. Hover/cursor inspection maps canvas coordinates back to grid row/column and physical `x`/`z` coordinates.
 
 ## Playback Controls
