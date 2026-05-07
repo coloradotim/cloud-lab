@@ -61,16 +61,22 @@ def test_solver_catalog_exposes_available_educational_and_planned_backends() -> 
     solvers = response.json()["solvers"]
     assert solvers[0]["solver_type"] == "educational_2d"
     assert solvers[0]["status"] == "available"
-    assert any(solver["solver_type"] == "boussinesq_2d" for solver in solvers)
+    boussinesq = next(solver for solver in solvers if solver["solver_type"] == "boussinesq_2d")
+    assert boussinesq["status"] == "available"
 
 
-def test_start_run_rejects_planned_solver_backend() -> None:
+def test_start_run_accepts_boussinesq_solver_backend() -> None:
     client = TestClient(app)
     config = fair_weather_cumulus_preset().config.model_copy(
-        update={"solver_type": "boussinesq_2d"}
+        update={
+            "solver_type": "boussinesq_2d",
+            "time": fair_weather_cumulus_preset().config.time.model_copy(
+                update={"duration_seconds": 20.0, "frame_interval_seconds": 10.0}
+            ),
+        }
     )
 
     response = client.post("/simulations/runs", json=config.model_dump(mode="json"))
 
-    assert response.status_code == 422
-    assert "not available" in response.json()["detail"]
+    assert response.status_code == 201
+    assert response.json()["duration_seconds"] == 20.0

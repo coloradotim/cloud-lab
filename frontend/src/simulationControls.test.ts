@@ -74,9 +74,21 @@ describe("simulation controls", () => {
     ).toEqual(
       expect.arrayContaining([
         "Low humidity may produce little or no cloud liquid water.",
-        "Very strong heating can create abrupt thermals in the simplified solver.",
+        "Very strong heating can create abrupt thermals in the selected solver.",
         "Long runs with short frame cadence may accumulate many browser frames.",
       ]),
+    );
+  });
+
+  it("warns when boussinesq runs use larger grids", () => {
+    expect(
+      configWarnings({
+        ...config,
+        solver_type: "boussinesq_2d",
+        grid: { columns: 72, rows: 48 },
+      }),
+    ).toContain(
+      "Boussinesq runs use an iterative streamfunction solve and may slow down on larger grids.",
     );
   });
 });

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from app.sim import educational_2d
+from app.sim import boussinesq_2d, educational_2d
 from app.sim.schemas import SimulationConfig, SimulationFrame, SolverType
 from app.sim.solver_interface import SolverBackend, SolverDescriptor
 
@@ -40,28 +40,41 @@ class Educational2DBackend:
                 next_frame_time += config.time.frame_interval_seconds
 
 
-class PlaceholderBackend:
-    def __init__(self, descriptor: SolverDescriptor) -> None:
-        self.descriptor = descriptor
+class Boussinesq2DBackend:
+    descriptor = SolverDescriptor(
+        solver_type="boussinesq_2d",
+        name="Boussinesq 2-D",
+        description=(
+            "Prototype streamfunction-vorticity backend with incompressible 2-D flow, buoyancy "
+            "from temperature perturbation, and simple warm-cloud saturation adjustment."
+        ),
+        status="available",
+        limitations=(
+            "Prototype finite-difference dynamics, not a validated atmospheric model.",
+            "No turbulence closure, terrain, Coriolis force, precipitation sedimentation, or ice.",
+            "Simple saturation adjustment remains intentionally minimal.",
+        ),
+    )
 
     def run(self, config: SimulationConfig) -> list[SimulationFrame]:
-        raise NotImplementedError(f"{self.descriptor.solver_type} is not implemented yet")
+        return list(self.stream_frames(config))
 
     def stream_frames(self, config: SimulationConfig) -> Iterator[SimulationFrame]:
-        raise NotImplementedError(f"{self.descriptor.solver_type} is not implemented yet")
+        state = boussinesq_2d.initialize_state(config)
+        yield boussinesq_2d.state_to_frame(config, state)
+
+        next_frame_time = config.time.frame_interval_seconds
+        max_steps = int(config.time.duration_seconds / config.time.time_step_seconds)
+        for _step_index in range(max_steps):
+            state = boussinesq_2d.step_state(config, state)
+            if state.time_seconds + 1e-9 >= next_frame_time:
+                yield boussinesq_2d.state_to_frame(config, state)
+                next_frame_time += config.time.frame_interval_seconds
 
 
 _BACKENDS: dict[SolverType, SolverBackend] = {
     "educational_2d": Educational2DBackend(),
-    "boussinesq_2d": PlaceholderBackend(
-        SolverDescriptor(
-            solver_type="boussinesq_2d",
-            name="Boussinesq 2-D",
-            description="Future pressure-coupled 2-D dynamics backend.",
-            status="planned",
-            limitations=("Placeholder only; not available for runs yet.",),
-        )
-    ),
+    "boussinesq_2d": Boussinesq2DBackend(),
 }
 
 SUPPORTED_SOLVER_TYPES = tuple(_BACKENDS.keys())
