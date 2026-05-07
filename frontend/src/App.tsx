@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 import "./App.css";
 import { ScientificDashboard } from "./ScientificDashboard";
@@ -9,7 +10,12 @@ import {
   kelvinToCelsius,
   updateConfigNumber,
 } from "./simulationControls";
-import type { SimulationConfig, SimulationFrame, SimulationPreset } from "./simulationTypes";
+import type {
+  SimulationConfig,
+  SimulationFrame,
+  SimulationPreset,
+  SolverDescriptor,
+} from "./simulationTypes";
 import { displayUnit } from "./visualization";
 
 type HealthState =
@@ -65,6 +71,16 @@ async function fetchPresets(signal: AbortSignal): Promise<SimulationPreset[]> {
 
   const payload = (await response.json()) as { presets?: SimulationPreset[] };
   return payload.presets ?? [];
+}
+
+async function fetchSolvers(signal: AbortSignal): Promise<SolverDescriptor[]> {
+  const response = await fetch(`${apiBaseUrl}/simulations/solvers`, { signal });
+  if (!response.ok) {
+    throw new Error(`Solver request returned HTTP ${response.status}`);
+  }
+
+  const payload = (await response.json()) as { solvers?: SolverDescriptor[] };
+  return payload.solvers ?? [];
 }
 
 async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
@@ -148,6 +164,7 @@ export function App() {
   const [isPaused, setIsPaused] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [presets, setPresets] = useState<SimulationPreset[]>([]);
+  const [solvers, setSolvers] = useState<SolverDescriptor[]>([]);
   const [selectedPreset, setSelectedPreset] = useState("fair-weather-cumulus");
   const [simulationConfig, setSimulationConfig] = useState<SimulationConfig | null>(null);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
@@ -179,6 +196,18 @@ export function App() {
           status: "offline",
           message: "Backend is not reachable at the configured API URL.",
         });
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchSolvers(controller.signal)
+      .then(setSolvers)
+      .catch((error: unknown) => {
+        setConfigMessage(error instanceof Error ? error.message : "Unable to load solver catalog.");
       });
 
     return () => controller.abort();
@@ -464,6 +493,7 @@ export function App() {
       <SimulationControls
         config={simulationConfig}
         presets={presets}
+        solvers={solvers}
         selectedPreset={selectedPreset}
         message={configMessage}
         onPresetChange={(presetSlug) => {
@@ -606,6 +636,7 @@ function maxGridValue(values: number[][]): number {
 function SimulationControls({
   config,
   presets,
+  solvers,
   selectedPreset,
   message,
   onPresetChange,
@@ -613,6 +644,7 @@ function SimulationControls({
 }: {
   config: SimulationConfig | null;
   presets: SimulationPreset[];
+  solvers: SolverDescriptor[];
   selectedPreset: string;
   message: string | null;
   onPresetChange: (presetSlug: string) => void;
@@ -639,6 +671,16 @@ function SimulationControls({
     onConfigChange(updateConfigNumber(config, path, value));
   }
 
+  function updateSolverType(solverType: SimulationConfig["solver_type"]) {
+    if (!config) {
+      return;
+    }
+
+    onConfigChange({ ...config, solver_type: solverType });
+  }
+
+  const activeSolver = solvers.find((solver) => solver.solver_type === config.solver_type);
+
   return (
     <section className="controls-panel" aria-labelledby="controls-title">
       <div className="controls-header">
@@ -647,142 +689,196 @@ function SimulationControls({
           <h2 id="controls-title">Initial conditions</h2>
         </div>
 
-        <label className="preset-select">
-          Preset
-          <select value={selectedPreset} onChange={(event) => onPresetChange(event.target.value)}>
-            {presets.map((preset) => (
-              <option key={preset.slug} value={preset.slug}>
-                {preset.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="setup-selects">
+          <label className="preset-select">
+            Preset
+            <select value={selectedPreset} onChange={(event) => onPresetChange(event.target.value)}>
+              {presets.map((preset) => (
+                <option key={preset.slug} value={preset.slug}>
+                  {preset.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="preset-select">
+            Solver
+            <select
+              value={config.solver_type}
+              onChange={(event) =>
+                updateSolverType(event.target.value as SimulationConfig["solver_type"])
+              }
+            >
+              {solvers.length === 0 ? (
+                <option value={config.solver_type}>Educational 2-D</option>
+              ) : (
+                solvers.map((solver) => (
+                  <option
+                    key={solver.solver_type}
+                    value={solver.solver_type}
+                    disabled={solver.status !== "available"}
+                  >
+                    {solver.name} {solver.status !== "available" ? `(${solver.status})` : ""}
+                  </option>
+                ))
+              )}
+            </select>
+          </label>
+        </div>
       </div>
 
       <div className="controls-grid">
-        <NumberControl
-          label="Surface temperature"
-          unit="deg C"
-          value={kelvinToCelsius(config.initial_atmosphere.surface_temperature_k)}
-          limits={CONTROL_LIMITS.surfaceTemperatureC}
-          onChange={(value) =>
-            update("initial_atmosphere.surface_temperature_k", celsiusToKelvin(value))
-          }
-        />
-        <NumberControl
-          label="Surface heating"
-          unit="K/s"
-          value={config.surface_heating.max_warming_rate_k_per_s}
-          limits={CONTROL_LIMITS.surfaceHeatingRate}
-          onChange={(value) => update("surface_heating.max_warming_rate_k_per_s", value)}
-        />
-        <NumberControl
-          label="Heating width"
-          unit="m"
-          value={config.surface_heating.patch_width_m}
-          limits={{
-            ...CONTROL_LIMITS.heatingWidth,
-            max: config.domain.width_m,
-          }}
-          onChange={(value) => update("surface_heating.patch_width_m", value)}
-        />
-        <NumberControl
-          label="Heating center"
-          unit="m"
-          value={config.surface_heating.patch_center_x_m}
-          limits={{
-            ...CONTROL_LIMITS.heatingCenter,
-            max: config.domain.width_m,
-          }}
-          onChange={(value) => update("surface_heating.patch_center_x_m", value)}
-        />
-        <NumberControl
-          label="Lapse rate"
-          unit="K/m"
-          value={config.initial_atmosphere.lapse_rate_k_per_m}
-          limits={CONTROL_LIMITS.lapseRate}
-          onChange={(value) => update("initial_atmosphere.lapse_rate_k_per_m", value)}
-        />
-        <NumberControl
-          label="Boundary layer top"
-          unit="m"
-          value={config.initial_atmosphere.boundary_layer_depth_m}
-          limits={{
-            ...CONTROL_LIMITS.boundaryLayerDepth,
-            max: config.domain.height_m,
-          }}
-          onChange={(value) => update("initial_atmosphere.boundary_layer_depth_m", value)}
-        />
-        <NumberControl
-          label="Relative humidity"
-          unit="fraction"
-          value={config.initial_atmosphere.relative_humidity}
-          limits={CONTROL_LIMITS.relativeHumidity}
-          onChange={(value) => update("initial_atmosphere.relative_humidity", value)}
-        />
-        <NumberControl
-          label="Domain width"
-          unit="m"
-          value={config.domain.width_m}
-          limits={CONTROL_LIMITS.domainWidth}
-          onChange={(value) => update("domain.width_m", value)}
-        />
-        <NumberControl
-          label="Domain height"
-          unit="m"
-          value={config.domain.height_m}
-          limits={CONTROL_LIMITS.domainHeight}
-          onChange={(value) => update("domain.height_m", value)}
-        />
-        <NumberControl
-          label="Grid columns"
-          unit="cells"
-          value={config.grid.columns}
-          limits={CONTROL_LIMITS.gridColumns}
-          onChange={(value) => update("grid.columns", value)}
-        />
-        <NumberControl
-          label="Grid rows"
-          unit="cells"
-          value={config.grid.rows}
-          limits={CONTROL_LIMITS.gridRows}
-          onChange={(value) => update("grid.rows", value)}
-        />
-        <NumberControl
-          label="Runtime"
-          unit="s"
-          value={config.time.duration_seconds}
-          limits={CONTROL_LIMITS.duration}
-          onChange={(value) => update("time.duration_seconds", value)}
-        />
-        <NumberControl
-          label="Timestep"
-          unit="s"
-          value={config.time.time_step_seconds}
-          limits={CONTROL_LIMITS.timeStep}
-          onChange={(value) => update("time.time_step_seconds", value)}
-        />
-        <NumberControl
-          label="Frame cadence"
-          unit="s"
-          value={config.time.frame_interval_seconds}
-          limits={CONTROL_LIMITS.frameInterval}
-          onChange={(value) => update("time.frame_interval_seconds", value)}
-        />
-        <NumberControl
-          label="Background wind"
-          unit="m/s"
-          value={config.background_wind.u_m_per_s}
-          limits={CONTROL_LIMITS.wind}
-          onChange={(value) => update("background_wind.u_m_per_s", value)}
-        />
-        <NumberControl
-          label="Random seed"
-          unit="seed"
-          value={config.seed}
-          limits={CONTROL_LIMITS.seed}
-          onChange={(value) => update("seed", value)}
-        />
+        <ControlGroup title="Solver mode">
+          <p className="control-note">
+            {activeSolver?.description ??
+              "Educational 2-D solver for local fair-weather cumulus experiments."}
+          </p>
+          {activeSolver?.limitations.length ? (
+            <ul className="control-note-list">
+              {activeSolver.limitations.map((limitation) => (
+                <li key={limitation}>{limitation}</li>
+              ))}
+            </ul>
+          ) : null}
+        </ControlGroup>
+
+        <ControlGroup title="Atmosphere">
+          <NumberControl
+            label="Surface temperature"
+            unit="deg C"
+            value={kelvinToCelsius(config.initial_atmosphere.surface_temperature_k)}
+            limits={CONTROL_LIMITS.surfaceTemperatureC}
+            onChange={(value) =>
+              update("initial_atmosphere.surface_temperature_k", celsiusToKelvin(value))
+            }
+          />
+          <NumberControl
+            label="Lapse rate"
+            unit="K/m"
+            value={config.initial_atmosphere.lapse_rate_k_per_m}
+            limits={CONTROL_LIMITS.lapseRate}
+            onChange={(value) => update("initial_atmosphere.lapse_rate_k_per_m", value)}
+          />
+          <NumberControl
+            label="Boundary layer top"
+            unit="m"
+            value={config.initial_atmosphere.boundary_layer_depth_m}
+            limits={{
+              ...CONTROL_LIMITS.boundaryLayerDepth,
+              max: config.domain.height_m,
+            }}
+            onChange={(value) => update("initial_atmosphere.boundary_layer_depth_m", value)}
+          />
+          <NumberControl
+            label="Relative humidity"
+            unit="fraction"
+            value={config.initial_atmosphere.relative_humidity}
+            limits={CONTROL_LIMITS.relativeHumidity}
+            onChange={(value) => update("initial_atmosphere.relative_humidity", value)}
+          />
+        </ControlGroup>
+
+        <ControlGroup title="Surface heating">
+          <NumberControl
+            label="Heating rate"
+            unit="K/s"
+            value={config.surface_heating.max_warming_rate_k_per_s}
+            limits={CONTROL_LIMITS.surfaceHeatingRate}
+            onChange={(value) => update("surface_heating.max_warming_rate_k_per_s", value)}
+          />
+          <NumberControl
+            label="Patch width"
+            unit="m"
+            value={config.surface_heating.patch_width_m}
+            limits={{
+              ...CONTROL_LIMITS.heatingWidth,
+              max: config.domain.width_m,
+            }}
+            onChange={(value) => update("surface_heating.patch_width_m", value)}
+          />
+          <NumberControl
+            label="Patch center"
+            unit="m"
+            value={config.surface_heating.patch_center_x_m}
+            limits={{
+              ...CONTROL_LIMITS.heatingCenter,
+              max: config.domain.width_m,
+            }}
+            onChange={(value) => update("surface_heating.patch_center_x_m", value)}
+          />
+        </ControlGroup>
+
+        <ControlGroup title="Domain and grid">
+          <NumberControl
+            label="Domain width"
+            unit="m"
+            value={config.domain.width_m}
+            limits={CONTROL_LIMITS.domainWidth}
+            onChange={(value) => update("domain.width_m", value)}
+          />
+          <NumberControl
+            label="Domain height"
+            unit="m"
+            value={config.domain.height_m}
+            limits={CONTROL_LIMITS.domainHeight}
+            onChange={(value) => update("domain.height_m", value)}
+          />
+          <NumberControl
+            label="Grid columns"
+            unit="cells"
+            value={config.grid.columns}
+            limits={CONTROL_LIMITS.gridColumns}
+            onChange={(value) => update("grid.columns", value)}
+          />
+          <NumberControl
+            label="Grid rows"
+            unit="cells"
+            value={config.grid.rows}
+            limits={CONTROL_LIMITS.gridRows}
+            onChange={(value) => update("grid.rows", value)}
+          />
+        </ControlGroup>
+
+        <ControlGroup title="Time and output">
+          <NumberControl
+            label="Runtime"
+            unit="s"
+            value={config.time.duration_seconds}
+            limits={CONTROL_LIMITS.duration}
+            onChange={(value) => update("time.duration_seconds", value)}
+          />
+          <NumberControl
+            label="Timestep"
+            unit="s"
+            value={config.time.time_step_seconds}
+            limits={CONTROL_LIMITS.timeStep}
+            onChange={(value) => update("time.time_step_seconds", value)}
+          />
+          <NumberControl
+            label="Frame cadence"
+            unit="s"
+            value={config.time.frame_interval_seconds}
+            limits={CONTROL_LIMITS.frameInterval}
+            onChange={(value) => update("time.frame_interval_seconds", value)}
+          />
+        </ControlGroup>
+
+        <ControlGroup title="Wind and reproducibility">
+          <NumberControl
+            label="Background wind"
+            unit="m/s"
+            value={config.background_wind.u_m_per_s}
+            limits={CONTROL_LIMITS.wind}
+            onChange={(value) => update("background_wind.u_m_per_s", value)}
+          />
+          <NumberControl
+            label="Random seed"
+            unit="seed"
+            value={config.seed}
+            limits={CONTROL_LIMITS.seed}
+            onChange={(value) => update("seed", value)}
+          />
+        </ControlGroup>
       </div>
 
       <div className="control-guidance" aria-live="polite">
@@ -806,6 +902,15 @@ type ControlLimits = {
   max: number;
   step: number;
 };
+
+function ControlGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <fieldset className="control-group">
+      <legend>{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
 
 function NumberControl({
   label,

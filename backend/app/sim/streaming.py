@@ -4,7 +4,7 @@ import asyncio
 from collections.abc import AsyncIterator
 
 from app.sim.runs import SimulationRun, run_manager
-from app.sim.solver import initialize_state, state_to_frame, step_state
+from app.sim.solver import stream_simulation_frames
 
 STREAM_SLEEP_SECONDS = 0.02
 
@@ -18,23 +18,14 @@ async def stream_run(run: SimulationRun) -> AsyncIterator[dict[str, object]]:
     run_manager.mark_running(run)
     yield {"type": "metadata", "run": run.metadata()}
 
-    state = initialize_state(run.config)
-    yield _frame_message(run, state_to_frame(run.config, state).to_transport_dict())
-
-    next_frame_time = run.config.time.frame_interval_seconds
-    max_steps = int(run.config.time.duration_seconds / run.config.time.time_step_seconds)
-
     try:
-        for _step_index in range(max_steps):
+        for frame in stream_simulation_frames(run.config):
             if _stop_was_requested(run):
                 yield {"type": "stopped", "run": run.metadata()}
                 return
 
-            state = step_state(run.config, state)
-            if state.time_seconds + 1e-9 >= next_frame_time:
-                yield _frame_message(run, state_to_frame(run.config, state).to_transport_dict())
-                next_frame_time += run.config.time.frame_interval_seconds
-                await asyncio.sleep(STREAM_SLEEP_SECONDS)
+            yield _frame_message(run, frame.to_transport_dict())
+            await asyncio.sleep(STREAM_SLEEP_SECONDS)
 
         run_manager.mark_completed(run)
         yield {"type": "complete", "run": run.metadata()}

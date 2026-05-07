@@ -11,6 +11,7 @@ import {
 
 const config: SimulationConfig = {
   schema_version: "sim-config-v1",
+  solver_type: "educational_2d",
   domain: { width_m: 10_000, height_m: 3_000 },
   grid: { columns: 36, rows: 24 },
   time: { time_step_seconds: 2, duration_seconds: 120, frame_interval_seconds: 6 },
