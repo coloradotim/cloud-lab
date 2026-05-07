@@ -9,6 +9,7 @@ This repository is in its initial scaffold stage. The current app provides:
 - A FastAPI backend with a `/health` endpoint.
 - A separated Python simulation package boundary under `backend/app/sim`.
 - A React + Vite frontend that reports backend connection status.
+- A shared simulation config and frame schema with units metadata.
 - Backend tests, linting, formatting checks, and type checking.
 - Frontend linting and production build scripts.
 - GitHub Actions CI for pushes and pull requests to `main`.
@@ -91,5 +92,6 @@ GitHub Actions runs on pushes and pull requests to `main`. CI installs backend a
 ## Documentation
 
 - [Architecture](docs/architecture.md)
+- [Simulation data model](docs/simulation-data-model.md)
 - [Scientific roadmap](docs/scientific-roadmap.md)
 - [Development workflow](docs/development.md)

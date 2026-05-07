@@ -25,6 +25,8 @@ Early microphysics should remain deliberately simple: vapor, cloud water, and ra
 
 As the model matures, evaluate PySDM or a similar library for more credible warm-cloud microphysics. That evaluation should compare integration complexity, reproducibility, performance on a Mac, and how well the library fits Cloud Lab's frame schemas.
 
+The v1 frame schema already reserves `water_vapor_kg_per_kg`, `cloud_liquid_water_kg_per_kg`, and `rain_water_kg_per_kg` fields with units metadata so later warm-cloud work can evolve without inventing new transport names in the frontend.
+
 ## Fluid Dynamics Assumptions To Start
 
 The starting dynamics can be simplified and educational, but the assumptions must be explicit. Initial work may use coarse approximations for advection, buoyancy, and diffusion while tests cover shape consistency, non-negative moisture fields, deterministic output, and stable schemas.

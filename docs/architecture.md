@@ -26,7 +26,9 @@ The backend owns transport, validation, run orchestration, and future WebSocket 
 
 The simulation core lives under `backend/app/sim`. It must remain importable and testable without FastAPI, React, browser APIs, or network state.
 
-The core should expose plain, documented configuration and output models. Every physical field added later should document units, expected shape, and whether the value is physically meaningful or illustrative.
+The core exposes plain, documented configuration and output models. `SimulationConfig` defines domain, grid, timestep, initial atmosphere, heating, wind, and seed controls. `SimulationFrame` carries grid metadata and unit-bearing scalar fields that can be serialized for HTTP or WebSocket transport without frontend-specific coupling.
+
+Every physical field must document units, expected shape, and whether the value is physically meaningful or illustrative. The current sample frame is a deterministic schema sample, not a serious cloud solver.
 
 ## Live Frame Streaming
 
