@@ -74,8 +74,14 @@ grid size and emitted frame count.
 The validation tests require finite fields, non-negative moisture, bounded velocities,
 bounded cloud water, a quiet no-forcing case, no cloud water in the dry case, cloud
 water in the humid case, reproducibility, weaker vertical growth in the stable case,
-similar qualitative behavior across the small and medium model sizes, and cloud-water
-maxima near or above the boundary-layer top for the humid lifted case.
+and similar qualitative behavior across the small and medium model sizes.
+
+One science check is intentionally marked as an expected failure: the humid lifted
+case currently places its cloud-water maximum below the boundary-layer top. Earlier
+attempts to force this maximum upward by gating condensation at the mixed-layer top
+created an artificial cloud shelf and stronger cellular return flow. That behavior
+should be fixed by improving the thermodynamics, boundary conditions, or vertical
+transport, not by hard-clipping cloud placement.
 
 ## Current Read
 
