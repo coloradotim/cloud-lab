@@ -93,11 +93,11 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
         initial_atmosphere: {
           surface_temperature_k: celsiusToKelvin(25),
           lapse_rate_k_per_m: 0.0065,
-          relative_humidity: 1,
+          relative_humidity: 0.98,
           boundary_layer_depth_m: 1_000,
         },
         surface_heating: {
-          max_warming_rate_k_per_s: 0.018,
+          max_warming_rate_k_per_s: 0.022,
           patch_center_x_m: config.domain.width_m / 2,
           patch_width_m: 2_000,
         },
@@ -139,11 +139,11 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
         initial_atmosphere: {
           surface_temperature_k: celsiusToKelvin(25),
           lapse_rate_k_per_m: 0.0065,
-          relative_humidity: 1,
+          relative_humidity: 0.98,
           boundary_layer_depth_m: 1_000,
         },
         surface_heating: {
-          max_warming_rate_k_per_s: 0.014,
+          max_warming_rate_k_per_s: 0.018,
           patch_center_x_m: config.domain.width_m / 2,
           patch_width_m: 2_000,
         },

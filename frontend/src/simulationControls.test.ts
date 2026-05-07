@@ -109,7 +109,7 @@ describe("simulation controls", () => {
       background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
     });
     expect(humid?.apply(config).surface_heating.max_warming_rate_k_per_s).toBeGreaterThan(0);
-    expect(humid?.apply(config).initial_atmosphere.relative_humidity).toBe(1);
+    expect(humid?.apply(config).initial_atmosphere.relative_humidity).toBe(0.98);
   });
 
   it("maps boussinesq model sizes to consistent domain grid and runtime configs", () => {

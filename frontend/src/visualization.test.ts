@@ -144,6 +144,12 @@ describe("visualization helpers", () => {
     expect(cloud).toEqual([255, 255, 255]);
   });
 
+  it("maps diverging velocity colors with a neutral midpoint", () => {
+    expect(colorForNormalizedValue(0, "coolwarm")).toEqual([70, 120, 210]);
+    expect(colorForNormalizedValue(0.5, "coolwarm")).toEqual([245, 245, 245]);
+    expect(colorForNormalizedValue(1, "coolwarm")).toEqual([210, 80, 60]);
+  });
+
   it("computes data range when display scale is absent", () => {
     expect(getFieldStats(frame.fields.vertical_velocity_m_per_s)).toEqual({ min: 0.1, max: 0.4 });
     expect(valueRangeForField(frame.fields.vertical_velocity_m_per_s)).toEqual({

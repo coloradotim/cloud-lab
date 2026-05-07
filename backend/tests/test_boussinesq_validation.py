@@ -81,6 +81,11 @@ def test_humid_boussinesq_reference_case_creates_bounded_cloud_water() -> None:
     assert diagnostics.max_cloud_liquid_water_kg_per_kg > 1e-5
     assert diagnostics.total_cloud_liquid_water_kg_per_kg > 0.0
     assert diagnostics.cloud_top_height_m is not None
+    assert diagnostics.max_cloud_liquid_water_height_m is not None
+    assert diagnostics.max_cloud_liquid_water_height_m >= (
+        humid.config.initial_atmosphere.boundary_layer_depth_m
+    )
+    assert diagnostics.cloud_top_height_m < humid.config.domain.height_m * 0.75
 
 
 def test_stable_reference_case_suppresses_vertical_growth() -> None:
@@ -114,6 +119,8 @@ def test_small_and_medium_model_sizes_have_similar_qualitative_behavior() -> Non
         assert diagnostics.min_moisture_kg_per_kg >= 0.0
         assert diagnostics.max_abs_vertical_velocity_m_per_s > 0.01
         assert diagnostics.max_cloud_liquid_water_kg_per_kg >= 0.0
+        if diagnostics.max_cloud_liquid_water_height_m is not None:
+            assert diagnostics.cloud_top_height_m is not None
 
     assert small_diagnostics.max_abs_vertical_velocity_m_per_s < 1.0
     assert medium_diagnostics.max_abs_vertical_velocity_m_per_s < 1.0

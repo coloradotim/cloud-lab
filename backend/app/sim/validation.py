@@ -44,6 +44,7 @@ class BoussinesqDiagnostics:
     max_cloud_liquid_water_kg_per_kg: float
     total_cloud_liquid_water_kg_per_kg: float
     cloud_top_height_m: float | None
+    max_cloud_liquid_water_height_m: float | None
     non_finite_value_count: int
     min_moisture_kg_per_kg: float
 
@@ -86,8 +87,8 @@ def boussinesq_reference_cases() -> list[BoussinesqReferenceCase]:
             config=_reference_config(
                 base,
                 duration_seconds=1_200.0,
-                relative_humidity=1.0,
-                heating_rate=0.018,
+                relative_humidity=0.98,
+                heating_rate=0.022,
                 lapse_rate=0.0065,
                 wind_u=0.15,
                 seed=17,
@@ -114,8 +115,8 @@ def boussinesq_reference_cases() -> list[BoussinesqReferenceCase]:
             config=_reference_config(
                 base,
                 duration_seconds=1_200.0,
-                relative_humidity=1.0,
-                heating_rate=0.014,
+                relative_humidity=0.98,
+                heating_rate=0.018,
                 lapse_rate=0.0065,
                 wind_u=0.25,
                 seed=23,
@@ -174,9 +175,13 @@ def boussinesq_model_sizes() -> list[BoussinesqModelSize]:
 def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnostics:
     fields = frame.fields
     cloud_top_height_m: float | None = None
+    max_cloud_height_m: float | None = None
+    max_cloud = _max(fields.cloud_liquid_water_kg_per_kg.values)
     for row_index, row in enumerate(fields.cloud_liquid_water_kg_per_kg.values):
         if max(row) > CLOUD_TOP_THRESHOLD_KG_PER_KG:
             cloud_top_height_m = frame.grid.z_coordinates_m[row_index]
+        if max_cloud > 0.0 and max(row) == max_cloud:
+            max_cloud_height_m = frame.grid.z_coordinates_m[row_index]
 
     moisture_values = [
         value
@@ -196,11 +201,12 @@ def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnost
         max_temperature_perturbation_k=_max(fields.temperature_perturbation_k.values),
         min_temperature_perturbation_k=_min(fields.temperature_perturbation_k.values),
         max_water_vapor_kg_per_kg=_max(fields.water_vapor_kg_per_kg.values),
-        max_cloud_liquid_water_kg_per_kg=_max(fields.cloud_liquid_water_kg_per_kg.values),
+        max_cloud_liquid_water_kg_per_kg=max_cloud,
         total_cloud_liquid_water_kg_per_kg=sum(
             value for row in fields.cloud_liquid_water_kg_per_kg.values for value in row
         ),
         cloud_top_height_m=cloud_top_height_m,
+        max_cloud_liquid_water_height_m=max_cloud_height_m,
         non_finite_value_count=sum(1 for value in all_values if not isfinite(value)),
         min_moisture_kg_per_kg=min(moisture_values),
     )

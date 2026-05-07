@@ -14,6 +14,7 @@ REFERENCE_TEMPERATURE_K = 300.0
 LATENT_HEATING_K_PER_KG_PER_KG = 1_200.0
 CONDENSATION_FRACTION_PER_STEP = 0.28
 CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S = 0.002
+EVAPORATION_FRACTION_PER_STEP = 0.35
 THERMAL_DIFFUSIVITY_M2_PER_S = 22.0
 MOISTURE_DIFFUSIVITY_M2_PER_S = 10.0
 KINEMATIC_VISCOSITY_M2_PER_S = 90.0
@@ -133,7 +134,7 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
     streamfunction = _solve_streamfunction(vorticity, grid)
     u, w = _velocity_from_streamfunction(config, streamfunction, grid)
     temperature = _temperature_from_perturbation(theta, state.environmental_temperature_k)
-    condensation = _condense(temperature, vapor, cloud, w)
+    condensation = _condense(config, grid, temperature, vapor, cloud, w)
     theta = _clip_grid(
         _theta_from_temperature(condensation.temperature_k, state.environmental_temperature_k),
         -MAX_ABS_THETA_PERTURBATION_K,
@@ -355,6 +356,8 @@ def _velocity_from_streamfunction(
 
 
 def _condense(
+    config: SimulationConfig,
+    grid: SolverGrid,
     temperature: Grid,
     water_vapor: Grid,
     cloud_liquid_water: Grid,
@@ -366,14 +369,38 @@ def _condense(
 
     for row_index, row in enumerate(updated_temperature):
         for column_index, temperature_k in enumerate(row):
-            if (
-                vertical_velocity[row_index][column_index] <= CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S
-                and updated_cloud[row_index][column_index] == 0.0
-            ):
+            below_mixed_layer_top = (
+                grid.z_coordinates_m[row_index] < config.initial_atmosphere.boundary_layer_depth_m
+            )
+            existing_cloud = updated_cloud[row_index][column_index]
+            if below_mixed_layer_top and existing_cloud > 0.0:
+                updated_vapor[row_index][column_index] += existing_cloud
+                updated_cloud[row_index][column_index] = 0.0
+                updated_temperature[row_index][column_index] -= (
+                    LATENT_HEATING_K_PER_KG_PER_KG * existing_cloud
+                )
+                continue
+
+            can_create_new_cloud = (
+                not below_mixed_layer_top
+                and vertical_velocity[row_index][column_index]
+                > CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S
+            )
+            if not can_create_new_cloud and existing_cloud == 0.0:
                 continue
 
             qsat = _saturation_specific_humidity_kg_per_kg(temperature_k)
             excess = max(0.0, updated_vapor[row_index][column_index] - qsat)
+            if excess == 0.0 and existing_cloud > 0.0:
+                deficit = max(0.0, qsat - updated_vapor[row_index][column_index])
+                evaporated = min(existing_cloud, deficit * EVAPORATION_FRACTION_PER_STEP)
+                updated_vapor[row_index][column_index] += evaporated
+                updated_cloud[row_index][column_index] -= evaporated
+                updated_temperature[row_index][column_index] -= (
+                    LATENT_HEATING_K_PER_KG_PER_KG * evaporated
+                )
+                continue
+
             condensed = excess * CONDENSATION_FRACTION_PER_STEP
             updated_vapor[row_index][column_index] = max(
                 0.0,

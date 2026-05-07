@@ -212,9 +212,21 @@ export function colorForNormalizedValue(normalizedValue: number, colorMap: strin
   }
 
   if (colorMap === "coolwarm") {
-    return value < 0.5
-      ? [Math.round(70 + value * 260), Math.round(120 + value * 160), 210]
-      : [210, Math.round(220 - (value - 0.5) * 240), Math.round(160 - (value - 0.5) * 220)];
+    if (value < 0.5) {
+      const weight = value / 0.5;
+      return [
+        Math.round(70 + (245 - 70) * weight),
+        Math.round(120 + (245 - 120) * weight),
+        Math.round(210 + (245 - 210) * weight),
+      ];
+    }
+
+    const weight = (value - 0.5) / 0.5;
+    return [
+      Math.round(245 + (210 - 245) * weight),
+      Math.round(245 + (80 - 245) * weight),
+      Math.round(245 + (60 - 245) * weight),
+    ];
   }
 
   return [
