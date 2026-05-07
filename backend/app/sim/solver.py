@@ -20,6 +20,7 @@ WIND_RESPONSE_SCALE = 0.035
 VELOCITY_DAMPING_PER_SECOND = 0.018
 THERMAL_DIFFUSIVITY_M2_PER_S = 18.0
 MOISTURE_DIFFUSIVITY_M2_PER_S = 9.0
+VELOCITY_DIFFUSIVITY_M2_PER_S = 30.0
 MAX_ABS_VELOCITY_M_PER_S = 12.0
 SURFACE_HEATING_LAYER_FRACTION = 0.12
 SURFACE_HEATING_EDGE_TAPER_FRACTION = 0.2
@@ -132,12 +133,24 @@ def step_state(config: SimulationConfig, state: AtmosphereState) -> AtmosphereSt
     diffused_cloud = _clip_non_negative(
         _diffuse(advected_cloud, grid, dt, MOISTURE_DIFFUSIVITY_M2_PER_S)
     )
+    advected_u = _advect(state.horizontal_velocity_m_per_s, state, grid, dt)
+    advected_w = _advect(state.vertical_velocity_m_per_s, state, grid, dt)
+    diffused_u = _diffuse(advected_u, grid, dt, VELOCITY_DIFFUSIVITY_M2_PER_S)
+    diffused_w = _diffuse(advected_w, grid, dt, VELOCITY_DIFFUSIVITY_M2_PER_S)
     condensation = _condense(config, lifted_temperature, diffused_vapor, diffused_cloud)
     updated_temperature = condensation.temperature_k
     updated_vapor = condensation.water_vapor_kg_per_kg
     updated_cloud = condensation.cloud_liquid_water_kg_per_kg
     updated_rain = state.rain_water_kg_per_kg
-    updated_u, updated_w = _update_velocity(config, grid, state, updated_temperature, dt)
+    updated_u, updated_w = _update_velocity(
+        config,
+        grid,
+        state,
+        diffused_u,
+        diffused_w,
+        updated_temperature,
+        dt,
+    )
     boundary = _apply_boundary_sponge(
         config,
         state,
@@ -188,6 +201,10 @@ def state_to_frame(config: SimulationConfig, state: AtmosphereState) -> Simulati
         grid=build_grid_metadata(config),
         fields=make_simulation_fields(
             temperature=state.temperature_k,
+            temperature_perturbation=_temperature_perturbation(
+                state.temperature_k,
+                state.environmental_temperature_k,
+            ),
             water_vapor=state.water_vapor_kg_per_kg,
             cloud_liquid_water=state.cloud_liquid_water_kg_per_kg,
             rain_water=state.rain_water_kg_per_kg,
@@ -262,9 +279,9 @@ def _apply_boundary_sponge(
 ) -> _BoundaryResult:
     """Relax top/bottom edge cells toward the background state.
 
-    The minimal solver uses closed finite-difference stencils at domain edges. A light sponge
-    layer prevents edge cells from acting like artificial condensate reservoirs when a plume
-    reaches the top or bottom boundary.
+    The minimal solver uses closed finite-difference stencils at domain edges. A light top
+    sponge prevents edge cells from acting like artificial condensate reservoirs when a plume
+    reaches the lid without damping the surface-heated layer.
     """
     updated_temperature = _copy_grid(temperature)
     updated_vapor = _copy_grid(water_vapor)
@@ -275,11 +292,14 @@ def _apply_boundary_sponge(
     rows = len(updated_temperature)
 
     for row_index in range(rows):
-        weight = _sponge_weight(row_index, rows)
+        scalar_weight = _top_sponge_weight(row_index, rows)
+        velocity_weight = _top_sponge_weight(row_index, rows)
+        weight = max(scalar_weight, velocity_weight)
         if weight == 0.0:
             continue
 
-        relaxation = min(1.0, SPONGE_RELAXATION_PER_SECOND * dt * weight)
+        scalar_relaxation = min(1.0, SPONGE_RELAXATION_PER_SECOND * dt * scalar_weight)
+        velocity_relaxation = min(1.0, SPONGE_RELAXATION_PER_SECOND * dt * velocity_weight)
         for column_index in range(len(updated_temperature[row_index])):
             target_temperature = state.environmental_temperature_k[row_index][column_index]
             target_vapor = (
@@ -289,32 +309,32 @@ def _apply_boundary_sponge(
             updated_temperature[row_index][column_index] = _relax(
                 updated_temperature[row_index][column_index],
                 target_temperature,
-                relaxation,
+                scalar_relaxation,
             )
             updated_vapor[row_index][column_index] = _relax(
                 updated_vapor[row_index][column_index],
                 target_vapor,
-                relaxation,
+                scalar_relaxation,
             )
             updated_cloud[row_index][column_index] = _relax(
                 updated_cloud[row_index][column_index],
                 0.0,
-                relaxation,
+                scalar_relaxation,
             )
             updated_rain[row_index][column_index] = _relax(
                 updated_rain[row_index][column_index],
                 0.0,
-                relaxation,
+                scalar_relaxation,
             )
             updated_u[row_index][column_index] = _relax(
                 updated_u[row_index][column_index],
                 config.background_wind.u_m_per_s,
-                relaxation,
+                velocity_relaxation,
             )
             updated_w[row_index][column_index] = _relax(
                 updated_w[row_index][column_index],
                 config.background_wind.w_m_per_s,
-                relaxation,
+                velocity_relaxation,
             )
 
     return _BoundaryResult(
@@ -373,11 +393,13 @@ def _update_velocity(
     config: SimulationConfig,
     grid: SolverGrid,
     state: AtmosphereState,
+    base_u: Grid,
+    base_w: Grid,
     temperature: Grid,
     dt: float,
 ) -> tuple[Grid, Grid]:
-    u = _copy_grid(state.horizontal_velocity_m_per_s)
-    w = _copy_grid(state.vertical_velocity_m_per_s)
+    u = _copy_grid(base_u)
+    w = _copy_grid(base_w)
     half_width_m = config.surface_heating.patch_width_m / 2.0
 
     for row_index, z_m in enumerate(grid.z_coordinates_m):
@@ -393,13 +415,12 @@ def _update_velocity(
             )
             buoyancy = GRAVITY_M_PER_S2 * temp_perturbation / REFERENCE_TEMPERATURE_K
             center_offset = (x_m - config.surface_heating.patch_center_x_m) / half_width_m
-            plume_weight = _surface_heating_weight(config, grid, x_m)
             circulation_weight = exp(-(center_offset**2))
             circulation = -center_offset * circulation_weight * (lower_layer - 0.35 * upper_layer)
 
             positive_buoyancy = max(0.0, buoyancy)
             w[row_index][column_index] += (
-                THERMAL_BUOYANCY_SCALE * positive_buoyancy * plume_weight * dt
+                THERMAL_BUOYANCY_SCALE * positive_buoyancy * dt
                 - VELOCITY_DAMPING_PER_SECOND * w[row_index][column_index] * dt
             )
             u[row_index][column_index] += (
@@ -515,6 +536,17 @@ def _copy_grid(grid: Grid) -> Grid:
     return [row.copy() for row in grid]
 
 
+def _temperature_perturbation(temperature: Grid, environmental_temperature: Grid) -> Grid:
+    return [
+        [
+            temperature[row_index][column_index]
+            - environmental_temperature[row_index][column_index]
+            for column_index in range(len(row))
+        ]
+        for row_index, row in enumerate(temperature)
+    ]
+
+
 def _clip_non_negative(grid: Grid) -> Grid:
     return [[max(0.0, value) for value in row] for row in grid]
 
@@ -525,15 +557,15 @@ def _clamp(value: float, minimum: float, maximum: float) -> float:
     return min(max(value, minimum), maximum)
 
 
-def _sponge_weight(row_index: int, rows: int) -> float:
+def _top_sponge_weight(row_index: int, rows: int) -> float:
     if rows <= 2:
         return 1.0
 
-    distance_from_edge = min(row_index, rows - 1 - row_index)
-    if distance_from_edge >= SPONGE_LAYER_DEPTH_CELLS:
+    distance_from_top = rows - 1 - row_index
+    if distance_from_top >= SPONGE_LAYER_DEPTH_CELLS:
         return 0.0
 
-    return ((SPONGE_LAYER_DEPTH_CELLS - distance_from_edge) / SPONGE_LAYER_DEPTH_CELLS) ** 2
+    return ((SPONGE_LAYER_DEPTH_CELLS - distance_from_top) / SPONGE_LAYER_DEPTH_CELLS) ** 2
 
 
 def _relax(value: float, target: float, fraction: float) -> float:

@@ -9,6 +9,7 @@ import {
   formatDisplayValue,
   gridPointFromCanvas,
   normalizedDisplayValueForField,
+  vectorScaleForFrame,
 } from "./visualization";
 
 type Probe = {
@@ -284,22 +285,21 @@ function drawVelocityVectors(
   const w = frame.fields.vertical_velocity_m_per_s.values;
   const rows = frame.grid.rows;
   const columns = frame.grid.columns;
-  const stride = Math.max(2, Math.floor(Math.min(rows, columns) / 10));
+  const vectorScale = vectorScaleForFrame(frame, width, height);
   const cellWidth = width / columns;
   const cellHeight = height / rows;
-  const vectorScale = Math.min(cellWidth, cellHeight) * 2.6;
 
   context.save();
   context.strokeStyle = "rgba(255,255,255,0.82)";
   context.fillStyle = "rgba(255,255,255,0.9)";
   context.lineWidth = Math.max(1, width / 700);
 
-  for (let rowIndex = 0; rowIndex < rows; rowIndex += stride) {
-    for (let columnIndex = 0; columnIndex < columns; columnIndex += stride) {
+  for (let rowIndex = 0; rowIndex < rows; rowIndex += vectorScale.stride) {
+    for (let columnIndex = 0; columnIndex < columns; columnIndex += vectorScale.stride) {
       const x = (columnIndex + 0.5) * cellWidth;
       const y = (rows - rowIndex - 0.5) * cellHeight;
-      const dx = u[rowIndex][columnIndex] * vectorScale;
-      const dy = -w[rowIndex][columnIndex] * vectorScale;
+      const dx = u[rowIndex][columnIndex] * vectorScale.pixelsPerMeterPerSecond;
+      const dy = -w[rowIndex][columnIndex] * vectorScale.pixelsPerMeterPerSecond;
       const length = Math.hypot(dx, dy);
       if (length < 0.01) {
         continue;

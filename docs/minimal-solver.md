@@ -76,7 +76,7 @@ These tests are sanity checks, not validation against observed cases or a truste
 - No pressure solve or incompressible projection.
 - No mass-conserving velocity field.
 - The dry-adiabatic lifting/cooling tendency is a local educational approximation, not a full thermodynamic parcel model.
-- The top and bottom rows use a shallow sponge layer that relaxes temperature, vapor, condensate, and velocity toward the background state. This avoids closed-boundary condensate buildup without treating edge cloud water as physically meaningful.
+- The top rows use a shallow sponge layer that relaxes temperature, vapor, condensate, and velocity toward the background state. This avoids closed-lid condensate buildup without damping the surface-heated layer.
 - No terrain, Coriolis force, precipitation sedimentation, ice physics, or turbulence closure.
 - No energy or total-water conservation guarantee.
 - Fixed representative pressure in the saturation approximation.
