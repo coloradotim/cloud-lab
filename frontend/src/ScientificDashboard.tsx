@@ -3,13 +3,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { SimulationFrame } from "./simulationTypes";
 import {
   colorForNormalizedValue,
-  displayRangeForField,
   displayStatsForField,
   displayUnitForField,
-  displayValueForField,
   fieldOptionsFromFrame,
   formatDisplayValue,
   gridPointFromCanvas,
+  normalizedDisplayValueForField,
 } from "./visualization";
 
 type Probe = {
@@ -253,7 +252,6 @@ function drawScalarField(
   height: number,
 ) {
   const field = frame.fields[selectedField];
-  const range = displayRangeForField(field);
   const rows = frame.grid.rows;
   const columns = frame.grid.columns;
   const cellWidth = width / columns;
@@ -263,8 +261,7 @@ function drawScalarField(
   for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
     for (let columnIndex = 0; columnIndex < columns; columnIndex += 1) {
       const value = field.values[rowIndex][columnIndex];
-      const normalized =
-        (displayValueForField(field, value) - range.min) / (range.max - range.min);
+      const normalized = normalizedDisplayValueForField(field, value);
       const [red, green, blue] = colorForNormalizedValue(normalized, colorMap);
       context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
       context.fillRect(

@@ -24,6 +24,7 @@ This first solver uses a simplified warm-cloud slice:
 - Localized surface heating in the lower part of the domain.
 - A smooth initial temperature profile with a dry-adiabatic well-mixed boundary layer and a configurable environmental lapse rate above it.
 - Temperature and moisture are advected by the current velocity field.
+- Rising and sinking air applies a simple dry-adiabatic temperature tendency before condensation.
 - Simple diffusion smooths temperature and moisture fields.
 - Temperature perturbation from the initial environmental profile drives vertical acceleration.
 - A simple convergence/divergence wind response creates thermal circulation around the heating patch.
@@ -31,7 +32,7 @@ This first solver uses a simplified warm-cloud slice:
 - Supersaturated vapor condenses into cloud liquid water.
 - Condensation applies latent heating with a named constant.
 
-In max-heating fair-weather runs, the first visible cloud liquid water values are small: roughly `1e-4 kg kg-1` after about 15 simulated minutes in the current toy solver. Stronger liquid-water values can appear in longer runs, but those late-run values should still be treated as illustrative rather than validated cloud microphysics.
+In max-heating fair-weather runs, the first visible cloud liquid water values are small: roughly `1e-4 kg kg-1` after about 15 simulated minutes in the current toy solver. Lower initial humidity can delay visible condensation. Stronger liquid-water values can appear in longer runs, but those late-run values should still be treated as illustrative rather than validated cloud microphysics.
 
 ## Numerical Approach
 
@@ -40,10 +41,11 @@ Each timestep applies:
 1. Surface heating near the lower boundary using a uniform horizontal patch with tapered shoulders.
 2. First-order upwind advection for temperature, water vapor, and cloud liquid water.
 3. Explicit Laplacian diffusion for temperature and moisture.
-4. Saturation adjustment that transfers excess vapor into cloud liquid water.
-5. Latent heating from condensed water.
-6. Buoyancy and circulation updates for horizontal and vertical velocity.
-7. Velocity damping and clipping to keep the toy model stable.
+4. Dry-adiabatic temperature adjustment from vertical displacement.
+5. Saturation adjustment that transfers excess vapor into cloud liquid water.
+6. Latent heating from condensed water.
+7. Buoyancy and circulation updates for horizontal and vertical velocity.
+8. Velocity damping and clipping to keep the toy model stable.
 
 The model prioritizes readable behavior over performance. It uses Python lists rather than NumPy so the initial dependency footprint stays small.
 
@@ -73,6 +75,7 @@ These tests are sanity checks, not validation against observed cases or a truste
 
 - No pressure solve or incompressible projection.
 - No mass-conserving velocity field.
+- The dry-adiabatic lifting/cooling tendency is a local educational approximation, not a full thermodynamic parcel model.
 - No terrain, Coriolis force, precipitation sedimentation, ice physics, or turbulence closure.
 - No energy or total-water conservation guarantee.
 - Fixed representative pressure in the saturation approximation.

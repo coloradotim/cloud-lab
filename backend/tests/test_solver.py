@@ -187,6 +187,27 @@ def test_max_heating_fair_weather_run_condenses_by_fifteen_minutes() -> None:
     assert _max_value(final_cloud) > 1e-4
 
 
+def test_lifted_humid_plume_condenses_aloft_by_twenty_minutes() -> None:
+    preset = fair_weather_cumulus_preset()
+    config = preset.config.model_copy(
+        update={
+            "initial_atmosphere": preset.config.initial_atmosphere.model_copy(
+                update={"relative_humidity": 0.98}
+            ),
+            "time": preset.config.time.model_copy(update={"duration_seconds": 1_200.0}),
+            "surface_heating": preset.config.surface_heating.model_copy(
+                update={"max_warming_rate_k_per_s": 0.025}
+            ),
+        }
+    )
+
+    final_cloud = run_simulation(config)[-1].fields.cloud_liquid_water_kg_per_kg.values
+    midpoint_row = config.grid.rows // 2
+    upper_cloud_max = _max_value(final_cloud[midpoint_row:])
+
+    assert upper_cloud_max > 1e-5
+
+
 def test_seeded_runs_are_reproducible() -> None:
     config = _small_config(seed=9)
 

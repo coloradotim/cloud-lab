@@ -8,6 +8,7 @@ export const CONTROL_LIMITS = {
   heatingWidth: { min: 500, max: 8_000, step: 100 },
   heatingCenter: { min: 0, max: 10_000, step: 100 },
   lapseRate: { min: 0.003, max: 0.01, step: 0.0001 },
+  boundaryLayerDepth: { min: 250, max: 3_000, step: 50 },
   relativeHumidity: { min: 0.3, max: 1, step: 0.01 },
   domainWidth: { min: 4_000, max: 20_000, step: 500 },
   domainHeight: { min: 1_500, max: 6_000, step: 250 },
@@ -60,7 +61,7 @@ export function normalizeConfig(config: SimulationConfig): SimulationConfig {
   );
   nextConfig.initial_atmosphere.boundary_layer_depth_m = clamp(
     nextConfig.initial_atmosphere.boundary_layer_depth_m,
-    100,
+    CONTROL_LIMITS.boundaryLayerDepth.min,
     nextConfig.domain.height_m,
   );
   nextConfig.time.frame_interval_seconds = Math.max(

@@ -110,7 +110,19 @@ export function displayStatsForField(field: ScalarField): FieldStats {
 }
 
 export function displayRangeForField(field: ScalarField): FieldStats {
-  const range = valueRangeForField(field);
+  if (isVelocityField(field)) {
+    const stats = displayStatsForField(field);
+    const maxAbs = Math.max(Math.abs(stats.min), Math.abs(stats.max), 0.01);
+    return { min: -maxAbs, max: maxAbs };
+  }
+
+  if (isTemperatureField(field)) {
+    const stats = displayStatsForField(field);
+    const padding = Math.max(0.5, (stats.max - stats.min) * 0.08);
+    return expandFlatRange({ min: stats.min - padding, max: stats.max + padding });
+  }
+
+  const range = isCondensateField(field) ? getFieldStats(field) : valueRangeForField(field);
   return {
     min: displayValueForField(field, range.min),
     max: displayValueForField(field, range.max),
@@ -120,6 +132,16 @@ export function displayRangeForField(field: ScalarField): FieldStats {
 export function formatDisplayValue(field: ScalarField, value: number): string {
   const displayValue = displayValueForField(field, value);
   return field.metadata.unit === "K" ? displayValue.toFixed(2) : displayValue.toExponential(2);
+}
+
+export function normalizedDisplayValueForField(field: ScalarField, value: number): number {
+  if (isCondensateField(field)) {
+    return normalizedLogValue(value, displayRangeForField(field).max);
+  }
+
+  const displayValue = displayValueForField(field, value);
+  const range = displayRangeForField(field);
+  return normalizedLinearValue(displayValue, range);
 }
 
 export function gridPointFromCanvas(
@@ -171,4 +193,40 @@ export function colorForNormalizedValue(normalizedValue: number, colorMap: strin
     Math.round(82 + value * 128),
     Math.round(90 + value * 70),
   ];
+}
+
+function normalizedLinearValue(value: number, range: FieldStats): number {
+  return (value - range.min) / (range.max - range.min);
+}
+
+function normalizedLogValue(value: number, maxValue: number): number {
+  if (value <= 0 || maxValue <= 0) {
+    return 0;
+  }
+
+  const floor = Math.min(1e-8, maxValue * 0.01);
+  const logMin = Math.log10(floor);
+  const logMax = Math.log10(Math.max(maxValue, floor * 10));
+  return (Math.log10(Math.max(value, floor)) - logMin) / (logMax - logMin);
+}
+
+function expandFlatRange(range: FieldStats): FieldStats {
+  if (Math.abs(range.max - range.min) >= Number.EPSILON) {
+    return range;
+  }
+
+  return { min: range.min - 0.5, max: range.max + 0.5 };
+}
+
+function isTemperatureField(field: ScalarField): boolean {
+  return field.metadata.unit === "K";
+}
+
+function isVelocityField(field: ScalarField): boolean {
+  return field.metadata.unit === "m s-1";
+}
+
+function isCondensateField(field: ScalarField): boolean {
+  const displayName = field.metadata.display_name.toLowerCase();
+  return field.metadata.unit === "kg kg-1" && /cloud|rain/.test(displayName);
 }

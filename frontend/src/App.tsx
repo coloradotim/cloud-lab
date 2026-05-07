@@ -704,6 +704,16 @@ function SimulationControls({
           onChange={(value) => update("initial_atmosphere.lapse_rate_k_per_m", value)}
         />
         <NumberControl
+          label="Boundary layer top"
+          unit="m"
+          value={config.initial_atmosphere.boundary_layer_depth_m}
+          limits={{
+            ...CONTROL_LIMITS.boundaryLayerDepth,
+            max: config.domain.height_m,
+          }}
+          onChange={(value) => update("initial_atmosphere.boundary_layer_depth_m", value)}
+        />
+        <NumberControl
           label="Relative humidity"
           unit="fraction"
           value={config.initial_atmosphere.relative_humidity}
