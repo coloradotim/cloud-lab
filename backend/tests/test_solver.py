@@ -1,7 +1,10 @@
 from math import isfinite
 
+import pytest
+
 from app.sim import (
     BackgroundWindConfig,
+    DomainConfig,
     GridConfig,
     InitialAtmosphereConfig,
     SimulationConfig,
@@ -29,6 +32,37 @@ def test_solver_step_preserves_shapes_and_finite_values() -> None:
         assert len(grid) == config.grid.rows
         assert all(len(row) == config.grid.columns for row in grid)
         assert all(isfinite(value) for row in grid for value in row)
+
+
+def test_initial_temperature_is_smooth_and_well_mixed_in_boundary_layer() -> None:
+    config = SimulationConfig(
+        domain=DomainConfig(height_m=3_000.0),
+        grid=GridConfig(columns=4, rows=6),
+        initial_atmosphere=InitialAtmosphereConfig(
+            surface_temperature_k=300.0,
+            lapse_rate_k_per_m=0.006,
+            boundary_layer_depth_m=1_000.0,
+        ),
+    )
+    state = initialize_state(config)
+    solver_grid = _solver_grid(config)
+
+    assert all(len(set(row)) == 1 for row in state.temperature_k)
+    assert state.temperature_k == state.environmental_temperature_k
+
+    lower_row_temperature = state.temperature_k[0][0]
+    upper_mixed_layer_row_temperature = state.temperature_k[1][0]
+    free_atmosphere_row_temperature = state.temperature_k[2][0]
+    higher_free_atmosphere_row_temperature = state.temperature_k[3][0]
+    lower_dz = solver_grid.z_coordinates_m[1] - solver_grid.z_coordinates_m[0]
+    free_atmosphere_dz = solver_grid.z_coordinates_m[3] - solver_grid.z_coordinates_m[2]
+
+    assert (lower_row_temperature - upper_mixed_layer_row_temperature) / lower_dz == pytest.approx(
+        0.0098
+    )
+    assert (
+        free_atmosphere_row_temperature - higher_free_atmosphere_row_temperature
+    ) / free_atmosphere_dz == pytest.approx(0.006)
 
 
 def test_surface_heating_produces_buoyant_plume() -> None:

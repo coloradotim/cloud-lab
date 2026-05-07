@@ -56,9 +56,12 @@ class InitialAtmosphereConfig(BaseModel):
         description="Initial near-surface air temperature in kelvin.",
     )
     lapse_rate_k_per_m: float = Field(
-        default=0.0065,
+        default=0.0098,
         ge=0,
-        description="Environmental temperature decrease with height in kelvin per meter.",
+        description=(
+            "Environmental temperature decrease with height above the mixed layer in kelvin "
+            "per meter."
+        ),
     )
     relative_humidity: float = Field(
         default=0.78,

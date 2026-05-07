@@ -16,7 +16,7 @@ Cloud Lab uses explicit Pydantic models for simulation configuration and frame o
 | `time` | `duration_seconds` | s | Total simulated duration. Must be at least one timestep. |
 | `time` | `frame_interval_seconds` | s | Emitted frame cadence. Must be at least one timestep. |
 | `initial_atmosphere` | `surface_temperature_k` | K | Initial near-surface air temperature. |
-| `initial_atmosphere` | `lapse_rate_k_per_m` | K m-1 | Temperature decrease with height. |
+| `initial_atmosphere` | `lapse_rate_k_per_m` | K m-1 | Environmental temperature decrease with height above the mixed layer. |
 | `initial_atmosphere` | `relative_humidity` | fraction | Initial humidity from 0 to 1. |
 | `initial_atmosphere` | `boundary_layer_depth_m` | m | Must not exceed domain height. |
 | `surface_heating` | `max_warming_rate_k_per_s` | K s-1 | Lower-boundary warming rate. |
@@ -44,7 +44,7 @@ Every field must match `grid.rows x grid.columns`. Tests reject rectangular mism
 
 | Field | Unit | Initial status |
 | --- | --- | --- |
-| `temperature_k` | K | Absolute air temperature placeholder from surface temperature and lapse rate. |
+| `temperature_k` | K | Absolute air temperature initialized from a smooth mixed-layer profile. |
 | `water_vapor_kg_per_kg` | kg kg-1 | Specific humidity placeholder. |
 | `cloud_liquid_water_kg_per_kg` | kg kg-1 | Cloud liquid water placeholder, initially zero. |
 | `rain_water_kg_per_kg` | kg kg-1 | Rain water placeholder, initially zero for schema stability. |

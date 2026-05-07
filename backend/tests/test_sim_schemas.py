@@ -23,6 +23,7 @@ def test_default_simulation_config_defines_vertical_slice_controls() -> None:
     assert config.time.duration_seconds == 600.0
     assert config.time.frame_interval_seconds == 10.0
     assert config.initial_atmosphere.surface_temperature_k == 298.15
+    assert config.initial_atmosphere.lapse_rate_k_per_m == 0.0098
     assert config.initial_atmosphere.relative_humidity == 0.78
     assert config.surface_heating.max_warming_rate_k_per_s == 0.003
     assert config.background_wind.u_m_per_s == 1.5
