@@ -55,7 +55,7 @@ Each field carries `metadata.unit`, `metadata.display_name`, `metadata.descripti
 
 ## Assumptions And Placeholders
 
-The current sample frame is not a physical solver. It is a deterministic contract sample that lets the backend, frontend, and tests agree on frame shape, names, units, serialization, and seeded behavior before serious dynamics are added.
+The `/simulations/sample-frame` endpoint remains a deterministic contract sample. The `/simulations/sample-run` endpoint emits a short run from the minimal 2-D solver so the frontend can consume time-evolving frames without knowing solver internals.
 
 Early placeholders intentionally include cloud liquid water and rain water even when zero so visualization and future microphysics work can depend on stable field names.
 

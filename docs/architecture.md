@@ -46,3 +46,5 @@ Expected live-frame responsibilities:
 Cloud Lab starts with 2-D vertical slice modeling because it gives a useful first view of fair-weather cumulus behavior while keeping compute cost, debugging complexity, and visualization scope reasonable on a local Mac.
 
 A 2-D slice can show surface heating, buoyant plumes, moisture fields, condensation regions, and simple vertical motion without requiring a full 3-D fluid solver. This keeps the first physics milestones reviewable while leaving room to level up toward 2.5-D and 3-D dynamics.
+
+The first solver lives in `backend/app/sim/solver.py`. It uses explicit, simplified dynamics and emits the same `SimulationFrame` schema consumed by the API and frontend.

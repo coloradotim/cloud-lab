@@ -38,3 +38,18 @@ def test_sample_frame_endpoint_returns_frontend_safe_schema() -> None:
     assert payload["grid"]["rows"] == 60
     assert payload["fields"]["temperature_k"]["metadata"]["unit"] == "K"
     assert payload["fields"]["rain_water_kg_per_kg"]["metadata"]["unit"] == "kg kg-1"
+
+
+def test_sample_run_endpoint_returns_time_evolving_frames() -> None:
+    client = TestClient(app)
+
+    response = client.get("/simulations/sample-run")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["frame_count"] >= 2
+    first_frame = payload["frames"][0]
+    final_frame = payload["frames"][-1]
+    assert first_frame["schema_version"] == "sim-frame-v1"
+    assert final_frame["time_seconds"] > first_frame["time_seconds"]
+    assert final_frame["fields"]["vertical_velocity_m_per_s"]["metadata"]["unit"] == "m s-1"

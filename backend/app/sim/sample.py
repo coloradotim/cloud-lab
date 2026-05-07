@@ -62,60 +62,83 @@ def create_sample_frame(config: SimulationConfig | None = None) -> SimulationFra
         time_seconds=0.0,
         config=resolved_config,
         grid=grid,
-        fields=SimulationFields(
-            temperature_k=ScalarField2D(
-                values=temperature,
-                metadata=FieldMetadata(
-                    unit="K",
-                    display_name="Temperature",
-                    description="Absolute air temperature placeholder field.",
-                    display_scale=DisplayScale(min_value=270.0, max_value=305.0, color_map="magma"),
-                ),
+        fields=make_simulation_fields(
+            temperature=temperature,
+            water_vapor=water_vapor,
+            cloud_liquid_water=zero_grid,
+            rain_water=zero_grid,
+            horizontal_velocity=u_grid,
+            vertical_velocity=w_grid,
+            dynamic=False,
+        ),
+    )
+
+
+def make_simulation_fields(
+    *,
+    temperature: list[list[float]],
+    water_vapor: list[list[float]],
+    cloud_liquid_water: list[list[float]],
+    rain_water: list[list[float]],
+    horizontal_velocity: list[list[float]],
+    vertical_velocity: list[list[float]],
+    dynamic: bool,
+) -> SimulationFields:
+    description_suffix = "solver field" if dynamic else "placeholder field"
+
+    return SimulationFields(
+        temperature_k=ScalarField2D(
+            values=temperature,
+            metadata=FieldMetadata(
+                unit="K",
+                display_name="Temperature",
+                description=f"Absolute air temperature {description_suffix}.",
+                display_scale=DisplayScale(min_value=270.0, max_value=305.0, color_map="magma"),
             ),
-            water_vapor_kg_per_kg=ScalarField2D(
-                values=water_vapor,
-                metadata=FieldMetadata(
-                    unit="kg kg-1",
-                    display_name="Water vapor",
-                    description="Specific humidity placeholder field.",
-                    display_scale=DisplayScale(min_value=0.0, max_value=0.014, color_map="viridis"),
-                ),
+        ),
+        water_vapor_kg_per_kg=ScalarField2D(
+            values=water_vapor,
+            metadata=FieldMetadata(
+                unit="kg kg-1",
+                display_name="Water vapor",
+                description=f"Specific humidity {description_suffix}.",
+                display_scale=DisplayScale(min_value=0.0, max_value=0.014, color_map="viridis"),
             ),
-            cloud_liquid_water_kg_per_kg=ScalarField2D(
-                values=zero_grid,
-                metadata=FieldMetadata(
-                    unit="kg kg-1",
-                    display_name="Cloud liquid water",
-                    description="Cloud liquid water placeholder; initially zero.",
-                    display_scale=DisplayScale(min_value=0.0, max_value=0.002, color_map="Blues"),
-                ),
+        ),
+        cloud_liquid_water_kg_per_kg=ScalarField2D(
+            values=cloud_liquid_water,
+            metadata=FieldMetadata(
+                unit="kg kg-1",
+                display_name="Cloud liquid water",
+                description="Condensed warm-cloud liquid water.",
+                display_scale=DisplayScale(min_value=0.0, max_value=0.002, color_map="Blues"),
             ),
-            rain_water_kg_per_kg=ScalarField2D(
-                values=zero_grid,
-                metadata=FieldMetadata(
-                    unit="kg kg-1",
-                    display_name="Rain water",
-                    description="Rain water placeholder retained for schema stability.",
-                    display_scale=DisplayScale(min_value=0.0, max_value=0.002, color_map="PuBu"),
-                ),
+        ),
+        rain_water_kg_per_kg=ScalarField2D(
+            values=rain_water,
+            metadata=FieldMetadata(
+                unit="kg kg-1",
+                display_name="Rain water",
+                description="Rain water placeholder retained for schema stability.",
+                display_scale=DisplayScale(min_value=0.0, max_value=0.002, color_map="PuBu"),
             ),
-            horizontal_velocity_m_per_s=ScalarField2D(
-                values=u_grid,
-                metadata=FieldMetadata(
-                    unit="m s-1",
-                    display_name="Horizontal velocity",
-                    description="Uniform background horizontal wind with seeded jitter.",
-                    display_scale=DisplayScale(min_value=-5.0, max_value=5.0, color_map="coolwarm"),
-                ),
+        ),
+        horizontal_velocity_m_per_s=ScalarField2D(
+            values=horizontal_velocity,
+            metadata=FieldMetadata(
+                unit="m s-1",
+                display_name="Horizontal velocity",
+                description="Horizontal air velocity.",
+                display_scale=DisplayScale(min_value=-5.0, max_value=5.0, color_map="coolwarm"),
             ),
-            vertical_velocity_m_per_s=ScalarField2D(
-                values=w_grid,
-                metadata=FieldMetadata(
-                    unit="m s-1",
-                    display_name="Vertical velocity",
-                    description="Uniform background vertical wind placeholder.",
-                    display_scale=DisplayScale(min_value=-2.0, max_value=2.0, color_map="coolwarm"),
-                ),
+        ),
+        vertical_velocity_m_per_s=ScalarField2D(
+            values=vertical_velocity,
+            metadata=FieldMetadata(
+                unit="m s-1",
+                display_name="Vertical velocity",
+                description="Vertical air velocity.",
+                display_scale=DisplayScale(min_value=-2.0, max_value=2.0, color_map="coolwarm"),
             ),
         ),
     )
