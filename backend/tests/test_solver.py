@@ -184,28 +184,49 @@ def test_max_heating_fair_weather_run_condenses_by_fifteen_minutes() -> None:
     frames = run_simulation(config)
     final_cloud = frames[-1].fields.cloud_liquid_water_kg_per_kg.values
 
-    assert _max_value(final_cloud) > 1e-4
+    assert _max_value(final_cloud) > 5e-5
 
 
-def test_lifted_humid_plume_condenses_aloft_by_twenty_minutes() -> None:
+def test_lifted_humid_plume_condenses_in_interior_by_thirty_minutes() -> None:
     preset = fair_weather_cumulus_preset()
     config = preset.config.model_copy(
         update={
             "initial_atmosphere": preset.config.initial_atmosphere.model_copy(
                 update={"relative_humidity": 0.98}
             ),
-            "time": preset.config.time.model_copy(update={"duration_seconds": 1_200.0}),
+            "time": preset.config.time.model_copy(update={"duration_seconds": 1_800.0}),
             "surface_heating": preset.config.surface_heating.model_copy(
-                update={"max_warming_rate_k_per_s": 0.025}
+                update={"max_warming_rate_k_per_s": 0.02}
             ),
         }
     )
 
     final_cloud = run_simulation(config)[-1].fields.cloud_liquid_water_kg_per_kg.values
-    midpoint_row = config.grid.rows // 2
-    upper_cloud_max = _max_value(final_cloud[midpoint_row:])
+    interior_cloud_max = _max_value(final_cloud[1:-1])
 
-    assert upper_cloud_max > 1e-5
+    assert interior_cloud_max > 4e-4
+
+
+def test_boundary_sponge_limits_edge_cloud_water_relative_to_main_plume() -> None:
+    preset = fair_weather_cumulus_preset()
+    config = preset.config.model_copy(
+        update={
+            "initial_atmosphere": preset.config.initial_atmosphere.model_copy(
+                update={"relative_humidity": 0.98}
+            ),
+            "time": preset.config.time.model_copy(update={"duration_seconds": 1_800.0}),
+            "surface_heating": preset.config.surface_heating.model_copy(
+                update={"max_warming_rate_k_per_s": 0.02}
+            ),
+        }
+    )
+
+    final_cloud = run_simulation(config)[-1].fields.cloud_liquid_water_kg_per_kg.values
+    boundary_cloud_max = max(_max_value([final_cloud[0]]), _max_value([final_cloud[-1]]))
+    interior_cloud_max = _max_value(final_cloud[1:-1])
+
+    assert boundary_cloud_max < 1e-6
+    assert interior_cloud_max > boundary_cloud_max * 100
 
 
 def test_seeded_runs_are_reproducible() -> None:

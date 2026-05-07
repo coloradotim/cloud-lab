@@ -13,6 +13,8 @@ GRAVITY_M_PER_S2 = 9.81
 REFERENCE_TEMPERATURE_K = 300.0
 LATENT_HEATING_K_PER_KG_PER_KG = 2_500.0
 CONDENSATION_FRACTION_PER_STEP = 0.35
+SPONGE_LAYER_DEPTH_CELLS = 2
+SPONGE_RELAXATION_PER_SECOND = 0.08
 THERMAL_BUOYANCY_SCALE = 0.16
 WIND_RESPONSE_SCALE = 0.035
 VELOCITY_DAMPING_PER_SECOND = 0.018
@@ -134,17 +136,29 @@ def step_state(config: SimulationConfig, state: AtmosphereState) -> AtmosphereSt
     updated_temperature = condensation.temperature_k
     updated_vapor = condensation.water_vapor_kg_per_kg
     updated_cloud = condensation.cloud_liquid_water_kg_per_kg
+    updated_rain = state.rain_water_kg_per_kg
     updated_u, updated_w = _update_velocity(config, grid, state, updated_temperature, dt)
+    boundary = _apply_boundary_sponge(
+        config,
+        state,
+        updated_temperature,
+        updated_vapor,
+        updated_cloud,
+        updated_rain,
+        updated_u,
+        updated_w,
+        dt,
+    )
 
     return AtmosphereState(
         step=state.step + 1,
         time_seconds=state.time_seconds + dt,
-        temperature_k=updated_temperature,
-        water_vapor_kg_per_kg=updated_vapor,
-        cloud_liquid_water_kg_per_kg=updated_cloud,
-        rain_water_kg_per_kg=state.rain_water_kg_per_kg,
-        horizontal_velocity_m_per_s=updated_u,
-        vertical_velocity_m_per_s=updated_w,
+        temperature_k=boundary.temperature_k,
+        water_vapor_kg_per_kg=boundary.water_vapor_kg_per_kg,
+        cloud_liquid_water_kg_per_kg=boundary.cloud_liquid_water_kg_per_kg,
+        rain_water_kg_per_kg=boundary.rain_water_kg_per_kg,
+        horizontal_velocity_m_per_s=boundary.horizontal_velocity_m_per_s,
+        vertical_velocity_m_per_s=boundary.vertical_velocity_m_per_s,
         environmental_temperature_k=state.environmental_temperature_k,
     )
 
@@ -191,6 +205,16 @@ class _CondensationResult:
     cloud_liquid_water_kg_per_kg: Grid
 
 
+@dataclass(frozen=True)
+class _BoundaryResult:
+    temperature_k: Grid
+    water_vapor_kg_per_kg: Grid
+    cloud_liquid_water_kg_per_kg: Grid
+    rain_water_kg_per_kg: Grid
+    horizontal_velocity_m_per_s: Grid
+    vertical_velocity_m_per_s: Grid
+
+
 def _condense(
     config: SimulationConfig,
     temperature: Grid,
@@ -222,6 +246,84 @@ def _condense(
         temperature_k=updated_temperature,
         water_vapor_kg_per_kg=updated_vapor,
         cloud_liquid_water_kg_per_kg=updated_cloud,
+    )
+
+
+def _apply_boundary_sponge(
+    config: SimulationConfig,
+    state: AtmosphereState,
+    temperature: Grid,
+    water_vapor: Grid,
+    cloud_liquid_water: Grid,
+    rain_water: Grid,
+    horizontal_velocity: Grid,
+    vertical_velocity: Grid,
+    dt: float,
+) -> _BoundaryResult:
+    """Relax top/bottom edge cells toward the background state.
+
+    The minimal solver uses closed finite-difference stencils at domain edges. A light sponge
+    layer prevents edge cells from acting like artificial condensate reservoirs when a plume
+    reaches the top or bottom boundary.
+    """
+    updated_temperature = _copy_grid(temperature)
+    updated_vapor = _copy_grid(water_vapor)
+    updated_cloud = _copy_grid(cloud_liquid_water)
+    updated_rain = _copy_grid(rain_water)
+    updated_u = _copy_grid(horizontal_velocity)
+    updated_w = _copy_grid(vertical_velocity)
+    rows = len(updated_temperature)
+
+    for row_index in range(rows):
+        weight = _sponge_weight(row_index, rows)
+        if weight == 0.0:
+            continue
+
+        relaxation = min(1.0, SPONGE_RELAXATION_PER_SECOND * dt * weight)
+        for column_index in range(len(updated_temperature[row_index])):
+            target_temperature = state.environmental_temperature_k[row_index][column_index]
+            target_vapor = (
+                _saturation_specific_humidity_kg_per_kg(target_temperature)
+                * config.initial_atmosphere.relative_humidity
+            )
+            updated_temperature[row_index][column_index] = _relax(
+                updated_temperature[row_index][column_index],
+                target_temperature,
+                relaxation,
+            )
+            updated_vapor[row_index][column_index] = _relax(
+                updated_vapor[row_index][column_index],
+                target_vapor,
+                relaxation,
+            )
+            updated_cloud[row_index][column_index] = _relax(
+                updated_cloud[row_index][column_index],
+                0.0,
+                relaxation,
+            )
+            updated_rain[row_index][column_index] = _relax(
+                updated_rain[row_index][column_index],
+                0.0,
+                relaxation,
+            )
+            updated_u[row_index][column_index] = _relax(
+                updated_u[row_index][column_index],
+                config.background_wind.u_m_per_s,
+                relaxation,
+            )
+            updated_w[row_index][column_index] = _relax(
+                updated_w[row_index][column_index],
+                config.background_wind.w_m_per_s,
+                relaxation,
+            )
+
+    return _BoundaryResult(
+        temperature_k=updated_temperature,
+        water_vapor_kg_per_kg=updated_vapor,
+        cloud_liquid_water_kg_per_kg=updated_cloud,
+        rain_water_kg_per_kg=updated_rain,
+        horizontal_velocity_m_per_s=updated_u,
+        vertical_velocity_m_per_s=updated_w,
     )
 
 
@@ -421,3 +523,18 @@ def _clamp(value: float, minimum: float, maximum: float) -> float:
     if not isfinite(value):
         return 0.0
     return min(max(value, minimum), maximum)
+
+
+def _sponge_weight(row_index: int, rows: int) -> float:
+    if rows <= 2:
+        return 1.0
+
+    distance_from_edge = min(row_index, rows - 1 - row_index)
+    if distance_from_edge >= SPONGE_LAYER_DEPTH_CELLS:
+        return 0.0
+
+    return ((SPONGE_LAYER_DEPTH_CELLS - distance_from_edge) / SPONGE_LAYER_DEPTH_CELLS) ** 2
+
+
+def _relax(value: float, target: float, fraction: float) -> float:
+    return value + (target - value) * fraction
