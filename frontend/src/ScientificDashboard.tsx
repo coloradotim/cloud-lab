@@ -1,26 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { buildProbeResult } from "./probe";
+import type { ProbeRegionMode, ProbeResult, ProbeSelection } from "./probe";
 import type { SimulationFrame } from "./simulationTypes";
 import {
   colorForNormalizedValue,
   displayStatsForField,
   displayUnitForField,
   fieldOptionsFromFrame,
-  formatDisplayValue,
   gridPointFromCanvas,
   normalizedDisplayValueForField,
   vectorScaleForFrame,
 } from "./visualization";
-
-type Probe = {
-  row: number;
-  column: number;
-  xMeters: number;
-  zMeters: number;
-  value: number;
-  u: number;
-  w: number;
-};
 
 type ScientificDashboardProps = {
   frame: SimulationFrame | null;
@@ -50,10 +41,20 @@ export function ScientificDashboard({
   onScrub,
 }: ScientificDashboardProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [probe, setProbe] = useState<Probe | null>(null);
+  const [hoveredProbe, setHoveredProbe] = useState<ProbeSelection | null>(null);
+  const [pinnedProbe, setPinnedProbe] = useState<ProbeSelection | null>(null);
+  const [probeMode, setProbeMode] = useState<ProbeRegionMode>("point");
   const fieldOptions = useMemo(() => fieldOptionsFromFrame(frame), [frame]);
   const activeField = frame?.fields[selectedField] ?? null;
   const fieldStats = activeField ? displayStatsForField(activeField) : null;
+  const activeProbeSelection = pinnedProbe ?? hoveredProbe;
+  const probe = useMemo<ProbeResult | null>(() => {
+    if (!frame || !activeProbeSelection) {
+      return null;
+    }
+
+    return buildProbeResult(frame, { ...activeProbeSelection, mode: probeMode });
+  }, [activeProbeSelection, frame, probeMode]);
 
   useEffect(() => {
     if (!frame || !activeField) {
@@ -70,7 +71,7 @@ export function ScientificDashboard({
 
   function handlePointerMove(event: React.PointerEvent<HTMLCanvasElement>) {
     if (!frame || !activeField) {
-      setProbe(null);
+      setHoveredProbe(null);
       return;
     }
 
@@ -85,19 +86,23 @@ export function ScientificDashboard({
     );
 
     if (!gridPoint) {
-      setProbe(null);
+      setHoveredProbe(null);
       return;
     }
 
-    setProbe({
+    setHoveredProbe({
       row: gridPoint.row,
       column: gridPoint.column,
-      xMeters: frame.grid.x_coordinates_m[gridPoint.column],
-      zMeters: frame.grid.z_coordinates_m[gridPoint.row],
-      value: activeField.values[gridPoint.row][gridPoint.column],
-      u: frame.fields.horizontal_velocity_m_per_s.values[gridPoint.row][gridPoint.column],
-      w: frame.fields.vertical_velocity_m_per_s.values[gridPoint.row][gridPoint.column],
+      mode: probeMode,
     });
+  }
+
+  function handleCanvasClick() {
+    if (!hoveredProbe) {
+      return;
+    }
+
+    setPinnedProbe({ ...hoveredProbe, mode: probeMode });
   }
 
   return (
@@ -125,6 +130,22 @@ export function ScientificDashboard({
           </label>
 
           <label>
+            Probe
+            <select
+              value={probeMode}
+              onChange={(event) => setProbeMode(event.target.value as ProbeRegionMode)}
+              disabled={!frame}
+            >
+              <option value="point">Point</option>
+              <option value="neighborhood">3x3 mean</option>
+            </select>
+          </label>
+
+          <button type="button" onClick={() => setPinnedProbe(null)} disabled={!pinnedProbe}>
+            Clear probe
+          </button>
+
+          <label>
             Speed
             <select
               value={playbackSpeed}
@@ -150,7 +171,8 @@ export function ScientificDashboard({
               ref={canvasRef}
               aria-label="2-D simulation field visualization"
               onPointerMove={handlePointerMove}
-              onPointerLeave={() => setProbe(null)}
+              onPointerLeave={() => setHoveredProbe(null)}
+              onClick={handleCanvasClick}
             />
           ) : (
             <div className="empty-visualization">Start a run to stream frames into the dashboard.</div>
@@ -190,20 +212,32 @@ export function ScientificDashboard({
             <div>
               <dt>Probe</dt>
               <dd>
-                {probe && activeField
-                  ? `${formatDisplayValue(activeField, probe.value)} ${displayUnitForField(
-                      activeField,
-                    )} at x=${probe.xMeters.toFixed(0)} m, z=${probe.zMeters.toFixed(0)} m`
-                  : "Hover a cell"}
-              </dd>
-            </div>
-            <div>
-              <dt>Velocity</dt>
-              <dd>
-                {probe ? `u=${probe.u.toFixed(2)} m/s, w=${probe.w.toFixed(2)} m/s` : "Hover a cell"}
+                {probe
+                  ? `${pinnedProbe ? "Pinned" : "Hover"} ${probe.mode === "point" ? "point" : "3x3 mean"} at x=${probe.xMeters.toFixed(0)} m, z=${probe.zMeters.toFixed(0)} m`
+                  : "Hover or click a cell"}
               </dd>
             </div>
           </dl>
+
+          <div className="probe-diagnostics" aria-label="Probe diagnostics">
+            {probe ? (
+              probe.diagnostics.map((diagnostic) => (
+                <div key={diagnostic.key}>
+                  <span>
+                    {diagnostic.label}
+                    {diagnostic.source === "derived" ? <em>Derived</em> : null}
+                  </span>
+                  <strong>
+                    {diagnostic.formattedValue}
+                    {diagnostic.unit ? ` ${diagnostic.unit}` : ""}
+                  </strong>
+                  {diagnostic.note ? <small>{diagnostic.note}</small> : null}
+                </div>
+              ))
+            ) : (
+              <p>Hover the field, or click to pin a probe while playback continues.</p>
+            )}
+          </div>
 
           <label className="scrubber-label">
             Timeline
