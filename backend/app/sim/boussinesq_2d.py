@@ -13,6 +13,7 @@ GRAVITY_M_PER_S2 = 9.81
 REFERENCE_TEMPERATURE_K = 300.0
 LATENT_HEATING_K_PER_KG_PER_KG = 1_200.0
 CONDENSATION_FRACTION_PER_STEP = 0.28
+CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S = 0.002
 THERMAL_DIFFUSIVITY_M2_PER_S = 22.0
 MOISTURE_DIFFUSIVITY_M2_PER_S = 10.0
 KINEMATIC_VISCOSITY_M2_PER_S = 90.0
@@ -132,7 +133,7 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
     streamfunction = _solve_streamfunction(vorticity, grid)
     u, w = _velocity_from_streamfunction(config, streamfunction, grid)
     temperature = _temperature_from_perturbation(theta, state.environmental_temperature_k)
-    condensation = _condense(temperature, vapor, cloud)
+    condensation = _condense(temperature, vapor, cloud, w)
     theta = _clip_grid(
         _theta_from_temperature(condensation.temperature_k, state.environmental_temperature_k),
         -MAX_ABS_THETA_PERTURBATION_K,
@@ -357,6 +358,7 @@ def _condense(
     temperature: Grid,
     water_vapor: Grid,
     cloud_liquid_water: Grid,
+    vertical_velocity: Grid,
 ) -> _CondensationResult:
     updated_temperature = _copy_grid(temperature)
     updated_vapor = _copy_grid(water_vapor)
@@ -364,6 +366,12 @@ def _condense(
 
     for row_index, row in enumerate(updated_temperature):
         for column_index, temperature_k in enumerate(row):
+            if (
+                vertical_velocity[row_index][column_index] <= CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S
+                and updated_cloud[row_index][column_index] == 0.0
+            ):
+                continue
+
             qsat = _saturation_specific_humidity_kg_per_kg(temperature_k)
             excess = max(0.0, updated_vapor[row_index][column_index] - qsat)
             condensed = excess * CONDENSATION_FRACTION_PER_STEP
