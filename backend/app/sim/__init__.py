@@ -41,6 +41,7 @@ from app.sim.validation import (
     boussinesq_model_sizes,
     boussinesq_reference_cases,
     compute_boussinesq_diagnostics,
+    compute_divergence_field,
 )
 
 __all__ = [
@@ -71,6 +72,7 @@ __all__ = [
     "boussinesq_model_sizes",
     "boussinesq_reference_cases",
     "compute_boussinesq_diagnostics",
+    "compute_divergence_field",
     "create_sample_frame",
     "fair_weather_cumulus_preset",
     "initialize_state",

@@ -68,13 +68,30 @@ grid size and emitted frame count.
 - integrated cloud liquid water
 - approximate cloud-top height above a `1e-6 kg kg-1` threshold
 - height of maximum cloud liquid water
+- divergence field, `du/dx + dw/dz`, in `s^-1`
+- max absolute divergence
+- mean absolute divergence
 - non-finite value count
 - minimum moisture value across vapor, cloud water, and rain water
+
+The divergence diagnostic uses finite differences on the emitted frame grid. Interior
+cells use centered differences. Boundary cells use one-sided differences because the
+frame does not include ghost cells. The current CI bound is:
+
+- max absolute divergence less than `2e-3 s^-1`
+- mean absolute divergence less than `2e-5 s^-1`
+
+Those thresholds are empirical prototype guardrails. They are above the observed
+medium-grid reference cases (`0` for quiet, about `7e-4 s^-1` for dry thermal, and
+about `1.4e-3 s^-1` for humid thermal) and are intended to catch obvious mass-
+consistency regressions without pretending the boundary treatment has been formally
+validated.
 
 The validation tests require finite fields, non-negative moisture, bounded velocities,
 bounded cloud water, a quiet no-forcing case, no cloud water in the dry case, cloud
 water in the humid case, reproducibility, weaker vertical growth in the stable case,
-and similar qualitative behavior across the small and medium model sizes.
+similar qualitative behavior across the small and medium model sizes, bounded
+divergence in reference cases, and exactly zero divergence growth in the quiet case.
 
 One science check is intentionally marked as an expected failure: the humid lifted
 case currently places its cloud-water maximum below the boundary-layer top. Earlier

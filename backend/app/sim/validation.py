@@ -45,6 +45,8 @@ class BoussinesqDiagnostics:
     total_cloud_liquid_water_kg_per_kg: float
     cloud_top_height_m: float | None
     max_cloud_liquid_water_height_m: float | None
+    max_abs_divergence_per_second: float
+    mean_abs_divergence_per_second: float
     non_finite_value_count: int
     min_moisture_kg_per_kg: float
 
@@ -174,6 +176,7 @@ def boussinesq_model_sizes() -> list[BoussinesqModelSize]:
 
 def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnostics:
     fields = frame.fields
+    divergence = compute_divergence_field(frame)
     cloud_top_height_m: float | None = None
     max_cloud_height_m: float | None = None
     max_cloud = _max(fields.cloud_liquid_water_kg_per_kg.values)
@@ -207,9 +210,33 @@ def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnost
         ),
         cloud_top_height_m=cloud_top_height_m,
         max_cloud_liquid_water_height_m=max_cloud_height_m,
+        max_abs_divergence_per_second=_max_abs(divergence),
+        mean_abs_divergence_per_second=_mean_abs(divergence),
         non_finite_value_count=sum(1 for value in all_values if not isfinite(value)),
         min_moisture_kg_per_kg=min(moisture_values),
     )
+
+
+def compute_divergence_field(frame: SimulationFrame) -> list[list[float]]:
+    """Compute du/dx + dw/dz on the frame grid in s^-1."""
+
+    u = frame.fields.horizontal_velocity_m_per_s.values
+    w = frame.fields.vertical_velocity_m_per_s.values
+    dx_m = frame.config.domain.width_m / frame.grid.columns
+    dz_m = frame.config.domain.height_m / frame.grid.rows
+    rows = frame.grid.rows
+    columns = frame.grid.columns
+    divergence: list[list[float]] = []
+
+    for row_index in range(rows):
+        divergence_row: list[float] = []
+        for column_index in range(columns):
+            du_dx = _grid_derivative_x(u, row_index, column_index, dx_m)
+            dw_dz = _grid_derivative_z(w, row_index, column_index, dz_m)
+            divergence_row.append(du_dx + dw_dz)
+        divergence.append(divergence_row)
+
+    return divergence
 
 
 def _reference_config(
@@ -253,9 +280,42 @@ def _max_abs(grid: list[list[float]]) -> float:
     return max(abs(value) for row in grid for value in row)
 
 
+def _mean_abs(grid: list[list[float]]) -> float:
+    values = [abs(value) for row in grid for value in row]
+    return sum(values) / len(values)
+
+
 def _max(grid: list[list[float]]) -> float:
     return max(value for row in grid for value in row)
 
 
 def _min(grid: list[list[float]]) -> float:
     return min(value for row in grid for value in row)
+
+
+def _grid_derivative_x(
+    grid: list[list[float]],
+    row_index: int,
+    column_index: int,
+    dx_m: float,
+) -> float:
+    columns = len(grid[0])
+    if column_index == 0:
+        return (grid[row_index][1] - grid[row_index][0]) / dx_m
+    if column_index == columns - 1:
+        return (grid[row_index][columns - 1] - grid[row_index][columns - 2]) / dx_m
+    return (grid[row_index][column_index + 1] - grid[row_index][column_index - 1]) / (2.0 * dx_m)
+
+
+def _grid_derivative_z(
+    grid: list[list[float]],
+    row_index: int,
+    column_index: int,
+    dz_m: float,
+) -> float:
+    rows = len(grid)
+    if row_index == 0:
+        return (grid[1][column_index] - grid[0][column_index]) / dz_m
+    if row_index == rows - 1:
+        return (grid[rows - 1][column_index] - grid[rows - 2][column_index]) / dz_m
+    return (grid[row_index + 1][column_index] - grid[row_index - 1][column_index]) / (2.0 * dz_m)

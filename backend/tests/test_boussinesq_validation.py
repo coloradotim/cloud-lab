@@ -5,9 +5,13 @@ from app.sim import (
     boussinesq_model_sizes,
     boussinesq_reference_cases,
     compute_boussinesq_diagnostics,
+    compute_divergence_field,
     run_simulation,
 )
 from app.sim.schemas import SimulationConfig
+
+MAX_REFERENCE_DIVERGENCE_PER_SECOND = 2e-3
+MEAN_REFERENCE_DIVERGENCE_PER_SECOND = 2e-5
 
 
 def test_boussinesq_reference_cases_map_to_valid_configs() -> None:
@@ -50,6 +54,30 @@ def test_boussinesq_reference_cases_remain_finite_and_moisture_safe() -> None:
         assert diagnostics.max_abs_horizontal_velocity_m_per_s < 1.0
         assert diagnostics.max_abs_vertical_velocity_m_per_s < 1.0
         assert diagnostics.max_cloud_liquid_water_kg_per_kg < 0.005
+        assert diagnostics.max_abs_divergence_per_second < MAX_REFERENCE_DIVERGENCE_PER_SECOND
+        assert diagnostics.mean_abs_divergence_per_second < MEAN_REFERENCE_DIVERGENCE_PER_SECOND
+
+
+def test_boussinesq_divergence_field_matches_frame_shape() -> None:
+    dry = _case("dry-thermal-bubble")
+
+    final = run_simulation(dry.config)[-1]
+    divergence = compute_divergence_field(final)
+
+    assert len(divergence) == final.grid.rows
+    assert all(len(row) == final.grid.columns for row in divergence)
+
+
+def test_quiet_boussinesq_divergence_does_not_grow() -> None:
+    quiet = _case("quiet-atmosphere")
+
+    frames = run_simulation(quiet.config)
+    max_divergence_by_frame = [
+        compute_boussinesq_diagnostics(frame).max_abs_divergence_per_second for frame in frames
+    ]
+
+    assert max(max_divergence_by_frame) == 0.0
+    assert max_divergence_by_frame[-1] == max_divergence_by_frame[0]
 
 
 def test_quiet_boussinesq_reference_case_remains_quiet() -> None:
