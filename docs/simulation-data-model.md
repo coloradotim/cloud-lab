@@ -8,7 +8,7 @@ Cloud Lab uses explicit Pydantic models for simulation configuration and frame o
 
 | Section | Field | Unit | Notes |
 | --- | --- | --- | --- |
-| root | `solver_type` | identifier | Selects the simulation backend. `educational_2d` is the current available solver; `boussinesq_2d` is reserved as a planned backend. |
+| root | `solver_type` | identifier | Selects the simulation backend. `educational_2d` is the frozen learning backend; `boussinesq_2d` is the first advanced dynamics prototype. |
 | `domain` | `width_m` | m | Horizontal domain width. Must be positive. |
 | `domain` | `height_m` | m | Vertical domain height. Must be positive. |
 | `grid` | `columns` | count | Horizontal grid cell count. Must be greater than 1. |
@@ -34,7 +34,7 @@ Solver backends must emit the shared `SimulationFrame` schema. The API and front
 Current solver descriptors are exposed by `GET /simulations/solvers`:
 
 - `educational_2d`: available. The frozen V1 educational solver for learning, UI validation, local demos, and regression tests.
-- `boussinesq_2d`: planned. A future backend for pressure-coupled 2-D dynamics.
+- `boussinesq_2d`: available. Prototype streamfunction/vorticity solver for more credible 2-D buoyant dynamics.
 
 To add a backend, implement the solver interface, register a descriptor in the solver registry, ensure frames validate against `SimulationFrame`, and document any missing fields or approximations.
 

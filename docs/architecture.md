@@ -49,7 +49,9 @@ A 2-D slice can show surface heating, buoyant plumes, moisture fields, condensat
 
 Solver dispatch lives in `backend/app/sim/solver.py`. Concrete backends conform to the solver interface in `backend/app/sim/solver_interface.py`: each backend exposes a descriptor plus `run(config)` and `stream_frames(config)` methods that emit the shared `SimulationFrame` schema.
 
-The current available backend is `educational_2d`, implemented in `backend/app/sim/educational_2d.py`. It is frozen as a learning, UI-validation, and regression-test solver rather than the future production scientific model. The registry also advertises a planned `boussinesq_2d` backend so the API and UI can evolve toward better dynamics without changing the frame contract.
+The frozen learning backend is `educational_2d`, implemented in `backend/app/sim/educational_2d.py`. It is kept for learning, UI validation, and regression tests rather than treated as the future production scientific model.
+
+The first advanced prototype backend is `boussinesq_2d`, implemented in `backend/app/sim/boussinesq_2d.py`. It uses a streamfunction/vorticity formulation so Cloud Lab can start moving toward pressure-coupled, mass-consistent 2-D dynamics without changing the frame contract.
 
 Live playback uses `POST /simulations/runs` for run creation, `POST /simulations/runs/{run_id}/stop` for cancellation, and `WebSocket /simulations/runs/{run_id}/stream` for progressive frame delivery.
 

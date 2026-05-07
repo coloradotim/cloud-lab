@@ -93,7 +93,10 @@ export function configWarnings(config: SimulationConfig): string[] {
     warnings.push("Large timestep relative to grid spacing and wind may reduce stability.");
   }
   if (config.surface_heating.max_warming_rate_k_per_s > 0.018) {
-    warnings.push("Very strong heating can create abrupt thermals in the simplified solver.");
+    warnings.push("Very strong heating can create abrupt thermals in the selected solver.");
+  }
+  if (config.solver_type === "boussinesq_2d" && config.grid.columns * config.grid.rows > 1_800) {
+    warnings.push("Boussinesq runs use an iterative streamfunction solve and may slow down on larger grids.");
   }
   if (config.initial_atmosphere.relative_humidity < 0.65) {
     warnings.push("Low humidity may produce little or no cloud liquid water.");

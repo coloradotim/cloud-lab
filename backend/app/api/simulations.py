@@ -55,12 +55,6 @@ def presets() -> dict[str, object]:
 @router.post("/runs", status_code=status.HTTP_201_CREATED)
 def start_run(config: Annotated[SimulationConfig | None, Body()] = None) -> dict[str, object]:
     resolved_config = config or fair_weather_cumulus_preset().config
-    if resolved_config.solver_type != "educational_2d":
-        raise HTTPException(
-            status_code=422,
-            detail=f"Solver backend '{resolved_config.solver_type}' is not available for runs yet.",
-        )
-
     run = run_manager.create_run(resolved_config)
     return run.metadata()
 

@@ -4,6 +4,8 @@ Cloud Lab's first intentionally simple 2-D vertical-slice atmosphere solver is n
 
 Future scientific credibility should come from new solver backends behind the shared solver interface, not from incrementally tuning this educational model.
 
+The first such backend is documented in `docs/boussinesq-solver.md`.
+
 ## Scope
 
 The `educational_2d` solver evolves row-major `x-z` fields for:
