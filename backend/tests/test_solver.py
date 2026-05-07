@@ -12,7 +12,7 @@ from app.sim import (
     run_simulation,
     step_state,
 )
-from app.sim.solver import _advect, _constant_grid, _solver_grid
+from app.sim.solver import _advect, _apply_surface_heating, _constant_grid, _solver_grid
 
 
 def test_solver_step_preserves_shapes_and_finite_values() -> None:
@@ -58,6 +58,36 @@ def test_advection_preserves_uniform_scalar_field() -> None:
     )
 
     assert advected == uniform_temperature
+
+
+def test_surface_heating_width_is_uniform_across_configured_patch() -> None:
+    config = fair_weather_cumulus_preset().config
+    state = initialize_state(config)
+    solver_grid = _solver_grid(config)
+
+    heated = _apply_surface_heating(
+        config,
+        solver_grid,
+        state.temperature_k,
+        config.time.time_step_seconds,
+    )
+
+    lowest_row = 0
+    patch_deltas = [
+        heated[lowest_row][column_index] - state.temperature_k[lowest_row][column_index]
+        for column_index, x_m in enumerate(solver_grid.x_coordinates_m)
+        if abs(x_m - config.surface_heating.patch_center_x_m)
+        <= config.surface_heating.patch_width_m / 2.0
+    ]
+    outside_deltas = [
+        heated[lowest_row][column_index] - state.temperature_k[lowest_row][column_index]
+        for column_index, x_m in enumerate(solver_grid.x_coordinates_m)
+        if abs(x_m - config.surface_heating.patch_center_x_m) > config.surface_heating.patch_width_m
+    ]
+
+    assert len(patch_deltas) >= 2
+    assert max(patch_deltas) - min(patch_deltas) < 1e-12
+    assert max(outside_deltas) == 0.0
 
 
 def test_fair_weather_preset_keeps_heated_lower_patch_warm_and_upward() -> None:

@@ -19,13 +19,14 @@ The first preset is `fair-weather-cumulus`, shown in the UI as **Fair-weather cu
 The current UI exposes the following controls:
 
 - Surface heating, `max_warming_rate_k_per_s`: stronger values create faster buoyant plume growth.
-- Heating width, `patch_width_m`: wider patches create broader, smoother lift.
+- Surface temperature, `surface_temperature_k`: displayed in Celsius in the browser and stored in Kelvin in the config.
+- Heating width, `patch_width_m`: the full uniformly heated ground-patch width, with only a small taper outside the patch to avoid a hard numerical edge.
 - Heating center, `patch_center_x_m`: moves the heated ground patch across the domain.
 - Lapse rate, `lapse_rate_k_per_m`: larger values cool air more quickly with height and can make rising parcels more cloud-prone in the simplified model.
 - Relative humidity, `relative_humidity`: higher values reduce how much lifting/cooling is needed before cloud water appears.
 - Domain width and height: resize the 2-D slice while preserving the same schema.
 - Grid columns and rows: adjust spatial resolution. Higher values cost more browser and backend work.
-- Runtime, timestep, and frame cadence: control simulated duration, numerical step size, and streamed frame spacing.
+- Runtime, timestep, and frame cadence: control simulated duration, numerical step size, and streamed frame spacing. The browser control supports runs up to 3,600 simulated seconds; short frame cadence on long runs may accumulate many frames.
 - Background wind, `u_m_per_s`: advects structures across the domain.
 - Random seed: preserves reproducible perturbations and run-to-run comparisons.
 
