@@ -1,15 +1,11 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
+from typing import Annotated
 
+from fastapi import APIRouter, Body, HTTPException, WebSocket, WebSocketDisconnect, status
+
+from app.sim.presets import fair_weather_cumulus_preset, simulation_presets
 from app.sim.runs import run_manager
 from app.sim.sample import create_sample_frame
-from app.sim.schemas import (
-    BackgroundWindConfig,
-    GridConfig,
-    InitialAtmosphereConfig,
-    SimulationConfig,
-    SurfaceHeatingConfig,
-    TimeConfig,
-)
+from app.sim.schemas import SimulationConfig
 from app.sim.solver import run_simulation
 from app.sim.streaming import stream_run
 
@@ -23,13 +19,9 @@ def sample_frame() -> dict[str, object]:
 
 @router.get("/sample-run")
 def sample_run() -> dict[str, object]:
-    config = SimulationConfig(
-        grid=GridConfig(columns=36, rows=24),
-        time=TimeConfig(time_step_seconds=2.0, duration_seconds=120.0, frame_interval_seconds=30.0),
-        initial_atmosphere=InitialAtmosphereConfig(relative_humidity=0.96),
-        surface_heating=SurfaceHeatingConfig(max_warming_rate_k_per_s=0.012),
-        background_wind=BackgroundWindConfig(u_m_per_s=0.25),
-        seed=3,
+    preset_config = fair_weather_cumulus_preset().config
+    config = preset_config.model_copy(
+        update={"time": preset_config.time.model_copy(update={"frame_interval_seconds": 30.0})}
     )
     frames = run_simulation(config)
 
@@ -39,9 +31,14 @@ def sample_run() -> dict[str, object]:
     }
 
 
+@router.get("/presets")
+def presets() -> dict[str, object]:
+    return {"presets": [preset.model_dump(mode="json") for preset in simulation_presets()]}
+
+
 @router.post("/runs", status_code=status.HTTP_201_CREATED)
-def start_run() -> dict[str, object]:
-    run = run_manager.create_run(_playback_config())
+def start_run(config: Annotated[SimulationConfig | None, Body()] = None) -> dict[str, object]:
+    run = run_manager.create_run(config or fair_weather_cumulus_preset().config)
     return run.metadata()
 
 
@@ -83,14 +80,3 @@ async def stream_simulation_run(websocket: WebSocket, run_id: str) -> None:
         run_manager.mark_cancelled(run)
     finally:
         await websocket.close()
-
-
-def _playback_config() -> SimulationConfig:
-    return SimulationConfig(
-        grid=GridConfig(columns=36, rows=24),
-        time=TimeConfig(time_step_seconds=2.0, duration_seconds=120.0, frame_interval_seconds=6.0),
-        initial_atmosphere=InitialAtmosphereConfig(relative_humidity=0.96),
-        surface_heating=SurfaceHeatingConfig(max_warming_rate_k_per_s=0.012),
-        background_wind=BackgroundWindConfig(u_m_per_s=0.25),
-        seed=3,
-    )

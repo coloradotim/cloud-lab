@@ -96,6 +96,7 @@ h2 {
 
 .status-panel,
 .schema-panel,
+.controls-panel,
 .playback-panel,
 .dashboard-panel {
   display: flex;
@@ -226,6 +227,110 @@ h2 {
   font-weight: 700;
 }
 
+.controls-panel {
+  align-items: stretch;
+  flex-direction: column;
+  max-width: 1180px;
+}
+
+.controls-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.preset-select {
+  display: grid;
+  gap: 5px;
+  width: min(100%, 420px);
+  color: #4f6f68;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.preset-select select {
+  min-height: 42px;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.number-control {
+  display: grid;
+  grid-template-columns: 1fr 92px;
+  gap: 9px 12px;
+  align-items: center;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
+.number-control span {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #153137;
+  font-weight: 800;
+}
+
+.number-control strong {
+  color: #4f6f68;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.number-control input[type="range"] {
+  width: 100%;
+  accent-color: #3f8b75;
+}
+
+.number-control input[type="number"] {
+  min-width: 0;
+  min-height: 34px;
+  box-sizing: border-box;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+.control-guidance {
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: #31413e;
+  background: #f9fbf7;
+  font-weight: 700;
+}
+
+.control-guidance p,
+.control-guidance ul {
+  margin: 0;
+}
+
+.control-guidance ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 20px;
+}
+
 .dashboard-panel {
   align-items: stretch;
   flex-direction: column;
@@ -341,6 +446,7 @@ h2 {
 
   .status-panel,
   .schema-panel,
+  .controls-header,
   .playback-panel,
   .dashboard-header {
     align-items: flex-start;

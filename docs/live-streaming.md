@@ -24,12 +24,13 @@ Run manager requests graceful stop
 
 ## Run Lifecycle
 
-1. Browser starts a run with `POST /simulations/runs`.
-2. Backend returns run metadata, including `run_id`, duration, frame cadence, and initial status.
-3. Browser opens `WebSocket /simulations/runs/{run_id}/stream`.
-4. Stream sends one `metadata` message.
-5. Stream sends `frame` messages as the solver advances.
-6. Stream sends `complete`, `stopped`, or `error`.
+1. Browser loads available presets with `GET /simulations/presets`.
+2. Browser starts a run with `POST /simulations/runs`, optionally sending a `SimulationConfig` request body.
+3. Backend returns run metadata, including `run_id`, duration, frame cadence, and initial status.
+4. Browser opens `WebSocket /simulations/runs/{run_id}/stream`.
+5. Stream sends one `metadata` message.
+6. Stream sends `frame` messages as the solver advances.
+7. Stream sends `complete`, `stopped`, or `error`.
 
 Run statuses are:
 
@@ -72,7 +73,9 @@ If the browser disconnects, the stream marks the run `cancelled`.
 
 ## Current Frontend Controls
 
-The first playback UI includes:
+The setup UI includes a fair-weather cumulus preset selector and numeric controls for heating strength, heating patch geometry, lapse rate, relative humidity, domain size, grid resolution, runtime, timestep, frame cadence, background wind, and seed. Controls edit the same `SimulationConfig` schema that the backend validates before run creation.
+
+The playback UI includes:
 
 - start
 - stop

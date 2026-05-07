@@ -175,6 +175,7 @@ Expected early files:
 - `backend/app/sim/`: simulation core package.
 - `backend/app/sim/schemas.py`: simulation configuration, frame, field, and units schemas.
 - `backend/app/sim/sample.py`: deterministic sample frame generation for schema and frontend checks.
+- `backend/app/sim/presets.py`: named reproducible simulation presets.
 - `backend/app/sim/solver.py`: minimal 2-D vertical-slice atmosphere solver.
 - `backend/app/api/`: API routes and WebSocket handlers.
 - `backend/app/sim/runs.py`: local simulation run lifecycle and cancellation state.
@@ -182,10 +183,12 @@ Expected early files:
 - `backend/tests/`: backend and simulation tests.
 - `frontend/src/`: browser UI and visualization code.
 - `frontend/src/ScientificDashboard.tsx`: canvas-based scientific field dashboard.
+- `frontend/src/simulationControls.ts`: frontend config normalization and control guidance helpers.
 - `frontend/src/visualization.ts`: pure visualization helper functions and field metadata mapping.
 - `docs/architecture.md`: app architecture and boundaries.
 - `docs/simulation-data-model.md`: config, frame, field, units, and serialization contract.
 - `docs/minimal-solver.md`: governing assumptions, numerical approach, validation notes, and limitations for the first solver.
+- `docs/simulation-controls.md`: preset philosophy, user-facing parameters, expected effects, and limitations.
 - `docs/live-streaming.md`: run lifecycle, WebSocket message contract, cancellation behavior, and scaling notes.
 - `docs/visualization-dashboard.md`: rendering architecture, field display approach, limitations, and level-up path.
 - `docs/scientific-roadmap.md`: physics scope and level-up path.

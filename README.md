@@ -13,8 +13,9 @@ This repository is in its initial scaffold stage. The current app provides:
 - A minimal 2-D vertical-slice solver that emits time-evolving schema frames.
 - Live local simulation playback with start/stop controls and WebSocket frame streaming.
 - A first scientific visualization dashboard for streamed 2-D fields and velocity vectors.
+- Interactive simulation controls plus a fair-weather cumulus preset that can launch from the UI.
 - Backend tests, linting, formatting checks, and type checking.
-- Frontend linting and production build scripts.
+- Frontend linting, unit tests, and production build scripts.
 - GitHub Actions CI for pushes and pull requests to `main`.
 
 Serious cloud physics has not been implemented yet. The simulation module currently defines placeholder configuration and frame schemas so future physics work starts from documented, testable boundaries.
@@ -84,6 +85,7 @@ Frontend:
 
 ```bash
 cd frontend
+npm run test
 npm run lint
 npm run build
 ```
@@ -97,6 +99,7 @@ GitHub Actions runs on pushes and pull requests to `main`. CI installs backend a
 - [Architecture](docs/architecture.md)
 - [Simulation data model](docs/simulation-data-model.md)
 - [Minimal 2-D solver](docs/minimal-solver.md)
+- [Simulation controls and presets](docs/simulation-controls.md)
 - [Live simulation streaming](docs/live-streaming.md)
 - [Scientific visualization dashboard](docs/visualization-dashboard.md)
 - [Scientific roadmap](docs/scientific-roadmap.md)

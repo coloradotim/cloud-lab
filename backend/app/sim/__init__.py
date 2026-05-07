@@ -4,6 +4,7 @@ This package must stay independent from API and frontend code so cloud physics c
 tested, reused, and evolved without browser or transport concerns.
 """
 
+from app.sim.presets import SimulationPreset, fair_weather_cumulus_preset, simulation_presets
 from app.sim.runs import RunStatus, SimulationRun, SimulationRunManager, run_manager
 from app.sim.sample import build_grid_metadata, create_sample_frame, make_simulation_fields
 from app.sim.schemas import (
@@ -44,16 +45,19 @@ __all__ = [
     "SimulationConfig",
     "SimulationFields",
     "SimulationFrame",
+    "SimulationPreset",
     "SimulationRun",
     "SimulationRunManager",
     "SurfaceHeatingConfig",
     "TimeConfig",
     "build_grid_metadata",
     "create_sample_frame",
+    "fair_weather_cumulus_preset",
     "initialize_state",
     "make_simulation_fields",
     "run_simulation",
     "run_manager",
+    "simulation_presets",
     "state_to_frame",
     "step_state",
     "stream_run",
