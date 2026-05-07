@@ -3,10 +3,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { SimulationFrame } from "./simulationTypes";
 import {
   colorForNormalizedValue,
+  displayRangeForField,
+  displayStatsForField,
+  displayUnitForField,
+  displayValueForField,
   fieldOptionsFromFrame,
-  getFieldStats,
+  formatDisplayValue,
   gridPointFromCanvas,
-  valueRangeForField,
 } from "./visualization";
 
 type Probe = {
@@ -50,7 +53,7 @@ export function ScientificDashboard({
   const [probe, setProbe] = useState<Probe | null>(null);
   const fieldOptions = useMemo(() => fieldOptionsFromFrame(frame), [frame]);
   const activeField = frame?.fields[selectedField] ?? null;
-  const fieldStats = activeField ? getFieldStats(activeField) : null;
+  const fieldStats = activeField ? displayStatsForField(activeField) : null;
 
   useEffect(() => {
     if (!frame || !activeField) {
@@ -174,9 +177,13 @@ export function ScientificDashboard({
               <dt>Range</dt>
               <dd>
                 {fieldStats && activeField
-                  ? `${fieldStats.min.toExponential(2)} to ${fieldStats.max.toExponential(2)} ${
-                      activeField.metadata.unit
-                    }`
+                  ? `${formatDisplayedNumber(
+                      activeField.metadata.unit,
+                      fieldStats.min,
+                    )} to ${formatDisplayedNumber(
+                      activeField.metadata.unit,
+                      fieldStats.max,
+                    )} ${displayUnitForField(activeField)}`
                   : "No field"}
               </dd>
             </div>
@@ -184,9 +191,9 @@ export function ScientificDashboard({
               <dt>Probe</dt>
               <dd>
                 {probe && activeField
-                  ? `${probe.value.toExponential(2)} ${activeField.metadata.unit} at x=${probe.xMeters.toFixed(
-                      0,
-                    )} m, z=${probe.zMeters.toFixed(0)} m`
+                  ? `${formatDisplayValue(activeField, probe.value)} ${displayUnitForField(
+                      activeField,
+                    )} at x=${probe.xMeters.toFixed(0)} m, z=${probe.zMeters.toFixed(0)} m`
                   : "Hover a cell"}
               </dd>
             </div>
@@ -213,6 +220,10 @@ export function ScientificDashboard({
       </div>
     </section>
   );
+}
+
+function formatDisplayedNumber(sourceUnit: string, displayValue: number): string {
+  return sourceUnit === "K" ? displayValue.toFixed(2) : displayValue.toExponential(2);
 }
 
 function renderFrame(canvas: HTMLCanvasElement, frame: SimulationFrame, selectedField: string) {
@@ -242,7 +253,7 @@ function drawScalarField(
   height: number,
 ) {
   const field = frame.fields[selectedField];
-  const range = valueRangeForField(field);
+  const range = displayRangeForField(field);
   const rows = frame.grid.rows;
   const columns = frame.grid.columns;
   const cellWidth = width / columns;
@@ -252,7 +263,8 @@ function drawScalarField(
   for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
     for (let columnIndex = 0; columnIndex < columns; columnIndex += 1) {
       const value = field.values[rowIndex][columnIndex];
-      const normalized = (value - range.min) / (range.max - range.min);
+      const normalized =
+        (displayValueForField(field, value) - range.min) / (range.max - range.min);
       const [red, green, blue] = colorForNormalizedValue(normalized, colorMap);
       context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
       context.fillRect(

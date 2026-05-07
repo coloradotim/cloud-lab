@@ -23,6 +23,7 @@ Current scalar rendering:
 - displays the lowest `z` row at the bottom of the plot
 - uses field `display_scale` metadata when present
 - falls back to observed min/max range when metadata is absent
+- converts absolute temperature from Kelvin transport values to Celsius for browser display
 - overlays sampled velocity vectors from horizontal and vertical velocity fields
 
 The field readout shows time, buffered frames, displayed frame index, range, local probe value, and local velocity. Hover/cursor inspection maps canvas coordinates back to grid row/column and physical `x`/`z` coordinates.

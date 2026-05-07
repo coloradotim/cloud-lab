@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import type { SimulationFrame } from "./simulationTypes";
 import {
+  displayRangeForField,
+  displayStatsForField,
+  displayUnitForField,
+  displayValueForField,
   fieldOptionsFromFrame,
+  formatDisplayValue,
   getFieldStats,
   gridPointFromCanvas,
   valueRangeForField,
@@ -72,14 +77,26 @@ describe("visualization helpers", () => {
   it("maps frame field metadata into ordered UI options", () => {
     expect(fieldOptionsFromFrame(frame)).toMatchObject([
       { key: "cloud_liquid_water_kg_per_kg", label: "Cloud liquid water", unit: "kg kg-1" },
-      { key: "temperature_k", label: "Temperature", unit: "K" },
+      { key: "temperature_k", label: "Temperature", unit: "deg C" },
       { key: "vertical_velocity_m_per_s", label: "Vertical velocity", unit: "m s-1" },
       { key: "horizontal_velocity_m_per_s", label: "Horizontal velocity", unit: "m s-1" },
     ]);
   });
 
-  it("uses display scale metadata when available", () => {
+  it("keeps raw ranges in transport units", () => {
     expect(valueRangeForField(frame.fields.temperature_k)).toEqual({ min: 280, max: 300 });
+  });
+
+  it("converts temperature field display values to Celsius", () => {
+    const field = frame.fields.temperature_k;
+
+    expect(displayUnitForField(field)).toBe("deg C");
+    expect(displayValueForField(field, 293.15)).toBeCloseTo(20);
+    expect(displayStatsForField(field).min).toBeCloseTo(14.85);
+    expect(displayStatsForField(field).max).toBeCloseTo(17.85);
+    expect(displayRangeForField(field).min).toBeCloseTo(6.85);
+    expect(displayRangeForField(field).max).toBeCloseTo(26.85);
+    expect(formatDisplayValue(field, 293.15)).toBe("20.00");
   });
 
   it("computes data range when display scale is absent", () => {

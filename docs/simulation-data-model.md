@@ -51,7 +51,7 @@ Every field must match `grid.rows x grid.columns`. Tests reject rectangular mism
 | `horizontal_velocity_m_per_s` | m s-1 | Background wind with deterministic seeded jitter in sample frames. |
 | `vertical_velocity_m_per_s` | m s-1 | Background vertical wind placeholder. |
 
-Each field carries `metadata.unit`, `metadata.display_name`, `metadata.description`, and optional `metadata.display_scale` hints. Display metadata exists for visualization convenience; it is not solver state.
+Each field carries `metadata.unit`, `metadata.display_name`, `metadata.description`, and optional `metadata.display_scale` hints. Display metadata exists for visualization convenience; it is not solver state. The v1 transport contract keeps `temperature_k` in Kelvin, and the browser display layer converts temperature labels, probes, ranges, and color scaling to Celsius.
 
 ## Assumptions And Placeholders
 

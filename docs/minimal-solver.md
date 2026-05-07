@@ -59,6 +59,8 @@ Automated tests currently check:
 - Fields preserve configured shape.
 - Field values remain finite.
 - Surface heating produces a stronger updraft than the initial state.
+- Uniform scalar fields stay unchanged under first-order upwind advection.
+- The fair-weather heated lower patch remains warm and upward-moving early in the run.
 - Humid seeded runs produce non-zero cloud liquid water.
 - Cloud liquid water remains non-negative.
 

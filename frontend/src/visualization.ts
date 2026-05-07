@@ -51,7 +51,7 @@ export function fieldOptionsFromFrame(frame: SimulationFrame | null): FieldOptio
     return {
       key,
       label: field.metadata.display_name,
-      unit: field.metadata.unit,
+      unit: displayUnitForField(field),
       description: field.metadata.description,
     };
   });
@@ -87,6 +87,39 @@ export function valueRangeForField(field: ScalarField): FieldStats {
   }
 
   return { min, max };
+}
+
+export function displayUnit(unit: string): string {
+  return unit === "K" ? "deg C" : unit;
+}
+
+export function displayUnitForField(field: ScalarField): string {
+  return displayUnit(field.metadata.unit);
+}
+
+export function displayValueForField(field: ScalarField, value: number): number {
+  return field.metadata.unit === "K" ? value - 273.15 : value;
+}
+
+export function displayStatsForField(field: ScalarField): FieldStats {
+  const stats = getFieldStats(field);
+  return {
+    min: displayValueForField(field, stats.min),
+    max: displayValueForField(field, stats.max),
+  };
+}
+
+export function displayRangeForField(field: ScalarField): FieldStats {
+  const range = valueRangeForField(field);
+  return {
+    min: displayValueForField(field, range.min),
+    max: displayValueForField(field, range.max),
+  };
+}
+
+export function formatDisplayValue(field: ScalarField, value: number): string {
+  const displayValue = displayValueForField(field, value);
+  return field.metadata.unit === "K" ? displayValue.toFixed(2) : displayValue.toExponential(2);
 }
 
 export function gridPointFromCanvas(

@@ -181,6 +181,7 @@ Expected early files:
 - `backend/app/sim/runs.py`: local simulation run lifecycle and cancellation state.
 - `backend/app/sim/streaming.py`: WebSocket-neutral frame streaming generator.
 - `backend/tests/`: backend and simulation tests.
+- `scripts/dev.sh`: local helper for starting, stopping, checking, and tailing backend/frontend dev servers.
 - `frontend/src/`: browser UI and visualization code.
 - `frontend/src/ScientificDashboard.tsx`: canvas-based scientific field dashboard.
 - `frontend/src/simulationControls.ts`: frontend config normalization and control guidance helpers.

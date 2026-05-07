@@ -8,6 +8,7 @@ import {
   updateConfigNumber,
 } from "./simulationControls";
 import type { SimulationConfig, SimulationFrame, SimulationPreset } from "./simulationTypes";
+import { displayUnit } from "./visualization";
 
 type HealthState =
   | { status: "checking" }
@@ -100,7 +101,9 @@ async function fetchSampleFrame(signal: AbortSignal): Promise<SampleFrameState> 
     columns: payload.grid?.columns ?? 0,
     rows: payload.grid?.rows ?? 0,
     fieldCount: Object.keys(fields).length,
-    units: Array.from(new Set(Object.values(fields).map((field) => field.metadata?.unit ?? "unitless"))),
+    units: Array.from(
+      new Set(Object.values(fields).map((field) => displayUnit(field.metadata?.unit ?? "unitless"))),
+    ),
   };
 }
 
