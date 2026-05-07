@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from "react";
 
 import "./App.css";
 import { ScientificDashboard } from "./ScientificDashboard";
-import type { SimulationFrame } from "./simulationTypes";
+import {
+  CONTROL_LIMITS,
+  configWarnings,
+  updateConfigNumber,
+} from "./simulationControls";
+import type { SimulationConfig, SimulationFrame, SimulationPreset } from "./simulationTypes";
 
 type HealthState =
   | { status: "checking" }
@@ -48,6 +53,16 @@ const DEFAULT_VISUAL_FIELD = "cloud_liquid_water_kg_per_kg";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 const websocketBaseUrl = apiBaseUrl.replace(/^http/, "ws");
+
+async function fetchPresets(signal: AbortSignal): Promise<SimulationPreset[]> {
+  const response = await fetch(`${apiBaseUrl}/simulations/presets`, { signal });
+  if (!response.ok) {
+    throw new Error(`Preset request returned HTTP ${response.status}`);
+  }
+
+  const payload = (await response.json()) as { presets?: SimulationPreset[] };
+  return payload.presets ?? [];
+}
 
 async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
   const response = await fetch(`${apiBaseUrl}/health`, { signal });
@@ -127,6 +142,10 @@ export function App() {
   const [selectedField, setSelectedField] = useState(DEFAULT_VISUAL_FIELD);
   const [isPaused, setIsPaused] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [presets, setPresets] = useState<SimulationPreset[]>([]);
+  const [selectedPreset, setSelectedPreset] = useState("fair-weather-cumulus");
+  const [simulationConfig, setSimulationConfig] = useState<SimulationConfig | null>(null);
+  const [configMessage, setConfigMessage] = useState<string | null>(null);
   const [playback, setPlayback] = useState<PlaybackState>({
     status: "idle",
     runId: null,
@@ -205,6 +224,26 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+
+    fetchPresets(controller.signal)
+      .then((loadedPresets) => {
+        setPresets(loadedPresets);
+        const defaultPreset = loadedPresets[0];
+        if (defaultPreset) {
+          setSelectedPreset(defaultPreset.slug);
+          setSimulationConfig(defaultPreset.config);
+          setConfigMessage(null);
+        }
+      })
+      .catch((error: unknown) => {
+        setConfigMessage(error instanceof Error ? error.message : "Unable to load presets.");
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
     if (frames.length === 0 || isPaused) {
       return;
     }
@@ -220,6 +259,15 @@ export function App() {
   }, [frames.length, isPaused, playbackSpeed]);
 
   async function startPlayback() {
+    if (!simulationConfig) {
+      setPlayback((current) => ({
+        ...current,
+        status: "error",
+        message: "No simulation configuration is loaded.",
+      }));
+      return;
+    }
+
     websocketRef.current?.close();
     firstFrameAtRef.current = null;
     setFrames([]);
@@ -238,7 +286,11 @@ export function App() {
     });
 
     try {
-      const response = await fetch(`${apiBaseUrl}/simulations/runs`, { method: "POST" });
+      const response = await fetch(`${apiBaseUrl}/simulations/runs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(simulationConfig),
+      });
       if (!response.ok) {
         throw new Error(`Start returned HTTP ${response.status}`);
       }
@@ -404,6 +456,22 @@ export function App() {
         <SampleRunSummary sampleRun={sampleRun} />
       </section>
 
+      <SimulationControls
+        config={simulationConfig}
+        presets={presets}
+        selectedPreset={selectedPreset}
+        message={configMessage}
+        onPresetChange={(presetSlug) => {
+          const preset = presets.find((candidate) => candidate.slug === presetSlug);
+          setSelectedPreset(presetSlug);
+          if (preset) {
+            setSimulationConfig(preset.config);
+            setConfigMessage(`Loaded ${preset.name}.`);
+          }
+        }}
+        onConfigChange={setSimulationConfig}
+      />
+
       <section className="playback-panel" aria-labelledby="playback-title">
         <div>
           <p className="eyebrow">Live playback</p>
@@ -412,6 +480,7 @@ export function App() {
 
         <PlaybackControls
           playback={playback}
+          canStart={simulationConfig !== null}
           onStart={startPlayback}
           onStop={stopPlayback}
           onReset={resetPlayback}
@@ -529,6 +598,232 @@ function maxGridValue(values: number[][]): number {
   );
 }
 
+function SimulationControls({
+  config,
+  presets,
+  selectedPreset,
+  message,
+  onPresetChange,
+  onConfigChange,
+}: {
+  config: SimulationConfig | null;
+  presets: SimulationPreset[];
+  selectedPreset: string;
+  message: string | null;
+  onPresetChange: (presetSlug: string) => void;
+  onConfigChange: (config: SimulationConfig) => void;
+}) {
+  if (!config) {
+    return (
+      <section className="controls-panel" aria-labelledby="controls-title">
+        <div>
+          <p className="eyebrow">Simulation setup</p>
+          <h2 id="controls-title">Controls</h2>
+        </div>
+        <p className="status checking">Loading presets...</p>
+      </section>
+    );
+  }
+
+  const warnings = configWarnings(config);
+
+  function update(path: string, value: number) {
+    if (!config) {
+      return;
+    }
+    onConfigChange(updateConfigNumber(config, path, value));
+  }
+
+  return (
+    <section className="controls-panel" aria-labelledby="controls-title">
+      <div className="controls-header">
+        <div>
+          <p className="eyebrow">Simulation setup</p>
+          <h2 id="controls-title">Initial conditions</h2>
+        </div>
+
+        <label className="preset-select">
+          Preset
+          <select value={selectedPreset} onChange={(event) => onPresetChange(event.target.value)}>
+            {presets.map((preset) => (
+              <option key={preset.slug} value={preset.slug}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="controls-grid">
+        <NumberControl
+          label="Surface heating"
+          unit="K/s"
+          value={config.surface_heating.max_warming_rate_k_per_s}
+          limits={CONTROL_LIMITS.surfaceHeatingRate}
+          onChange={(value) => update("surface_heating.max_warming_rate_k_per_s", value)}
+        />
+        <NumberControl
+          label="Heating width"
+          unit="m"
+          value={config.surface_heating.patch_width_m}
+          limits={{
+            ...CONTROL_LIMITS.heatingWidth,
+            max: config.domain.width_m,
+          }}
+          onChange={(value) => update("surface_heating.patch_width_m", value)}
+        />
+        <NumberControl
+          label="Heating center"
+          unit="m"
+          value={config.surface_heating.patch_center_x_m}
+          limits={{
+            ...CONTROL_LIMITS.heatingCenter,
+            max: config.domain.width_m,
+          }}
+          onChange={(value) => update("surface_heating.patch_center_x_m", value)}
+        />
+        <NumberControl
+          label="Lapse rate"
+          unit="K/m"
+          value={config.initial_atmosphere.lapse_rate_k_per_m}
+          limits={CONTROL_LIMITS.lapseRate}
+          onChange={(value) => update("initial_atmosphere.lapse_rate_k_per_m", value)}
+        />
+        <NumberControl
+          label="Relative humidity"
+          unit="fraction"
+          value={config.initial_atmosphere.relative_humidity}
+          limits={CONTROL_LIMITS.relativeHumidity}
+          onChange={(value) => update("initial_atmosphere.relative_humidity", value)}
+        />
+        <NumberControl
+          label="Domain width"
+          unit="m"
+          value={config.domain.width_m}
+          limits={CONTROL_LIMITS.domainWidth}
+          onChange={(value) => update("domain.width_m", value)}
+        />
+        <NumberControl
+          label="Domain height"
+          unit="m"
+          value={config.domain.height_m}
+          limits={CONTROL_LIMITS.domainHeight}
+          onChange={(value) => update("domain.height_m", value)}
+        />
+        <NumberControl
+          label="Grid columns"
+          unit="cells"
+          value={config.grid.columns}
+          limits={CONTROL_LIMITS.gridColumns}
+          onChange={(value) => update("grid.columns", value)}
+        />
+        <NumberControl
+          label="Grid rows"
+          unit="cells"
+          value={config.grid.rows}
+          limits={CONTROL_LIMITS.gridRows}
+          onChange={(value) => update("grid.rows", value)}
+        />
+        <NumberControl
+          label="Runtime"
+          unit="s"
+          value={config.time.duration_seconds}
+          limits={CONTROL_LIMITS.duration}
+          onChange={(value) => update("time.duration_seconds", value)}
+        />
+        <NumberControl
+          label="Timestep"
+          unit="s"
+          value={config.time.time_step_seconds}
+          limits={CONTROL_LIMITS.timeStep}
+          onChange={(value) => update("time.time_step_seconds", value)}
+        />
+        <NumberControl
+          label="Frame cadence"
+          unit="s"
+          value={config.time.frame_interval_seconds}
+          limits={CONTROL_LIMITS.frameInterval}
+          onChange={(value) => update("time.frame_interval_seconds", value)}
+        />
+        <NumberControl
+          label="Background wind"
+          unit="m/s"
+          value={config.background_wind.u_m_per_s}
+          limits={CONTROL_LIMITS.wind}
+          onChange={(value) => update("background_wind.u_m_per_s", value)}
+        />
+        <NumberControl
+          label="Random seed"
+          unit="seed"
+          value={config.seed}
+          limits={CONTROL_LIMITS.seed}
+          onChange={(value) => update("seed", value)}
+        />
+      </div>
+
+      <div className="control-guidance" aria-live="polite">
+        {message ? <p>{message}</p> : null}
+        {warnings.length > 0 ? (
+          <ul>
+            {warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        ) : (
+          <p>Configuration is within the current local playback guidance.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+type ControlLimits = {
+  min: number;
+  max: number;
+  step: number;
+};
+
+function NumberControl({
+  label,
+  unit,
+  value,
+  limits,
+  onChange,
+}: {
+  label: string;
+  unit: string;
+  value: number;
+  limits: ControlLimits;
+  onChange: (value: number) => void;
+}) {
+  const displayValue = limits.step < 0.01 ? value.toFixed(4) : value.toString();
+
+  return (
+    <label className="number-control">
+      <span>
+        {label}
+        <strong>{unit}</strong>
+      </span>
+      <input
+        type="range"
+        min={limits.min}
+        max={limits.max}
+        step={limits.step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <input
+        type="number"
+        min={limits.min}
+        max={limits.max}
+        step={limits.step}
+        value={displayValue}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </label>
+  );
+}
+
 type StreamMessage =
   | {
       type: "metadata" | "complete" | "stopped";
@@ -545,11 +840,13 @@ type StreamMessage =
 
 function PlaybackControls({
   playback,
+  canStart,
   onStart,
   onStop,
   onReset,
 }: {
   playback: PlaybackState;
+  canStart: boolean;
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
@@ -563,7 +860,7 @@ function PlaybackControls({
   return (
     <div className="playback-controls">
       <div className="button-row">
-        <button type="button" onClick={onStart} disabled={isActive}>
+        <button type="button" onClick={onStart} disabled={isActive || !canStart}>
           Start
         </button>
         <button type="button" onClick={onStop} disabled={playback.status !== "running"}>
