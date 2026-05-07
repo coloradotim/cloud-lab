@@ -1,0 +1,46 @@
+# Architecture
+
+Cloud Lab starts as a local browser application with a Python backend and a React frontend. The early architecture keeps the simulation core independent from API and rendering concerns so physics work can be tested and improved without rewriting the app shell.
+
+## High-Level Shape
+
+```text
+React + Vite frontend
+  |
+  | HTTP now, WebSocket frames later
+  v
+FastAPI backend
+  |
+  | plain configuration and frame schemas
+  v
+Python simulation core
+```
+
+## Backend And Frontend Boundary
+
+The frontend owns browser interaction, controls, and visualization. It calls backend endpoints for health, simulation setup, and eventually live simulation frames. It should not contain solver logic or mutate simulation state directly.
+
+The backend owns transport, validation, run orchestration, and future WebSocket streaming. It wraps the simulation core through explicit request and frame schemas. API route handlers should stay thin and should not accumulate physics rules.
+
+## Simulation-Core Boundary
+
+The simulation core lives under `backend/app/sim`. It must remain importable and testable without FastAPI, React, browser APIs, or network state.
+
+The core should expose plain, documented configuration and output models. Every physical field added later should document units, expected shape, and whether the value is physically meaningful or illustrative.
+
+## Live Frame Streaming
+
+The backend already reserves `/ws/simulations/{run_id}` as the future live-frame boundary. A later milestone will use that endpoint to stream stable frame envelopes to the frontend while a simulation run advances.
+
+Expected live-frame responsibilities:
+
+- The simulation core produces deterministic frame data from a configuration and seed.
+- The backend serializes frames and handles connection lifecycle.
+- The frontend visualizes frames and sends explicit control messages when needed.
+- Frame schemas remain stable enough for tests, docs, and visualization layers to evolve independently.
+
+## Why Start With 2-D Vertical Slices
+
+Cloud Lab starts with 2-D vertical slice modeling because it gives a useful first view of fair-weather cumulus behavior while keeping compute cost, debugging complexity, and visualization scope reasonable on a local Mac.
+
+A 2-D slice can show surface heating, buoyant plumes, moisture fields, condensation regions, and simple vertical motion without requiring a full 3-D fluid solver. This keeps the first physics milestones reviewable while leaving room to level up toward 2.5-D and 3-D dynamics.
