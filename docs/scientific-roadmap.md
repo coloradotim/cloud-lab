@@ -33,6 +33,8 @@ The starting dynamics can be simplified and educational, but the assumptions mus
 
 Known early limitations should be documented near the implementation and in validation notes when new physics behavior is added.
 
+The initial solver uses localized surface heating, first-order advection, simple diffusion, buoyancy from temperature perturbation, saturation adjustment, and latent heating. It deliberately does not include a pressure solve, turbulence closure, terrain, rain sedimentation, ice physics, or a conservation guarantee.
+
 ## Level-Up Path
 
 1. Implement a minimal 2-D vertical-slice core with deterministic frame generation.
