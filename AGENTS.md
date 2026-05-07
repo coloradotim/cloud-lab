@@ -173,9 +173,12 @@ Expected early files:
 
 - `backend/app/main.py`: FastAPI app entry point.
 - `backend/app/sim/`: simulation core package.
+- `backend/app/sim/schemas.py`: simulation configuration, frame, field, and units schemas.
+- `backend/app/sim/sample.py`: deterministic sample frame generation for schema and frontend checks.
 - `backend/app/api/`: API routes and WebSocket handlers.
 - `backend/tests/`: backend and simulation tests.
 - `frontend/src/`: browser UI and visualization code.
 - `docs/architecture.md`: app architecture and boundaries.
+- `docs/simulation-data-model.md`: config, frame, field, units, and serialization contract.
 - `docs/scientific-roadmap.md`: physics scope and level-up path.
 - `docs/development.md`: development workflow, tests, and validation expectations.

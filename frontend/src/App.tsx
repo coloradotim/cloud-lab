@@ -7,6 +7,18 @@ type HealthState =
   | { status: "online"; service: string; version: string }
   | { status: "offline"; message: string };
 
+type SampleFrameState =
+  | { status: "checking" }
+  | {
+      status: "ready";
+      schemaVersion: string;
+      columns: number;
+      rows: number;
+      fieldCount: number;
+      units: string[];
+    }
+  | { status: "unavailable"; message: string };
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
 async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
@@ -25,8 +37,33 @@ async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
   };
 }
 
+async function fetchSampleFrame(signal: AbortSignal): Promise<SampleFrameState> {
+  const response = await fetch(`${apiBaseUrl}/simulations/sample-frame`, { signal });
+
+  if (!response.ok) {
+    return { status: "unavailable", message: `Sample frame returned HTTP ${response.status}` };
+  }
+
+  const payload = (await response.json()) as {
+    schema_version?: string;
+    grid?: { columns?: number; rows?: number };
+    fields?: Record<string, { metadata?: { unit?: string } }>;
+  };
+  const fields = payload.fields ?? {};
+
+  return {
+    status: "ready",
+    schemaVersion: payload.schema_version ?? "unknown",
+    columns: payload.grid?.columns ?? 0,
+    rows: payload.grid?.rows ?? 0,
+    fieldCount: Object.keys(fields).length,
+    units: Array.from(new Set(Object.values(fields).map((field) => field.metadata?.unit ?? "unitless"))),
+  };
+}
+
 export function App() {
   const [health, setHealth] = useState<HealthState>({ status: "checking" });
+  const [sampleFrame, setSampleFrame] = useState<SampleFrameState>({ status: "checking" });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -41,6 +78,25 @@ export function App() {
         setHealth({
           status: "offline",
           message: "Backend is not reachable at the configured API URL.",
+        });
+      });
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    fetchSampleFrame(controller.signal)
+      .then(setSampleFrame)
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+
+        setSampleFrame({
+          status: "unavailable",
+          message: "Sample frame schema is not reachable at the configured API URL.",
         });
       });
 
@@ -66,6 +122,15 @@ export function App() {
 
         <StatusBadge health={health} />
       </section>
+
+      <section className="schema-panel" aria-labelledby="schema-title">
+        <div>
+          <p className="eyebrow">Frame schema</p>
+          <h2 id="schema-title">Sample output</h2>
+        </div>
+
+        <SampleFrameSummary sampleFrame={sampleFrame} />
+      </section>
     </main>
   );
 }
@@ -83,5 +148,38 @@ function StatusBadge({ health }: { health: HealthState }) {
     <p className="status online">
       Online: {health.service} v{health.version}
     </p>
+  );
+}
+
+function SampleFrameSummary({ sampleFrame }: { sampleFrame: SampleFrameState }) {
+  if (sampleFrame.status === "checking") {
+    return <p className="status checking">Checking sample frame...</p>;
+  }
+
+  if (sampleFrame.status === "unavailable") {
+    return <p className="status offline">Unavailable: {sampleFrame.message}</p>;
+  }
+
+  return (
+    <dl className="schema-summary">
+      <div>
+        <dt>Schema</dt>
+        <dd>{sampleFrame.schemaVersion}</dd>
+      </div>
+      <div>
+        <dt>Grid</dt>
+        <dd>
+          {sampleFrame.columns} x {sampleFrame.rows}
+        </dd>
+      </div>
+      <div>
+        <dt>Fields</dt>
+        <dd>{sampleFrame.fieldCount}</dd>
+      </div>
+      <div>
+        <dt>Units</dt>
+        <dd>{sampleFrame.units.join(", ")}</dd>
+      </div>
+    </dl>
   );
 }

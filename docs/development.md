@@ -59,6 +59,7 @@ When adding a modeled field:
 - Name constants and explain their meaning.
 - Keep output schemas stable or document intentional schema changes.
 - Update tests for invariants and expected behavior.
+- Add or update sample frame serialization when frontend visualization needs the field.
 
 ## Physics Validation Rule
 
