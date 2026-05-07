@@ -28,7 +28,7 @@ The prototype uses a 2-D Boussinesq-style vertical slice with:
 - scalar advection for temperature perturbation, vapor, cloud water, and vorticity
 - simple diffusion for thermal, moisture, and vorticity fields
 - explicit thermal and vorticity damping to keep this prototype in a conservative regime
-- simple saturation adjustment for warm-cloud condensation
+- simple saturation adjustment for warm-cloud condensation in actively lifted cloudy cells
 
 The streamfunction solve uses a fixed-iteration Jacobi Poisson solve:
 
@@ -60,7 +60,7 @@ Each timestep applies:
 6. Buoyancy-gradient forcing of vorticity.
 7. Jacobi streamfunction solve.
 8. Velocity recovery from streamfunction.
-9. Warm-cloud saturation adjustment with latent heating.
+9. Warm-cloud saturation adjustment with latent heating in cells with active updrafts or existing cloud water.
 10. A shallow top sponge to reduce closed-lid artifacts.
 
 Constants are named in `backend/app/sim/boussinesq_2d.py`. They are intentionally visible because this is a prototype numerical core, not a tuned black box.
@@ -78,7 +78,7 @@ Constants are named in `backend/app/sim/boussinesq_2d.py`. They are intentionall
 - Boundary conditions are simple and still need validation.
 - Damping and perturbation caps are safety rails for prototype stability, not calibrated physics.
 - No turbulence closure, terrain, Coriolis force, rain sedimentation, ice physics, or aerosol/CCN treatment.
-- Moist physics remains simple saturation adjustment.
+- Moist physics remains simple saturation adjustment. New cloud water is gated by a small updraft threshold so diffusion across a saturated initial humidity profile does not create a stationary boundary-layer cloud band without forcing.
 - No formal benchmark validation yet.
 
 ## Validation Notes
@@ -90,5 +90,6 @@ Automated tests check that the prototype:
 - is deterministic for seeded configurations
 - keeps moisture fields non-negative
 - produces buoyant motion and cloud water under humid heated conditions
+- does not create cloud water, temperature perturbations, or vertical motion in a saturated no-heating run
 
 These are stability and integration tests, not atmospheric validation.
