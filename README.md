@@ -12,6 +12,7 @@ This repository is in its initial scaffold stage. The current app provides:
 - A shared simulation config and frame schema with units metadata.
 - A minimal 2-D vertical-slice solver that emits time-evolving schema frames.
 - Live local simulation playback with start/stop controls and WebSocket frame streaming.
+- A first scientific visualization dashboard for streamed 2-D fields and velocity vectors.
 - Backend tests, linting, formatting checks, and type checking.
 - Frontend linting and production build scripts.
 - GitHub Actions CI for pushes and pull requests to `main`.
@@ -97,5 +98,6 @@ GitHub Actions runs on pushes and pull requests to `main`. CI installs backend a
 - [Simulation data model](docs/simulation-data-model.md)
 - [Minimal 2-D solver](docs/minimal-solver.md)
 - [Live simulation streaming](docs/live-streaming.md)
+- [Scientific visualization dashboard](docs/visualization-dashboard.md)
 - [Scientific roadmap](docs/scientific-roadmap.md)
 - [Development workflow](docs/development.md)

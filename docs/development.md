@@ -68,3 +68,5 @@ New physics code must include automated tests or validation notes. Tests are pre
 For solver changes, update `docs/minimal-solver.md` when assumptions, equations, stability behavior, constants, validation checks, or known limitations change.
 
 For streaming changes, update `docs/live-streaming.md` when run lifecycle, message types, cancellation behavior, frame cadence, or scaling assumptions change.
+
+For visualization changes, update `docs/visualization-dashboard.md` when field rendering, frame buffering, canvas behavior, accessibility, or performance assumptions change.

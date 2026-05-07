@@ -181,9 +181,12 @@ Expected early files:
 - `backend/app/sim/streaming.py`: WebSocket-neutral frame streaming generator.
 - `backend/tests/`: backend and simulation tests.
 - `frontend/src/`: browser UI and visualization code.
+- `frontend/src/ScientificDashboard.tsx`: canvas-based scientific field dashboard.
+- `frontend/src/visualization.ts`: pure visualization helper functions and field metadata mapping.
 - `docs/architecture.md`: app architecture and boundaries.
 - `docs/simulation-data-model.md`: config, frame, field, units, and serialization contract.
 - `docs/minimal-solver.md`: governing assumptions, numerical approach, validation notes, and limitations for the first solver.
 - `docs/live-streaming.md`: run lifecycle, WebSocket message contract, cancellation behavior, and scaling notes.
+- `docs/visualization-dashboard.md`: rendering architecture, field display approach, limitations, and level-up path.
 - `docs/scientific-roadmap.md`: physics scope and level-up path.
 - `docs/development.md`: development workflow, tests, and validation expectations.
