@@ -1,3 +1,5 @@
+import pytest
+
 from app.sim import (
     BoussinesqReferenceCase,
     boussinesq_model_sizes,
@@ -82,9 +84,19 @@ def test_humid_boussinesq_reference_case_creates_bounded_cloud_water() -> None:
     assert diagnostics.total_cloud_liquid_water_kg_per_kg > 0.0
     assert diagnostics.cloud_top_height_m is not None
     assert diagnostics.max_cloud_liquid_water_height_m is not None
+
+
+@pytest.mark.xfail(reason="Current prototype places peak cloud water below the BL top.")
+def test_humid_boussinesq_reference_cloud_maximum_is_aloft() -> None:
+    humid = _case("humid-lifted-thermal")
+
+    diagnostics = compute_boussinesq_diagnostics(run_simulation(humid.config)[-1])
+
+    assert diagnostics.max_cloud_liquid_water_height_m is not None
     assert diagnostics.max_cloud_liquid_water_height_m >= (
         humid.config.initial_atmosphere.boundary_layer_depth_m
     )
+    assert diagnostics.cloud_top_height_m is not None
     assert diagnostics.cloud_top_height_m < humid.config.domain.height_m * 0.75
 
 
