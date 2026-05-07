@@ -11,6 +11,7 @@ This repository is in its initial scaffold stage. The current app provides:
 - A React + Vite frontend that reports backend connection status.
 - A shared simulation config and frame schema with units metadata.
 - A minimal 2-D vertical-slice solver that emits time-evolving schema frames.
+- Live local simulation playback with start/stop controls and WebSocket frame streaming.
 - Backend tests, linting, formatting checks, and type checking.
 - Frontend linting and production build scripts.
 - GitHub Actions CI for pushes and pull requests to `main`.
@@ -95,5 +96,6 @@ GitHub Actions runs on pushes and pull requests to `main`. CI installs backend a
 - [Architecture](docs/architecture.md)
 - [Simulation data model](docs/simulation-data-model.md)
 - [Minimal 2-D solver](docs/minimal-solver.md)
+- [Live simulation streaming](docs/live-streaming.md)
 - [Scientific roadmap](docs/scientific-roadmap.md)
 - [Development workflow](docs/development.md)

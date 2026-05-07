@@ -66,3 +66,5 @@ When adding a modeled field:
 New physics code must include automated tests or validation notes. Tests are preferred for deterministic behavior, field shapes, units expectations, non-negative moisture fields, and stable frame schemas. If automated validation is deferred, the PR must explain why and include enough notes for the next implementation step.
 
 For solver changes, update `docs/minimal-solver.md` when assumptions, equations, stability behavior, constants, validation checks, or known limitations change.
+
+For streaming changes, update `docs/live-streaming.md` when run lifecycle, message types, cancellation behavior, frame cadence, or scaling assumptions change.

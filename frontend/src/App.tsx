@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "./App.css";
 
@@ -30,7 +30,20 @@ type SampleRunState =
     }
   | { status: "unavailable"; message: string };
 
+type PlaybackState = {
+  status: "idle" | "starting" | "running" | "stopped" | "complete" | "error";
+  runId: string | null;
+  framesReceived: number;
+  durationSeconds: number;
+  currentTimeSeconds: number;
+  frameRate: number;
+  maxCloudWater: number;
+  maxUpdraft: number;
+  message: string | null;
+};
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const websocketBaseUrl = apiBaseUrl.replace(/^http/, "ws");
 
 async function fetchHealth(signal: AbortSignal): Promise<HealthState> {
   const response = await fetch(`${apiBaseUrl}/health`, { signal });
@@ -105,6 +118,19 @@ export function App() {
   const [health, setHealth] = useState<HealthState>({ status: "checking" });
   const [sampleFrame, setSampleFrame] = useState<SampleFrameState>({ status: "checking" });
   const [sampleRun, setSampleRun] = useState<SampleRunState>({ status: "checking" });
+  const [playback, setPlayback] = useState<PlaybackState>({
+    status: "idle",
+    runId: null,
+    framesReceived: 0,
+    durationSeconds: 0,
+    currentTimeSeconds: 0,
+    frameRate: 0,
+    maxCloudWater: 0,
+    maxUpdraft: 0,
+    message: null,
+  });
+  const websocketRef = useRef<WebSocket | null>(null);
+  const firstFrameAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -163,6 +189,146 @@ export function App() {
     return () => controller.abort();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      websocketRef.current?.close();
+    };
+  }, []);
+
+  async function startPlayback() {
+    websocketRef.current?.close();
+    firstFrameAtRef.current = null;
+    setPlayback({
+      status: "starting",
+      runId: null,
+      framesReceived: 0,
+      durationSeconds: 0,
+      currentTimeSeconds: 0,
+      frameRate: 0,
+      maxCloudWater: 0,
+      maxUpdraft: 0,
+      message: null,
+    });
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/simulations/runs`, { method: "POST" });
+      if (!response.ok) {
+        throw new Error(`Start returned HTTP ${response.status}`);
+      }
+
+      const run = (await response.json()) as {
+        run_id: string;
+        duration_seconds?: number;
+      };
+      const websocket = new WebSocket(`${websocketBaseUrl}/simulations/runs/${run.run_id}/stream`);
+      websocketRef.current = websocket;
+
+      websocket.onmessage = (event: MessageEvent<string>) => {
+        const message = JSON.parse(event.data) as StreamMessage;
+        handleStreamMessage(message);
+      };
+      websocket.onerror = () => {
+        setPlayback((current) => ({
+          ...current,
+          status: "error",
+          message: "WebSocket stream failed.",
+        }));
+      };
+
+      setPlayback((current) => ({
+        ...current,
+        status: "running",
+        runId: run.run_id,
+        durationSeconds: run.duration_seconds ?? current.durationSeconds,
+      }));
+    } catch (error) {
+      setPlayback((current) => ({
+        ...current,
+        status: "error",
+        message: error instanceof Error ? error.message : "Unable to start simulation.",
+      }));
+    }
+  }
+
+  async function stopPlayback() {
+    if (playback.runId) {
+      await fetch(`${apiBaseUrl}/simulations/runs/${playback.runId}/stop`, { method: "POST" });
+    }
+  }
+
+  function resetPlayback() {
+    websocketRef.current?.close();
+    firstFrameAtRef.current = null;
+    setPlayback({
+      status: "idle",
+      runId: null,
+      framesReceived: 0,
+      durationSeconds: 0,
+      currentTimeSeconds: 0,
+      frameRate: 0,
+      maxCloudWater: 0,
+      maxUpdraft: 0,
+      message: null,
+    });
+  }
+
+  function handleStreamMessage(message: StreamMessage) {
+    if (message.type === "metadata") {
+      setPlayback((current) => ({
+        ...current,
+        durationSeconds: message.run.duration_seconds,
+      }));
+      return;
+    }
+
+    if (message.type === "frame") {
+      const receivedAt = performance.now();
+      if (firstFrameAtRef.current === null) {
+        firstFrameAtRef.current = receivedAt;
+      }
+
+      setPlayback((current) => {
+        const framesReceived = current.framesReceived + 1;
+        const elapsedSeconds = Math.max(
+          0.001,
+          (receivedAt - (firstFrameAtRef.current ?? receivedAt)) / 1000,
+        );
+
+        return {
+          ...current,
+          status: "running",
+          framesReceived,
+          currentTimeSeconds: message.frame.time_seconds,
+          frameRate: framesReceived / elapsedSeconds,
+          maxCloudWater: maxGridValue(
+            message.frame.fields.cloud_liquid_water_kg_per_kg.values,
+          ),
+          maxUpdraft: maxGridValue(message.frame.fields.vertical_velocity_m_per_s.values),
+        };
+      });
+      return;
+    }
+
+    if (message.type === "complete" || message.type === "stopped") {
+      setPlayback((current) => ({
+        ...current,
+        status: message.type === "complete" ? "complete" : "stopped",
+        currentTimeSeconds: message.run.last_frame_time_seconds,
+        message: message.type === "complete" ? "Run complete." : "Run stopped cleanly.",
+      }));
+      websocketRef.current?.close();
+      return;
+    }
+
+    if (message.type === "error") {
+      setPlayback((current) => ({
+        ...current,
+        status: "error",
+        message: message.message ?? "Simulation stream failed.",
+      }));
+    }
+  }
+
   return (
     <main className="app-shell">
       <section className="intro" aria-labelledby="page-title">
@@ -199,6 +365,20 @@ export function App() {
         </div>
 
         <SampleRunSummary sampleRun={sampleRun} />
+      </section>
+
+      <section className="playback-panel" aria-labelledby="playback-title">
+        <div>
+          <p className="eyebrow">Live playback</p>
+          <h2 id="playback-title">Simulation stream</h2>
+        </div>
+
+        <PlaybackControls
+          playback={playback}
+          onStart={startPlayback}
+          onStop={stopPlayback}
+          onReset={resetPlayback}
+        />
       </section>
     </main>
   );
@@ -292,5 +472,92 @@ function maxGridValue(values: number[][]): number {
   return values.reduce(
     (currentMax, row) => Math.max(currentMax, ...row),
     Number.NEGATIVE_INFINITY,
+  );
+}
+
+type StreamMessage =
+  | {
+      type: "metadata" | "complete" | "stopped";
+      run: {
+        duration_seconds: number;
+        last_frame_time_seconds: number;
+      };
+    }
+  | {
+      type: "frame";
+      frame: {
+        time_seconds: number;
+        fields: {
+          cloud_liquid_water_kg_per_kg: { values: number[][] };
+          vertical_velocity_m_per_s: { values: number[][] };
+        };
+      };
+    }
+  | { type: "error"; message?: string };
+
+function PlaybackControls({
+  playback,
+  onStart,
+  onStop,
+  onReset,
+}: {
+  playback: PlaybackState;
+  onStart: () => void;
+  onStop: () => void;
+  onReset: () => void;
+}) {
+  const progress =
+    playback.durationSeconds > 0
+      ? Math.min(100, (playback.currentTimeSeconds / playback.durationSeconds) * 100)
+      : 0;
+  const isActive = playback.status === "starting" || playback.status === "running";
+
+  return (
+    <div className="playback-controls">
+      <div className="button-row">
+        <button type="button" onClick={onStart} disabled={isActive}>
+          Start
+        </button>
+        <button type="button" onClick={onStop} disabled={playback.status !== "running"}>
+          Stop
+        </button>
+        <button type="button" onClick={onReset}>
+          Reset
+        </button>
+      </div>
+
+      <div className="timeline" aria-label="Simulation playback progress">
+        <div style={{ width: `${progress}%` }} />
+      </div>
+
+      <dl className="playback-stats">
+        <div>
+          <dt>Status</dt>
+          <dd>{playback.status}</dd>
+        </div>
+        <div>
+          <dt>Frames</dt>
+          <dd>{playback.framesReceived}</dd>
+        </div>
+        <div>
+          <dt>Progress</dt>
+          <dd>{progress.toFixed(0)}%</dd>
+        </div>
+        <div>
+          <dt>Frame rate</dt>
+          <dd>{playback.frameRate.toFixed(1)} fps</dd>
+        </div>
+        <div>
+          <dt>Cloud water</dt>
+          <dd>{playback.maxCloudWater.toExponential(2)}</dd>
+        </div>
+        <div>
+          <dt>Updraft</dt>
+          <dd>{playback.maxUpdraft.toFixed(3)} m/s</dd>
+        </div>
+      </dl>
+
+      {playback.message ? <p className="playback-message">{playback.message}</p> : null}
+    </div>
   );
 }
