@@ -21,6 +21,192 @@ export const CONTROL_LIMITS = {
   seed: { min: 1, max: 9999, step: 1 },
 };
 
+export type BoussinesqReferenceCase = {
+  slug: string;
+  name: string;
+  description: string;
+  apply: (config: SimulationConfig) => SimulationConfig;
+};
+
+export type BoussinesqModelSize = {
+  slug: string;
+  name: string;
+  description: string;
+  apply: (config: SimulationConfig) => SimulationConfig;
+};
+
+export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
+  {
+    slug: "quiet-atmosphere",
+    name: "Quiet atmosphere / no forcing",
+    description: "Saturated, unforced slice for checking that motion and cloud water stay zero.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(25),
+          lapse_rate_k_per_m: 0.0065,
+          relative_humidity: 1,
+          boundary_layer_depth_m: 1_000,
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0,
+          patch_center_x_m: config.domain.width_m / 2,
+          patch_width_m: 2_000,
+        },
+        background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
+        seed: 11,
+      }),
+  },
+  {
+    slug: "dry-thermal-bubble",
+    name: "Dry thermal bubble",
+    description: "Dry heated patch for buoyant circulation without cloud formation.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(25),
+          lapse_rate_k_per_m: 0.0075,
+          relative_humidity: 0.45,
+          boundary_layer_depth_m: 1_000,
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0.016,
+          patch_center_x_m: config.domain.width_m / 2,
+          patch_width_m: 2_000,
+        },
+        background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
+        seed: 13,
+      }),
+  },
+  {
+    slug: "humid-lifted-thermal",
+    name: "Humid lifted thermal",
+    description: "Humid heated patch for checking uplift, cooling, and cloud water coupling.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(25),
+          lapse_rate_k_per_m: 0.0065,
+          relative_humidity: 1,
+          boundary_layer_depth_m: 1_000,
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0.018,
+          patch_center_x_m: config.domain.width_m / 2,
+          patch_width_m: 2_000,
+        },
+        background_wind: { u_m_per_s: 0.15, w_m_per_s: 0 },
+        seed: 17,
+      }),
+  },
+  {
+    slug: "stable-suppression",
+    name: "Stable stratification suppression",
+    description: "Stable profile for checking weaker vertical growth under stronger stability.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(25),
+          lapse_rate_k_per_m: 0.0035,
+          relative_humidity: 0.95,
+          boundary_layer_depth_m: 1_000,
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0.016,
+          patch_center_x_m: config.domain.width_m / 2,
+          patch_width_m: 2_000,
+        },
+        background_wind: { u_m_per_s: 0.15, w_m_per_s: 0 },
+        seed: 19,
+      }),
+  },
+  {
+    slug: "fair-weather-boussinesq",
+    name: "Fair-weather Boussinesq baseline",
+    description: "Baseline humid heated Boussinesq run for manual comparison.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(25),
+          lapse_rate_k_per_m: 0.0065,
+          relative_humidity: 1,
+          boundary_layer_depth_m: 1_000,
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0.014,
+          patch_center_x_m: config.domain.width_m / 2,
+          patch_width_m: 2_000,
+        },
+        background_wind: { u_m_per_s: 0.25, w_m_per_s: 0 },
+        seed: 23,
+      }),
+  },
+];
+
+export const BOUSSINESQ_MODEL_SIZES: BoussinesqModelSize[] = [
+  {
+    slug: "small",
+    name: "Small / quick",
+    description: "Fast interactive sanity checks on a lower-resolution grid.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        domain: { width_m: 8_000, height_m: 3_000 },
+        grid: { columns: 30, rows: 20 },
+        time: { time_step_seconds: 2, duration_seconds: 600, frame_interval_seconds: 20 },
+        surface_heating: {
+          ...config.surface_heating,
+          patch_center_x_m: 4_000,
+          patch_width_m: Math.min(config.surface_heating.patch_width_m, 2_000),
+        },
+      }),
+  },
+  {
+    slug: "medium",
+    name: "Medium / standard",
+    description: "Default manual validation scale for about 20 simulated minutes.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        domain: { width_m: 10_000, height_m: 3_000 },
+        grid: { columns: 36, rows: 24 },
+        time: { time_step_seconds: 2, duration_seconds: 1_200, frame_interval_seconds: 30 },
+        surface_heating: {
+          ...config.surface_heating,
+          patch_center_x_m: 5_000,
+          patch_width_m: Math.min(config.surface_heating.patch_width_m, 2_000),
+        },
+      }),
+  },
+  {
+    slug: "large",
+    name: "Large / slow",
+    description: "More detailed local inspection with a slower streamfunction solve.",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        domain: { width_m: 12_000, height_m: 4_000 },
+        grid: { columns: 54, rows: 36 },
+        time: { time_step_seconds: 2, duration_seconds: 1_800, frame_interval_seconds: 30 },
+        surface_heating: {
+          ...config.surface_heating,
+          patch_center_x_m: 6_000,
+          patch_width_m: Math.min(config.surface_heating.patch_width_m, 2_500),
+        },
+      }),
+  },
+];
+
 export function cloneConfig(config: SimulationConfig): SimulationConfig {
   return structuredClone(config);
 }
