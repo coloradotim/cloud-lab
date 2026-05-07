@@ -23,6 +23,7 @@ The current UI exposes the following controls:
 - Heating width, `patch_width_m`: the full uniformly heated ground-patch width, with only a small taper outside the patch to avoid a hard numerical edge.
 - Heating center, `patch_center_x_m`: moves the heated ground patch across the domain.
 - Lapse rate, `lapse_rate_k_per_m`: environmental cooling rate above the well-mixed boundary layer. The boundary layer itself initializes with a dry-adiabatic temperature decrease.
+- Boundary layer top, `boundary_layer_depth_m`: height of the dry-adiabatic mixed layer before the environmental lapse rate takes over.
 - Relative humidity, `relative_humidity`: higher values reduce how much lifting/cooling is needed before cloud water appears.
 - Domain width and height: resize the 2-D slice while preserving the same schema.
 - Grid columns and rows: adjust spatial resolution. Higher values cost more browser and backend work.

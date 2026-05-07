@@ -10,6 +10,7 @@ import {
   formatDisplayValue,
   getFieldStats,
   gridPointFromCanvas,
+  normalizedDisplayValueForField,
   valueRangeForField,
 } from "./visualization";
 
@@ -94,9 +95,22 @@ describe("visualization helpers", () => {
     expect(displayValueForField(field, 293.15)).toBeCloseTo(20);
     expect(displayStatsForField(field).min).toBeCloseTo(14.85);
     expect(displayStatsForField(field).max).toBeCloseTo(17.85);
-    expect(displayRangeForField(field).min).toBeCloseTo(6.85);
-    expect(displayRangeForField(field).max).toBeCloseTo(26.85);
+    expect(displayRangeForField(field).min).toBeCloseTo(14.35);
+    expect(displayRangeForField(field).max).toBeCloseTo(18.35);
     expect(formatDisplayValue(field, 293.15)).toBe("20.00");
+  });
+
+  it("uses adaptive display normalization for condensate and velocity fields", () => {
+    const cloud = frame.fields.cloud_liquid_water_kg_per_kg;
+    const velocity = frame.fields.vertical_velocity_m_per_s;
+
+    expect(displayRangeForField(cloud)).toEqual({ min: 0, max: 0.003 });
+    expect(normalizedDisplayValueForField(cloud, 0)).toBe(0);
+    expect(normalizedDisplayValueForField(cloud, 0.00003)).toBeGreaterThan(0.6);
+    expect(normalizedDisplayValueForField(cloud, 0.003)).toBeCloseTo(1);
+    expect(displayRangeForField(velocity)).toEqual({ min: -0.4, max: 0.4 });
+    expect(normalizedDisplayValueForField(velocity, 0)).toBeCloseTo(0.5);
+    expect(normalizedDisplayValueForField(velocity, 0.4)).toBeCloseTo(1);
   });
 
   it("computes data range when display scale is absent", () => {

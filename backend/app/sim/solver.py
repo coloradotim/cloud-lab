@@ -119,13 +119,18 @@ def step_state(config: SimulationConfig, state: AtmosphereState) -> AtmosphereSt
         _advect(state.cloud_liquid_water_kg_per_kg, state, grid, dt)
     )
     diffused_temperature = _diffuse(advected_temperature, grid, dt, THERMAL_DIFFUSIVITY_M2_PER_S)
+    lifted_temperature = _apply_vertical_adiabatic_temperature_change(
+        diffused_temperature,
+        state,
+        dt,
+    )
     diffused_vapor = _clip_non_negative(
         _diffuse(advected_vapor, grid, dt, MOISTURE_DIFFUSIVITY_M2_PER_S)
     )
     diffused_cloud = _clip_non_negative(
         _diffuse(advected_cloud, grid, dt, MOISTURE_DIFFUSIVITY_M2_PER_S)
     )
-    condensation = _condense(config, diffused_temperature, diffused_vapor, diffused_cloud)
+    condensation = _condense(config, lifted_temperature, diffused_vapor, diffused_cloud)
     updated_temperature = condensation.temperature_k
     updated_vapor = condensation.water_vapor_kg_per_kg
     updated_cloud = condensation.cloud_liquid_water_kg_per_kg
@@ -243,6 +248,23 @@ def _apply_surface_heating(
             )
 
     return heated
+
+
+def _apply_vertical_adiabatic_temperature_change(
+    temperature: Grid,
+    state: AtmosphereState,
+    dt: float,
+) -> Grid:
+    adjusted = _copy_grid(temperature)
+
+    for row_index, row in enumerate(adjusted):
+        for column_index, temperature_k in enumerate(row):
+            vertical_displacement_m = state.vertical_velocity_m_per_s[row_index][column_index] * dt
+            adjusted[row_index][column_index] = (
+                temperature_k - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * vertical_displacement_m
+            )
+
+    return adjusted
 
 
 def _update_velocity(

@@ -21,8 +21,10 @@ Current scalar rendering:
 
 - draws a row-major `x-z` field onto a canvas
 - displays the lowest `z` row at the bottom of the plot
-- uses field `display_scale` metadata when present
-- falls back to observed min/max range when metadata is absent
+- uses field-aware display scaling rather than one generic min/max rule
+- renders condensate fields such as cloud water with logarithmic scaling so early small values remain visible
+- renders velocity fields with a symmetric zero-centered scale so upward/downward or left/right motion stays interpretable
+- renders temperature with an adaptive observed range after Celsius conversion
 - converts absolute temperature from Kelvin transport values to Celsius for browser display
 - overlays sampled velocity vectors from horizontal and vertical velocity fields
 

@@ -16,7 +16,7 @@ const config: SimulationConfig = {
   time: { time_step_seconds: 2, duration_seconds: 120, frame_interval_seconds: 6 },
   initial_atmosphere: {
     surface_temperature_k: 298.15,
-    lapse_rate_k_per_m: 0.0098,
+    lapse_rate_k_per_m: 0.0065,
     relative_humidity: 1.0,
     boundary_layer_depth_m: 1_000,
   },
