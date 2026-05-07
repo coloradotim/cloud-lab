@@ -50,3 +50,5 @@ A 2-D slice can show surface heating, buoyant plumes, moisture fields, condensat
 The first solver lives in `backend/app/sim/solver.py`. It uses explicit, simplified dynamics and emits the same `SimulationFrame` schema consumed by the API and frontend.
 
 Live playback uses `POST /simulations/runs` for run creation, `POST /simulations/runs/{run_id}/stop` for cancellation, and `WebSocket /simulations/runs/{run_id}/stream` for progressive frame delivery.
+
+The first visualization dashboard renders streamed frames on a frontend canvas. Rendering helpers live in `frontend/src/visualization.ts` and the React canvas view lives in `frontend/src/ScientificDashboard.tsx`; neither layer reaches into backend solver internals.

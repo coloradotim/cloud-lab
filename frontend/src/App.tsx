@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 
 import "./App.css";
+import { ScientificDashboard } from "./ScientificDashboard";
+import type { SimulationFrame } from "./simulationTypes";
 
 type HealthState =
   | { status: "checking" }
@@ -41,6 +43,8 @@ type PlaybackState = {
   maxUpdraft: number;
   message: string | null;
 };
+
+const DEFAULT_VISUAL_FIELD = "cloud_liquid_water_kg_per_kg";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 const websocketBaseUrl = apiBaseUrl.replace(/^http/, "ws");
@@ -118,6 +122,11 @@ export function App() {
   const [health, setHealth] = useState<HealthState>({ status: "checking" });
   const [sampleFrame, setSampleFrame] = useState<SampleFrameState>({ status: "checking" });
   const [sampleRun, setSampleRun] = useState<SampleRunState>({ status: "checking" });
+  const [frames, setFrames] = useState<SimulationFrame[]>([]);
+  const [displayedFrameIndex, setDisplayedFrameIndex] = useState(0);
+  const [selectedField, setSelectedField] = useState(DEFAULT_VISUAL_FIELD);
+  const [isPaused, setIsPaused] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playback, setPlayback] = useState<PlaybackState>({
     status: "idle",
     runId: null,
@@ -195,9 +204,27 @@ export function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (frames.length === 0 || isPaused) {
+      return;
+    }
+
+    const interval = window.setInterval(
+      () => {
+        setDisplayedFrameIndex((currentIndex) => Math.min(frames.length - 1, currentIndex + 1));
+      },
+      Math.max(45, 240 / playbackSpeed),
+    );
+
+    return () => window.clearInterval(interval);
+  }, [frames.length, isPaused, playbackSpeed]);
+
   async function startPlayback() {
     websocketRef.current?.close();
     firstFrameAtRef.current = null;
+    setFrames([]);
+    setDisplayedFrameIndex(0);
+    setIsPaused(false);
     setPlayback({
       status: "starting",
       runId: null,
@@ -259,6 +286,9 @@ export function App() {
   function resetPlayback() {
     websocketRef.current?.close();
     firstFrameAtRef.current = null;
+    setFrames([]);
+    setDisplayedFrameIndex(0);
+    setIsPaused(false);
     setPlayback({
       status: "idle",
       runId: null,
@@ -305,6 +335,13 @@ export function App() {
           ),
           maxUpdraft: maxGridValue(message.frame.fields.vertical_velocity_m_per_s.values),
         };
+      });
+      setFrames((currentFrames) => {
+        const nextFrames = [...currentFrames, message.frame];
+        if (currentFrames.length === 0) {
+          setDisplayedFrameIndex(0);
+        }
+        return nextFrames;
       });
       return;
     }
@@ -380,6 +417,23 @@ export function App() {
           onReset={resetPlayback}
         />
       </section>
+
+      <ScientificDashboard
+        frame={frames[displayedFrameIndex] ?? null}
+        framesReceived={frames.length}
+        selectedField={selectedField}
+        onSelectedFieldChange={setSelectedField}
+        isPaused={isPaused}
+        onPausedChange={setIsPaused}
+        playbackSpeed={playbackSpeed}
+        onPlaybackSpeedChange={setPlaybackSpeed}
+        displayedFrameIndex={displayedFrameIndex}
+        frameCount={frames.length}
+        onScrub={(frameIndex) => {
+          setIsPaused(true);
+          setDisplayedFrameIndex(frameIndex);
+        }}
+      />
     </main>
   );
 }
@@ -485,13 +539,7 @@ type StreamMessage =
     }
   | {
       type: "frame";
-      frame: {
-        time_seconds: number;
-        fields: {
-          cloud_liquid_water_kg_per_kg: { values: number[][] };
-          vertical_velocity_m_per_s: { values: number[][] };
-        };
-      };
+      frame: SimulationFrame;
     }
   | { type: "error"; message?: string };
 

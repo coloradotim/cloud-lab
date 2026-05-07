@@ -84,7 +84,7 @@ The first playback UI includes:
 - max cloud water
 - max updraft
 
-This is intentionally a playback shell. Field visualization layers will be added later.
+The visualization dashboard now consumes the same streamed frames for scalar field rendering, velocity arrows, hover inspection, pause/resume, speed control, and timeline scrubbing.
 
 ## Scaling Limits
 

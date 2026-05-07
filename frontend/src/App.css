@@ -96,7 +96,8 @@ h2 {
 
 .status-panel,
 .schema-panel,
-.playback-panel {
+.playback-panel,
+.dashboard-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -225,6 +226,113 @@ h2 {
   font-weight: 700;
 }
 
+.dashboard-panel {
+  align-items: stretch;
+  flex-direction: column;
+  max-width: 1180px;
+}
+
+.dashboard-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.dashboard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.dashboard-controls label,
+.scrubber-label {
+  display: grid;
+  gap: 5px;
+  color: #4f6f68;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dashboard-controls select,
+.scrubber-label input {
+  min-height: 38px;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 700;
+  text-transform: none;
+}
+
+.visualization-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 18px;
+}
+
+.canvas-shell {
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  background: #0f2b32;
+}
+
+.canvas-shell canvas {
+  display: block;
+  width: 100%;
+  height: clamp(360px, 52vw, 640px);
+  cursor: crosshair;
+}
+
+.empty-visualization {
+  display: grid;
+  min-height: inherit;
+  place-items: center;
+  padding: 24px;
+  color: #dce9e4;
+  font-weight: 700;
+  text-align: center;
+}
+
+.field-readout {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.field-readout dl {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.field-readout dl div {
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.field-readout dt {
+  color: #4f6f68;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.field-readout dd {
+  margin: 4px 0 0;
+  color: #153137;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 680px) {
   .app-shell {
     align-content: start;
@@ -233,7 +341,8 @@ h2 {
 
   .status-panel,
   .schema-panel,
-  .playback-panel {
+  .playback-panel,
+  .dashboard-header {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -243,6 +352,10 @@ h2 {
   }
 
   .playback-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .visualization-grid {
     grid-template-columns: 1fr;
   }
 }
