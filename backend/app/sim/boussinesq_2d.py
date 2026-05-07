@@ -15,7 +15,9 @@ LATENT_HEATING_K_PER_KG_PER_KG = 1_200.0
 CONDENSATION_FRACTION_PER_STEP = 0.28
 THERMAL_DIFFUSIVITY_M2_PER_S = 22.0
 MOISTURE_DIFFUSIVITY_M2_PER_S = 10.0
-KINEMATIC_VISCOSITY_M2_PER_S = 45.0
+KINEMATIC_VISCOSITY_M2_PER_S = 90.0
+VORTICITY_DAMPING_PER_SECOND = 0.025
+THERMAL_RELAXATION_PER_SECOND = 0.0018
 SURFACE_HEATING_LAYER_FRACTION = 0.10
 SURFACE_HEATING_EDGE_TAPER_FRACTION = 0.25
 POISSON_ITERATIONS = 80
@@ -23,8 +25,10 @@ VELOCITY_DAMPING_PER_SECOND = 0.004
 TOP_SPONGE_DEPTH_CELLS = 2
 TOP_SPONGE_RELAXATION_PER_SECOND = 0.05
 MAX_ABS_VELOCITY_M_PER_S = 10.0
-MAX_ABS_THETA_PERTURBATION_K = 15.0
+MAX_ABS_THETA_PERTURBATION_K = 10.0
 MAX_ABS_VORTICITY_PER_SECOND = 0.08
+MAX_WATER_VAPOR_KG_PER_KG = 0.04
+MAX_CLOUD_LIQUID_WATER_KG_PER_KG = 0.01
 
 
 @dataclass(frozen=True)
@@ -91,23 +95,34 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
     heated_theta = _apply_surface_heating(config, grid, state.theta_perturbation_k, dt)
     advected_theta = _advect(heated_theta, state, grid, dt)
     diffused_theta = _diffuse(advected_theta, grid, dt, THERMAL_DIFFUSIVITY_M2_PER_S)
+    stabilized_theta = _apply_environmental_stability(config, diffused_theta, state, dt)
+    relaxed_theta = _damp_grid(stabilized_theta, THERMAL_RELAXATION_PER_SECOND, dt)
     theta = _clip_grid(
-        diffused_theta,
+        relaxed_theta,
         -MAX_ABS_THETA_PERTURBATION_K,
         MAX_ABS_THETA_PERTURBATION_K,
     )
 
     advected_vapor = _clip_non_negative(_advect(state.water_vapor_kg_per_kg, state, grid, dt))
-    vapor = _clip_non_negative(_diffuse(advected_vapor, grid, dt, MOISTURE_DIFFUSIVITY_M2_PER_S))
+    vapor = _clip_grid(
+        _diffuse(advected_vapor, grid, dt, MOISTURE_DIFFUSIVITY_M2_PER_S),
+        0.0,
+        MAX_WATER_VAPOR_KG_PER_KG,
+    )
     advected_cloud = _clip_non_negative(
         _advect(state.cloud_liquid_water_kg_per_kg, state, grid, dt)
     )
-    cloud = _clip_non_negative(_diffuse(advected_cloud, grid, dt, MOISTURE_DIFFUSIVITY_M2_PER_S))
+    cloud = _clip_grid(
+        _diffuse(advected_cloud, grid, dt, MOISTURE_DIFFUSIVITY_M2_PER_S),
+        0.0,
+        MAX_CLOUD_LIQUID_WATER_KG_PER_KG,
+    )
 
     advected_vorticity = _advect(state.vorticity_per_second, state, grid, dt)
     diffused_vorticity = _diffuse(advected_vorticity, grid, dt, KINEMATIC_VISCOSITY_M2_PER_S)
     buoyancy = _buoyancy(theta)
-    forced_vorticity = _apply_buoyancy_vorticity_tendency(diffused_vorticity, buoyancy, grid, dt)
+    damped_vorticity = _damp_grid(diffused_vorticity, VORTICITY_DAMPING_PER_SECOND, dt)
+    forced_vorticity = _apply_buoyancy_vorticity_tendency(damped_vorticity, buoyancy, grid, dt)
     vorticity = _clip_grid(
         forced_vorticity,
         -MAX_ABS_VORTICITY_PER_SECOND,
@@ -115,14 +130,22 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
     )
 
     streamfunction = _solve_streamfunction(vorticity, grid)
-    u, w = _velocity_from_streamfunction(config, streamfunction, state, grid, dt)
+    u, w = _velocity_from_streamfunction(config, streamfunction, grid)
     temperature = _temperature_from_perturbation(theta, state.environmental_temperature_k)
     condensation = _condense(temperature, vapor, cloud)
-    theta = _theta_from_temperature(condensation.temperature_k, state.environmental_temperature_k)
+    theta = _clip_grid(
+        _theta_from_temperature(condensation.temperature_k, state.environmental_temperature_k),
+        -MAX_ABS_THETA_PERTURBATION_K,
+        MAX_ABS_THETA_PERTURBATION_K,
+    )
     theta, vapor, cloud, vorticity, u, w = _apply_top_sponge(
         theta,
-        condensation.water_vapor_kg_per_kg,
-        condensation.cloud_liquid_water_kg_per_kg,
+        _clip_grid(condensation.water_vapor_kg_per_kg, 0.0, MAX_WATER_VAPOR_KG_PER_KG),
+        _clip_grid(
+            condensation.cloud_liquid_water_kg_per_kg,
+            0.0,
+            MAX_CLOUD_LIQUID_WATER_KG_PER_KG,
+        ),
         vorticity,
         u,
         w,
@@ -251,6 +274,31 @@ def _apply_buoyancy_vorticity_tendency(
     return updated
 
 
+def _apply_environmental_stability(
+    config: SimulationConfig,
+    theta_perturbation: Grid,
+    state: BoussinesqState,
+    dt: float,
+) -> Grid:
+    updated = _copy_grid(theta_perturbation)
+    stability_rate_k_per_m = max(
+        0.0,
+        DRY_ADIABATIC_LAPSE_RATE_K_PER_M - config.initial_atmosphere.lapse_rate_k_per_m,
+    )
+
+    if stability_rate_k_per_m == 0.0:
+        return updated
+
+    for row_index, row in enumerate(updated):
+        for column_index, value in enumerate(row):
+            vertical_displacement_m = state.vertical_velocity_m_per_s[row_index][column_index] * dt
+            updated[row_index][column_index] = (
+                value - stability_rate_k_per_m * vertical_displacement_m
+            )
+
+    return updated
+
+
 def _solve_streamfunction(vorticity: Grid, grid: SolverGrid) -> Grid:
     rows = len(vorticity)
     columns = len(vorticity[0])
@@ -276,15 +324,12 @@ def _solve_streamfunction(vorticity: Grid, grid: SolverGrid) -> Grid:
 def _velocity_from_streamfunction(
     config: SimulationConfig,
     streamfunction: Grid,
-    previous_state: BoussinesqState,
     grid: SolverGrid,
-    dt: float,
 ) -> tuple[Grid, Grid]:
     rows = len(streamfunction)
     columns = len(streamfunction[0])
     u = _constant_grid(rows, columns, config.background_wind.u_m_per_s)
     w = _constant_grid(rows, columns, config.background_wind.w_m_per_s)
-    damping = max(0.0, 1.0 - VELOCITY_DAMPING_PER_SECOND * dt)
 
     for row_index in range(rows):
         for column_index in range(columns):
@@ -295,24 +340,12 @@ def _velocity_from_streamfunction(
             perturbation_u = (above - below) / (2.0 * grid.dz_m)
             perturbation_w = -(right - left) / (2.0 * grid.dx_m)
             u[row_index][column_index] = _clamp(
-                config.background_wind.u_m_per_s
-                + damping
-                * (
-                    perturbation_u
-                    + previous_state.horizontal_velocity_m_per_s[row_index][column_index]
-                    - config.background_wind.u_m_per_s
-                ),
+                config.background_wind.u_m_per_s + perturbation_u,
                 -MAX_ABS_VELOCITY_M_PER_S,
                 MAX_ABS_VELOCITY_M_PER_S,
             )
             w[row_index][column_index] = _clamp(
-                config.background_wind.w_m_per_s
-                + damping
-                * (
-                    perturbation_w
-                    + previous_state.vertical_velocity_m_per_s[row_index][column_index]
-                    - config.background_wind.w_m_per_s
-                ),
+                config.background_wind.w_m_per_s + perturbation_w,
                 -MAX_ABS_VELOCITY_M_PER_S,
                 MAX_ABS_VELOCITY_M_PER_S,
             )
@@ -538,6 +571,11 @@ def _clip_non_negative(grid: Grid) -> Grid:
 
 def _clip_grid(grid: Grid, minimum: float, maximum: float) -> Grid:
     return [[_clamp(value, minimum, maximum) for value in row] for row in grid]
+
+
+def _damp_grid(grid: Grid, damping_per_second: float, dt: float) -> Grid:
+    damping = max(0.0, 1.0 - damping_per_second * dt)
+    return [[value * damping for value in row] for row in grid]
 
 
 def _top_sponge_weight(row_index: int, rows: int) -> float:

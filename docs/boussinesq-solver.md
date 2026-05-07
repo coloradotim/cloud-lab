@@ -24,8 +24,10 @@ The prototype uses a 2-D Boussinesq-style vertical slice with:
 - vorticity evolved by advection, diffusion, and horizontal buoyancy gradients
 - buoyancy from temperature perturbation: `b = g * theta_prime / theta_ref`
 - surface heating applied as a lower-layer temperature-perturbation tendency
+- environmental-stability cooling for lifted warm perturbations
 - scalar advection for temperature perturbation, vapor, cloud water, and vorticity
 - simple diffusion for thermal, moisture, and vorticity fields
+- explicit thermal and vorticity damping to keep this prototype in a conservative regime
 - simple saturation adjustment for warm-cloud condensation
 
 The streamfunction solve uses a fixed-iteration Jacobi Poisson solve:
@@ -53,11 +55,13 @@ Each timestep applies:
 1. Surface heating to temperature perturbation.
 2. First-order upwind advection of temperature perturbation, vapor, cloud water, and vorticity.
 3. Explicit diffusion of scalar and vorticity fields.
-4. Buoyancy-gradient forcing of vorticity.
-5. Jacobi streamfunction solve.
-6. Velocity recovery from streamfunction.
-7. Warm-cloud saturation adjustment with latent heating.
-8. A shallow top sponge to reduce closed-lid artifacts.
+4. Environmental-stability cooling for vertically displaced warm perturbations.
+5. Thermal and vorticity damping.
+6. Buoyancy-gradient forcing of vorticity.
+7. Jacobi streamfunction solve.
+8. Velocity recovery from streamfunction.
+9. Warm-cloud saturation adjustment with latent heating.
+10. A shallow top sponge to reduce closed-lid artifacts.
 
 Constants are named in `backend/app/sim/boussinesq_2d.py`. They are intentionally visible because this is a prototype numerical core, not a tuned black box.
 
@@ -72,6 +76,7 @@ Constants are named in `backend/app/sim/boussinesq_2d.py`. They are intentionall
 
 - The Poisson solve is fixed-iteration Jacobi, not a production multigrid or spectral solver.
 - Boundary conditions are simple and still need validation.
+- Damping and perturbation caps are safety rails for prototype stability, not calibrated physics.
 - No turbulence closure, terrain, Coriolis force, rain sedimentation, ice physics, or aerosol/CCN treatment.
 - Moist physics remains simple saturation adjustment.
 - No formal benchmark validation yet.

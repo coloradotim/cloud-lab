@@ -68,6 +68,29 @@ def test_boussinesq_solver_produces_buoyant_motion_and_cloud_water() -> None:
     assert max_cloud > 0.0
 
 
+def test_boussinesq_solver_does_not_hit_safety_clamps_in_normal_long_run() -> None:
+    config = _boussinesq_config(
+        duration_seconds=1_800.0,
+        relative_humidity=1.0,
+        heating_rate=0.018,
+    )
+
+    final = run_simulation(config)[-1]
+    max_abs_vertical_velocity = max(
+        abs(value) for row in final.fields.vertical_velocity_m_per_s.values for value in row
+    )
+    max_abs_temperature_perturbation = max(
+        abs(value) for row in final.fields.temperature_perturbation_k.values for value in row
+    )
+    max_cloud = max(
+        value for row in final.fields.cloud_liquid_water_kg_per_kg.values for value in row
+    )
+
+    assert max_abs_vertical_velocity < 1.0
+    assert max_abs_temperature_perturbation < 8.0
+    assert max_cloud < 0.005
+
+
 def _boussinesq_config(
     *,
     duration_seconds: float = 90.0,
