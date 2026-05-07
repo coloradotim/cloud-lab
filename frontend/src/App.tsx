@@ -4,7 +4,9 @@ import "./App.css";
 import { ScientificDashboard } from "./ScientificDashboard";
 import {
   CONTROL_LIMITS,
+  celsiusToKelvin,
   configWarnings,
+  kelvinToCelsius,
   updateConfigNumber,
 } from "./simulationControls";
 import type { SimulationConfig, SimulationFrame, SimulationPreset } from "./simulationTypes";
@@ -658,6 +660,15 @@ function SimulationControls({
       </div>
 
       <div className="controls-grid">
+        <NumberControl
+          label="Surface temperature"
+          unit="deg C"
+          value={kelvinToCelsius(config.initial_atmosphere.surface_temperature_k)}
+          limits={CONTROL_LIMITS.surfaceTemperatureC}
+          onChange={(value) =>
+            update("initial_atmosphere.surface_temperature_k", celsiusToKelvin(value))
+          }
+        />
         <NumberControl
           label="Surface heating"
           unit="K/s"

@@ -20,6 +20,7 @@ THERMAL_DIFFUSIVITY_M2_PER_S = 18.0
 MOISTURE_DIFFUSIVITY_M2_PER_S = 9.0
 MAX_ABS_VELOCITY_M_PER_S = 12.0
 SURFACE_HEATING_LAYER_FRACTION = 0.12
+SURFACE_HEATING_EDGE_TAPER_FRACTION = 0.2
 INITIAL_TEMPERATURE_NOISE_K = 0.02
 
 
@@ -213,16 +214,13 @@ def _apply_surface_heating(
 ) -> Grid:
     heated = _copy_grid(temperature)
     heating_top_m = config.domain.height_m * SURFACE_HEATING_LAYER_FRACTION
-    half_width_m = config.surface_heating.patch_width_m / 2.0
-
     for row_index, z_m in enumerate(grid.z_coordinates_m):
         vertical_weight = max(0.0, 1.0 - z_m / heating_top_m) if z_m <= heating_top_m else 0.0
         if vertical_weight == 0.0:
             continue
 
         for column_index, x_m in enumerate(grid.x_coordinates_m):
-            normalized_distance = (x_m - config.surface_heating.patch_center_x_m) / half_width_m
-            horizontal_weight = exp(-(normalized_distance**2))
+            horizontal_weight = _surface_heating_weight(config, grid, x_m)
             heated[row_index][column_index] += (
                 config.surface_heating.max_warming_rate_k_per_s
                 * vertical_weight
@@ -257,8 +255,9 @@ def _update_velocity(
             )
             buoyancy = GRAVITY_M_PER_S2 * temp_perturbation / REFERENCE_TEMPERATURE_K
             center_offset = (x_m - config.surface_heating.patch_center_x_m) / half_width_m
-            plume_weight = exp(-(center_offset**2))
-            circulation = -center_offset * plume_weight * (lower_layer - 0.35 * upper_layer)
+            plume_weight = _surface_heating_weight(config, grid, x_m)
+            circulation_weight = exp(-(center_offset**2))
+            circulation = -center_offset * circulation_weight * (lower_layer - 0.35 * upper_layer)
 
             positive_buoyancy = max(0.0, buoyancy)
             w[row_index][column_index] += (
@@ -279,6 +278,22 @@ def _update_velocity(
             )
 
     return u, w
+
+
+def _surface_heating_weight(config: SimulationConfig, grid: SolverGrid, x_m: float) -> float:
+    half_width_m = config.surface_heating.patch_width_m / 2.0
+    distance_from_edge_m = abs(x_m - config.surface_heating.patch_center_x_m) - half_width_m
+    if distance_from_edge_m <= 0.0:
+        return 1.0
+
+    taper_width_m = max(
+        grid.dx_m,
+        config.surface_heating.patch_width_m * SURFACE_HEATING_EDGE_TAPER_FRACTION,
+    )
+    if distance_from_edge_m >= taper_width_m:
+        return 0.0
+
+    return 1.0 - distance_from_edge_m / taper_width_m
 
 
 def _advect(field: Grid, state: AtmosphereState, grid: SolverGrid, dt: float) -> Grid:

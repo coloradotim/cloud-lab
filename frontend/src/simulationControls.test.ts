@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { SimulationConfig } from "./simulationTypes";
-import { configWarnings, normalizeConfig, updateConfigNumber } from "./simulationControls";
+import {
+  celsiusToKelvin,
+  configWarnings,
+  kelvinToCelsius,
+  normalizeConfig,
+  updateConfigNumber,
+} from "./simulationControls";
 
 const config: SimulationConfig = {
   schema_version: "sim-config-v1",
@@ -44,10 +50,23 @@ describe("simulation controls", () => {
     expect(normalized.initial_atmosphere.boundary_layer_depth_m).toBe(2_000);
   });
 
+  it("converts and normalizes surface temperature display values", () => {
+    expect(kelvinToCelsius(293.15)).toBeCloseTo(20);
+    expect(celsiusToKelvin(20)).toBeCloseTo(293.15);
+
+    const normalized = normalizeConfig({
+      ...config,
+      initial_atmosphere: { ...config.initial_atmosphere, surface_temperature_k: 400 },
+    });
+
+    expect(kelvinToCelsius(normalized.initial_atmosphere.surface_temperature_k)).toBe(40);
+  });
+
   it("warns for low humidity and high heating", () => {
     expect(
       configWarnings({
         ...config,
+        time: { ...config.time, duration_seconds: 3_600, frame_interval_seconds: 6 },
         initial_atmosphere: { ...config.initial_atmosphere, relative_humidity: 0.5 },
         surface_heating: { ...config.surface_heating, max_warming_rate_k_per_s: 0.02 },
       }),
@@ -55,6 +74,7 @@ describe("simulation controls", () => {
       expect.arrayContaining([
         "Low humidity may produce little or no cloud liquid water.",
         "Very strong heating can create abrupt thermals in the simplified solver.",
+        "Long runs with short frame cadence may accumulate many browser frames.",
       ]),
     );
   });
