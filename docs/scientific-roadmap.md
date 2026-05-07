@@ -1,0 +1,44 @@
+# Scientific Roadmap
+
+Cloud Lab should grow from a clear, testable vertical slice into richer cloud dynamics without pretending the first model is more complete than it is.
+
+## V1 Physics Scope
+
+The first physics target is a minimal 2-D vertical slice that can support a fair-weather cumulus experiment. V1 should focus on:
+
+- A rectangular horizontal-by-vertical domain.
+- Surface heating as a lower-boundary forcing.
+- Moisture and temperature state variables with documented units.
+- Simple buoyancy and vertical motion approximations.
+- Condensation indicators for cloud-relevant regions.
+- Deterministic seeded runs for reproducible tests and visual comparisons.
+
+## Fair-Weather Cumulus First
+
+Fair-weather cumulus is the first target because it is visually understandable and scientifically rich without immediately requiring severe storm dynamics, ice microphysics, or complex terrain.
+
+The first preset should make it easy to explore how surface heating, boundary-layer humidity, and lapse rate affect shallow cloud formation in a vertical slice.
+
+## Warm-Cloud Microphysics Direction
+
+Early microphysics should remain deliberately simple: vapor, cloud water, and rain water fields with non-negative invariants and documented approximations. The project should avoid unexplained constants and should separate physically meaningful quantities from visualization shortcuts.
+
+As the model matures, evaluate PySDM or a similar library for more credible warm-cloud microphysics. That evaluation should compare integration complexity, reproducibility, performance on a Mac, and how well the library fits Cloud Lab's frame schemas.
+
+## Fluid Dynamics Assumptions To Start
+
+The starting dynamics can be simplified and educational, but the assumptions must be explicit. Initial work may use coarse approximations for advection, buoyancy, and diffusion while tests cover shape consistency, non-negative moisture fields, deterministic output, and stable schemas.
+
+Known early limitations should be documented near the implementation and in validation notes when new physics behavior is added.
+
+## Level-Up Path
+
+1. Implement a minimal 2-D vertical-slice core with deterministic frame generation.
+2. Add fair-weather cumulus presets and validation notes.
+3. Stream live frames to the browser over WebSockets.
+4. Add visualization layers for velocity, vapor, cloud water, rain water, buoyancy, and condensation.
+5. Explore better numerical dynamics and warm-cloud microphysics.
+6. Evaluate PySDM integration for droplet-size distribution and rain formation.
+7. Add terrain forcing for orographic lift experiments.
+8. Extend toward 2.5-D where selected 3-D effects can be approximated.
+9. Move toward true 3-D only after the 2-D model, tests, schemas, and visualization pipeline are stable.
