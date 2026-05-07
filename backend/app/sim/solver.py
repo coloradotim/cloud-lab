@@ -21,7 +21,6 @@ MOISTURE_DIFFUSIVITY_M2_PER_S = 9.0
 MAX_ABS_VELOCITY_M_PER_S = 12.0
 SURFACE_HEATING_LAYER_FRACTION = 0.12
 INITIAL_TEMPERATURE_NOISE_K = 0.02
-INITIAL_WATER_VAPOR_KG_PER_KG = 0.012
 
 
 @dataclass(frozen=True)
@@ -63,13 +62,11 @@ def initialize_state(config: SimulationConfig) -> AtmosphereState:
             env_temp + (rng.random() - 0.5) * INITIAL_TEMPERATURE_NOISE_K
             for _x_m in solver_grid.x_coordinates_m
         ]
-        humidity_taper = max(0.15, 1.0 - 0.55 * z_m / config.domain.height_m)
         vapor_row = [
             max(
                 0.0,
-                INITIAL_WATER_VAPOR_KG_PER_KG
-                * config.initial_atmosphere.relative_humidity
-                * humidity_taper,
+                _saturation_specific_humidity_kg_per_kg(env_temp)
+                * config.initial_atmosphere.relative_humidity,
             )
             for _x_m in solver_grid.x_coordinates_m
         ]
@@ -261,11 +258,11 @@ def _update_velocity(
             buoyancy = GRAVITY_M_PER_S2 * temp_perturbation / REFERENCE_TEMPERATURE_K
             center_offset = (x_m - config.surface_heating.patch_center_x_m) / half_width_m
             plume_weight = exp(-(center_offset**2))
-            convergence_sign = -1.0 if center_offset > 0 else 1.0
-            circulation = convergence_sign * plume_weight * (lower_layer - 0.35 * upper_layer)
+            circulation = -center_offset * plume_weight * (lower_layer - 0.35 * upper_layer)
 
+            positive_buoyancy = max(0.0, buoyancy)
             w[row_index][column_index] += (
-                THERMAL_BUOYANCY_SCALE * buoyancy * plume_weight * dt
+                THERMAL_BUOYANCY_SCALE * positive_buoyancy * plume_weight * dt
                 - VELOCITY_DAMPING_PER_SECOND * w[row_index][column_index] * dt
             )
             u[row_index][column_index] += (
@@ -295,8 +292,8 @@ def _advect(field: Grid, state: AtmosphereState, grid: SolverGrid, dt: float) ->
         for column_index in range(columns):
             u = state.horizontal_velocity_m_per_s[row_index][column_index]
             w = state.vertical_velocity_m_per_s[row_index][column_index]
-            x_upwind = field[row_index][column_index] - _upwind_x(field, row_index, column_index, u)
-            z_upwind = field[row_index][column_index] - _upwind_z(field, row_index, column_index, w)
+            x_upwind = _upwind_x(field, row_index, column_index, u)
+            z_upwind = _upwind_z(field, row_index, column_index, w)
             updated[row_index][column_index] = (
                 field[row_index][column_index] - u * courant_x * x_upwind - w * courant_z * z_upwind
             )

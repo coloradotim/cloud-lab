@@ -11,7 +11,7 @@ const config: SimulationConfig = {
   initial_atmosphere: {
     surface_temperature_k: 298.15,
     lapse_rate_k_per_m: 0.0065,
-    relative_humidity: 0.96,
+    relative_humidity: 1.0,
     boundary_layer_depth_m: 1_000,
   },
   surface_heating: {
@@ -28,7 +28,7 @@ describe("simulation controls", () => {
     const updated = updateConfigNumber(config, "initial_atmosphere.relative_humidity", 0.8);
 
     expect(updated.initial_atmosphere.relative_humidity).toBe(0.8);
-    expect(config.initial_atmosphere.relative_humidity).toBe(0.96);
+    expect(config.initial_atmosphere.relative_humidity).toBe(1.0);
   });
 
   it("normalizes dependent spatial settings", () => {

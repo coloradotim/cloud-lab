@@ -22,6 +22,7 @@ frontend/.vite/
 .env
 .env.*
 !.env.example
+.dev/
 
 # Editors
 .idea/

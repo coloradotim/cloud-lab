@@ -7,10 +7,12 @@ from app.sim import (
     SimulationConfig,
     SurfaceHeatingConfig,
     TimeConfig,
+    fair_weather_cumulus_preset,
     initialize_state,
     run_simulation,
     step_state,
 )
+from app.sim.solver import _advect, _constant_grid, _solver_grid
 
 
 def test_solver_step_preserves_shapes_and_finite_values() -> None:
@@ -41,6 +43,57 @@ def test_surface_heating_produces_buoyant_plume() -> None:
     final_max_w = _max_value(final_state.vertical_velocity_m_per_s)
 
     assert final_max_w > initial_max_w + 0.001
+
+
+def test_advection_preserves_uniform_scalar_field() -> None:
+    config = _small_config()
+    state = initialize_state(config)
+    uniform_temperature = _constant_grid(config.grid.rows, config.grid.columns, 300.0)
+
+    advected = _advect(
+        uniform_temperature,
+        state,
+        _solver_grid(config),
+        config.time.time_step_seconds,
+    )
+
+    assert advected == uniform_temperature
+
+
+def test_fair_weather_preset_keeps_heated_lower_patch_warm_and_upward() -> None:
+    config = fair_weather_cumulus_preset().config
+    state = initialize_state(config)
+
+    for _step_index in range(int(60.0 / config.time.time_step_seconds)):
+        state = step_state(config, state)
+
+    grid = _solver_grid(config)
+    heated_columns = [
+        column_index
+        for column_index, x_m in enumerate(grid.x_coordinates_m)
+        if abs(x_m - config.surface_heating.patch_center_x_m)
+        <= config.surface_heating.patch_width_m / 2.0
+    ]
+    heated_rows = [
+        row_index
+        for row_index, z_m in enumerate(grid.z_coordinates_m)
+        if z_m <= config.domain.height_m * 0.12
+    ]
+    temperature_perturbations = [
+        state.temperature_k[row_index][column_index]
+        - state.environmental_temperature_k[row_index][column_index]
+        for row_index in heated_rows
+        for column_index in heated_columns
+    ]
+    vertical_velocities = [
+        state.vertical_velocity_m_per_s[row_index][column_index]
+        for row_index in heated_rows
+        for column_index in heated_columns
+    ]
+
+    assert sum(temperature_perturbations) / len(temperature_perturbations) > 0.05
+    assert min(vertical_velocities) >= 0.0
+    assert max(vertical_velocities) > 0.01
 
 
 def test_humid_seeded_run_condenses_cloud_water() -> None:

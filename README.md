@@ -69,6 +69,23 @@ By default the frontend checks `http://localhost:8000/health`. To use a differen
 VITE_API_BASE_URL=http://localhost:8000
 ```
 
+## Dev Server Helper
+
+After backend and frontend dependencies are installed, you can manage both local dev servers from the repo root:
+
+```bash
+scripts/dev.sh start
+scripts/dev.sh status
+scripts/dev.sh stop
+scripts/dev.sh restart
+```
+
+Logs are written under `.dev/`, which is ignored by git:
+
+```bash
+scripts/dev.sh logs
+```
+
 ## Test And Quality Commands
 
 Backend:

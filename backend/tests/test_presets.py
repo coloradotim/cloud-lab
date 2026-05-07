@@ -16,7 +16,7 @@ def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
     assert preset["slug"] == "fair-weather-cumulus"
     assert preset["name"] == "Fair-weather cumulus over heated ground"
     assert preset["config"]["schema_version"] == "sim-config-v1"
-    assert preset["config"]["initial_atmosphere"]["relative_humidity"] == 0.96
+    assert preset["config"]["initial_atmosphere"]["relative_humidity"] == 1.0
     assert preset["config"]["surface_heating"]["max_warming_rate_k_per_s"] == 0.012
     assert preset["config"]["seed"] == 3
 

@@ -37,7 +37,7 @@ def fair_weather_cumulus_preset() -> SimulationPreset:
             initial_atmosphere=InitialAtmosphereConfig(
                 surface_temperature_k=298.15,
                 lapse_rate_k_per_m=0.0065,
-                relative_humidity=0.96,
+                relative_humidity=1.0,
                 boundary_layer_depth_m=1_000.0,
             ),
             surface_heating=SurfaceHeatingConfig(
