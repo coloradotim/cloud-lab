@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from math import exp, isfinite
-from random import Random
 
 from app.sim.sample import build_grid_metadata, make_simulation_fields
 from app.sim.schemas import SimulationConfig, SimulationFrame
 
 Grid = list[list[float]]
 
+DRY_ADIABATIC_LAPSE_RATE_K_PER_M = 0.0098
 GRAVITY_M_PER_S2 = 9.81
 REFERENCE_TEMPERATURE_K = 300.0
 LATENT_HEATING_K_PER_KG_PER_KG = 2_500.0
@@ -21,7 +21,6 @@ MOISTURE_DIFFUSIVITY_M2_PER_S = 9.0
 MAX_ABS_VELOCITY_M_PER_S = 12.0
 SURFACE_HEATING_LAYER_FRACTION = 0.12
 SURFACE_HEATING_EDGE_TAPER_FRACTION = 0.2
-INITIAL_TEMPERATURE_NOISE_K = 0.02
 
 
 @dataclass(frozen=True)
@@ -48,21 +47,14 @@ class AtmosphereState:
 def initialize_state(config: SimulationConfig) -> AtmosphereState:
     """Create deterministic initial fields for a simplified warm-cloud slice."""
     solver_grid = _solver_grid(config)
-    rng = Random(config.seed)
     temperature: Grid = []
     environmental_temperature: Grid = []
     water_vapor: Grid = []
 
     for z_m in solver_grid.z_coordinates_m:
-        env_temp = (
-            config.initial_atmosphere.surface_temperature_k
-            - config.initial_atmosphere.lapse_rate_k_per_m * z_m
-        )
+        env_temp = _initial_temperature_k(config, z_m)
         env_row = [env_temp for _x_m in solver_grid.x_coordinates_m]
-        temp_row = [
-            env_temp + (rng.random() - 0.5) * INITIAL_TEMPERATURE_NOISE_K
-            for _x_m in solver_grid.x_coordinates_m
-        ]
+        temp_row = [env_temp for _x_m in solver_grid.x_coordinates_m]
         vapor_row = [
             max(
                 0.0,
@@ -87,6 +79,28 @@ def initialize_state(config: SimulationConfig) -> AtmosphereState:
         horizontal_velocity_m_per_s=_constant_grid(rows, columns, config.background_wind.u_m_per_s),
         vertical_velocity_m_per_s=_constant_grid(rows, columns, config.background_wind.w_m_per_s),
         environmental_temperature_k=environmental_temperature,
+    )
+
+
+def _initial_temperature_k(config: SimulationConfig, z_m: float) -> float:
+    """Well-mixed boundary-layer temperature profile.
+
+    Constant potential temperature implies an approximately dry-adiabatic actual temperature
+    decrease in the mixed layer. Above the mixed-layer top, continue from that value with the
+    configured environmental lapse rate so the profile remains continuous.
+    """
+    mixed_layer_depth_m = config.initial_atmosphere.boundary_layer_depth_m
+    if z_m <= mixed_layer_depth_m:
+        return (
+            config.initial_atmosphere.surface_temperature_k - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * z_m
+        )
+
+    mixed_layer_top_temperature_k = (
+        config.initial_atmosphere.surface_temperature_k
+        - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * mixed_layer_depth_m
+    )
+    return mixed_layer_top_temperature_k - config.initial_atmosphere.lapse_rate_k_per_m * (
+        z_m - mixed_layer_depth_m
     )
 
 

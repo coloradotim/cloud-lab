@@ -22,9 +22,10 @@ This first solver uses a simplified warm-cloud slice:
 - 2-D vertical slice with no y dimension.
 - Explicit timestep update.
 - Localized surface heating in the lower part of the domain.
+- A smooth initial temperature profile with a dry-adiabatic well-mixed boundary layer and a configurable environmental lapse rate above it.
 - Temperature and moisture are advected by the current velocity field.
 - Simple diffusion smooths temperature and moisture fields.
-- Temperature perturbation from an environmental lapse-rate profile drives vertical acceleration.
+- Temperature perturbation from the initial environmental profile drives vertical acceleration.
 - A simple convergence/divergence wind response creates thermal circulation around the heating patch.
 - Saturation is estimated with a Tetens-style saturation vapor pressure formula at a fixed representative pressure of 900 hPa.
 - Supersaturated vapor condenses into cloud liquid water.
@@ -34,7 +35,7 @@ This first solver uses a simplified warm-cloud slice:
 
 Each timestep applies:
 
-1. Surface heating near the lower boundary using a Gaussian horizontal patch.
+1. Surface heating near the lower boundary using a uniform horizontal patch with tapered shoulders.
 2. First-order upwind advection for temperature, water vapor, and cloud liquid water.
 3. Explicit Laplacian diffusion for temperature and moisture.
 4. Saturation adjustment that transfers excess vapor into cloud liquid water.
