@@ -39,7 +39,7 @@ All reference cases use `solver_type = "boussinesq_2d"` and the shared frame sch
 | --- | --- | --- | --- |
 | Quiet atmosphere / no forcing | Ensure the solver does not invent weather. | RH 1.0, heating 0, wind 0, 10 minute run. | Zero vertical motion, zero temperature perturbation, zero cloud water. |
 | Dry thermal bubble | Check buoyant circulation without cloud physics. | RH 0.45, heating 0.016 K/s, no background wind, 15 minute run. | Warm perturbation and circulation develop; cloud water remains zero. |
-| Humid lifted thermal | Check uplift, cooling, and saturation adjustment. | RH 1.0, heating 0.018 K/s, light wind, 20 minute run. | Updraft and bounded cloud water appear; moisture stays non-negative. |
+| Humid lifted thermal | Check uplift, cooling, and saturation adjustment. | RH 0.98, heating 0.022 K/s, light wind, 20 minute run. | Updraft and bounded cloud water appear near or above the boundary-layer top; moisture stays non-negative. |
 | Stable stratification suppression | Check environmental stability response. | RH 0.95, heating 0.016 K/s, lapse rate 0.0035 K/m. | Vertical development is weaker than the less-stable dry thermal case. |
 | Fair-weather Boussinesq baseline | Manual comparison baseline. | RH 1.0, heating 0.014 K/s, light wind. | Conservative plume and cloud-water response for visual inspection. |
 
@@ -67,13 +67,15 @@ grid size and emitted frame count.
 - max cloud liquid water
 - integrated cloud liquid water
 - approximate cloud-top height above a `1e-6 kg kg-1` threshold
+- height of maximum cloud liquid water
 - non-finite value count
 - minimum moisture value across vapor, cloud water, and rain water
 
 The validation tests require finite fields, non-negative moisture, bounded velocities,
 bounded cloud water, a quiet no-forcing case, no cloud water in the dry case, cloud
 water in the humid case, reproducibility, weaker vertical growth in the stable case,
-and similar qualitative behavior across the small and medium model sizes.
+similar qualitative behavior across the small and medium model sizes, and cloud-water
+maxima near or above the boundary-layer top for the humid lifted case.
 
 ## Current Read
 
