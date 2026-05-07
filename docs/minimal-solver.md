@@ -31,6 +31,8 @@ This first solver uses a simplified warm-cloud slice:
 - Supersaturated vapor condenses into cloud liquid water.
 - Condensation applies latent heating with a named constant.
 
+In max-heating fair-weather runs, the first visible cloud liquid water values are small: roughly `1e-4 kg kg-1` after about 15 simulated minutes in the current toy solver. Stronger liquid-water values can appear in longer runs, but those late-run values should still be treated as illustrative rather than validated cloud microphysics.
+
 ## Numerical Approach
 
 Each timestep applies:
