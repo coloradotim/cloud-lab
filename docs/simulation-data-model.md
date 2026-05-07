@@ -55,7 +55,7 @@ Each field carries `metadata.unit`, `metadata.display_name`, `metadata.descripti
 
 ## Assumptions And Placeholders
 
-The `/simulations/sample-frame` endpoint remains a deterministic contract sample. The `/simulations/sample-run` endpoint emits a short run from the minimal 2-D solver so the frontend can consume time-evolving frames without knowing solver internals.
+The `/simulations/sample-frame` endpoint remains a deterministic contract sample. The `/simulations/sample-run` endpoint emits a short run from the minimal 2-D solver so the frontend can consume time-evolving frames without knowing solver internals. Live playback streams the same frame schema through `WebSocket /simulations/runs/{run_id}/stream`.
 
 Early placeholders intentionally include cloud liquid water and rain water even when zero so visualization and future microphysics work can depend on stable field names.
 
