@@ -52,6 +52,11 @@ Each frame contains:
 
 Every field must match `grid.rows x grid.columns`. Tests reject rectangular mismatches and missing unit metadata.
 
+Future droplet-size distribution and microphysics diagnostics are proposed as an
+optional frame-level `microphysics` payload rather than required scalar fields. See
+`docs/microphysics-schema.md` for the proposed schema shape, payload-size guardrails,
+and migration path.
+
 ## Modeled Frame Fields
 
 | Field | Unit | Initial status |
@@ -75,3 +80,9 @@ Early placeholders intentionally include cloud liquid water and rain water even 
 ## Future Compatibility
 
 Future PySDM, 2.5-D, and 3-D work should either preserve these v1 fields or introduce a new schema version. New modeled fields must document units in code and docs, include validation or validation notes, and keep solver internals separate from frontend rendering.
+
+Droplet-size distributions should follow `docs/microphysics-schema.md`: keep bulk
+vapor/cloud/rain scalar fields for compatibility, add optional global or probe
+distributions for charts, use compact cell summaries for heatmaps/optics, and avoid
+dense per-cell spectra in live frames unless explicitly justified by performance
+testing.

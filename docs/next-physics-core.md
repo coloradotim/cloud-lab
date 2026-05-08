@@ -191,8 +191,8 @@ credible warm-cloud microphysics under controlled motion and thermodynamic histo
 2. Use `docs/pysdm-evaluation.md` as the current isolated PySDM evaluation record.
 3. Add a `microphysics_lab` solver mode for parcel, box, column, and prescribed-flow
    experiments.
-4. Extend the frame/schema contract for droplet-size distribution outputs without
-   breaking existing scalar-field consumers.
+4. Implement the optional microphysics payload proposed in
+   `docs/microphysics-schema.md` without breaking existing scalar-field consumers.
 5. Compare Cloud Lab's simple saturation adjustment against PySDM under controlled
    conditions.
 6. Add validation cases for parcel ascent, condensation onset, droplet growth, and
@@ -236,7 +236,8 @@ Create or update implementation issues for:
 
 - PySDM isolated parcel/box evaluation.
 - `microphysics_lab` solver descriptor and backend scaffold.
-- Frame/schema extension for droplet-size distribution output.
+- Frame/schema implementation for the droplet-size distribution proposal in
+  `docs/microphysics-schema.md`.
 - Microphysics validation cases for parcel ascent and condensation onset.
 - Comparison of simple saturation adjustment versus PySDM in controlled conditions.
 - UI labels and controls that distinguish educational, Boussinesq, and microphysics
