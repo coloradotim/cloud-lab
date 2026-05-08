@@ -21,9 +21,21 @@ export type FieldStats = {
   max: number;
 };
 
+export type FieldSummary = {
+  label: "Field max" | "Field min / max";
+  value: string;
+  unit: string;
+  helper?: string;
+};
+
 export type GridPoint = {
   row: number;
   column: number;
+};
+
+const DISPLAY_NOISE_THRESHOLDS: Record<string, number> = {
+  cloud_liquid_water_kg_per_kg: 1e-8,
+  rain_water_kg_per_kg: 1e-8,
 };
 
 export type VectorScale = {
@@ -119,6 +131,31 @@ export function displayStatsForField(field: ScalarField): FieldStats {
   };
 }
 
+export function fieldSummaryForField(fieldKey: string, field: ScalarField): FieldSummary {
+  const stats = displayStatsForField(field);
+  const unit = displayUnitForField(field);
+  const displayNoiseThreshold = DISPLAY_NOISE_THRESHOLDS[fieldKey];
+
+  if (
+    isKnownNonNegativeField(fieldKey, field) &&
+    typeof displayNoiseThreshold === "number" &&
+    stats.min < displayNoiseThreshold
+  ) {
+    return {
+      label: "Field max",
+      value: formatDisplayValue(field, getFieldStats(field).max),
+      unit,
+      helper: `Values below ${displayNoiseThreshold.toExponential(1)} ${unit} are display noise.`,
+    };
+  }
+
+  return {
+    label: "Field min / max",
+    value: `${formatDisplayNumberForField(field, stats.min)} to ${formatDisplayNumberForField(field, stats.max)}`,
+    unit,
+  };
+}
+
 export function displayRangeForField(field: ScalarField): FieldStats {
   if (isVelocityField(field)) {
     const stats = displayStatsForField(field);
@@ -141,7 +178,7 @@ export function displayRangeForField(field: ScalarField): FieldStats {
 
 export function formatDisplayValue(field: ScalarField, value: number): string {
   const displayValue = displayValueForField(field, value);
-  return field.metadata.unit === "K" ? displayValue.toFixed(2) : displayValue.toExponential(2);
+  return formatDisplayNumberForField(field, displayValue);
 }
 
 export function normalizedDisplayValueForField(field: ScalarField, value: number): number {
@@ -274,6 +311,18 @@ function isVelocityField(field: ScalarField): boolean {
 function isCondensateField(field: ScalarField): boolean {
   const displayName = field.metadata.display_name.toLowerCase();
   return field.metadata.unit === "kg kg-1" && /cloud|rain/.test(displayName);
+}
+
+function isKnownNonNegativeField(fieldKey: string, field: ScalarField): boolean {
+  return (
+    ["water_vapor_kg_per_kg", "cloud_liquid_water_kg_per_kg", "rain_water_kg_per_kg"].includes(
+      fieldKey,
+    ) || isCondensateField(field)
+  );
+}
+
+function formatDisplayNumberForField(field: ScalarField, displayValue: number): string {
+  return field.metadata.unit === "K" ? displayValue.toFixed(2) : displayValue.toExponential(2);
 }
 
 function maxVectorSpeed(frame: SimulationFrame): number {

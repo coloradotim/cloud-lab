@@ -5,8 +5,7 @@ import type { ProbeRegionMode, ProbeResult, ProbeSelection } from "./probe";
 import type { SimulationFrame } from "./simulationTypes";
 import {
   colorForNormalizedValue,
-  displayStatsForField,
-  displayUnitForField,
+  fieldSummaryForField,
   fieldOptionsFromFrame,
   gridPointFromCanvas,
   normalizedDisplayValueForField,
@@ -46,7 +45,7 @@ export function ScientificDashboard({
   const [probeMode, setProbeMode] = useState<ProbeRegionMode>("point");
   const fieldOptions = useMemo(() => fieldOptionsFromFrame(frame), [frame]);
   const activeField = frame?.fields[selectedField] ?? null;
-  const fieldStats = activeField ? displayStatsForField(activeField) : null;
+  const fieldSummary = activeField ? fieldSummaryForField(selectedField, activeField) : null;
   const activeProbeSelection = pinnedProbe ?? hoveredProbe;
   const probe = useMemo<ProbeResult | null>(() => {
     if (!frame || !activeProbeSelection) {
@@ -180,44 +179,63 @@ export function ScientificDashboard({
         </div>
 
         <aside className="field-readout" aria-label="Field readout">
-          <dl>
-            <div>
-              <dt>Time</dt>
-              <dd>{frame ? `${frame.time_seconds.toFixed(0)} s` : "No frame"}</dd>
-            </div>
-            <div>
-              <dt>Buffered frames</dt>
-              <dd>{framesReceived}</dd>
-            </div>
-            <div>
-              <dt>Displayed frame</dt>
-              <dd>
-                {frameCount > 0 ? `${displayedFrameIndex + 1} / ${frameCount}` : "0 / 0"}
-              </dd>
-            </div>
-            <div>
-              <dt>Range</dt>
-              <dd>
-                {fieldStats && activeField
-                  ? `${formatDisplayedNumber(
-                      activeField.metadata.unit,
-                      fieldStats.min,
-                    )} to ${formatDisplayedNumber(
-                      activeField.metadata.unit,
-                      fieldStats.max,
-                    )} ${displayUnitForField(activeField)}`
-                  : "No field"}
-              </dd>
-            </div>
-            <div>
-              <dt>Probe</dt>
-              <dd>
-                {probe
-                  ? `${pinnedProbe ? "Pinned" : "Hover"} ${probe.mode === "point" ? "point" : "3x3 mean"} at x=${probe.xMeters.toFixed(0)} m, z=${probe.zMeters.toFixed(0)} m`
-                  : "Hover or click a cell"}
-              </dd>
-            </div>
-          </dl>
+          <section className="readout-group" aria-labelledby="run-frame-readout">
+            <h3 id="run-frame-readout">Run / frame</h3>
+            <dl>
+              <div>
+                <dt>Time</dt>
+                <dd>{frame ? `${frame.time_seconds.toFixed(0)} s` : "No frame"}</dd>
+              </div>
+              <div>
+                <dt>Buffered frames</dt>
+                <dd>{framesReceived}</dd>
+              </div>
+              <div>
+                <dt>Displayed frame</dt>
+                <dd>
+                  {frameCount > 0 ? `${displayedFrameIndex + 1} / ${frameCount}` : "0 / 0"}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section className="readout-group" aria-labelledby="field-summary-readout">
+            <h3 id="field-summary-readout">Field summary</h3>
+            <dl>
+              <div>
+                <dt>Selected field</dt>
+                <dd>{activeField?.metadata.display_name ?? "No field"}</dd>
+              </div>
+              <div>
+                <dt>{fieldSummary?.label ?? "Field max"}</dt>
+                <dd>
+                  {fieldSummary
+                    ? `${fieldSummary.value} ${fieldSummary.unit}`
+                    : "No field"}
+                </dd>
+              </div>
+              {fieldSummary?.helper ? (
+                <div>
+                  <dt>Display threshold</dt>
+                  <dd>{fieldSummary.helper}</dd>
+                </div>
+              ) : null}
+            </dl>
+          </section>
+
+          <section className="readout-group" aria-labelledby="probe-readout">
+            <h3 id="probe-readout">{pinnedProbe ? "Pinned probe" : "Probe point"}</h3>
+            <dl>
+              <div>
+                <dt>Probe point</dt>
+                <dd>
+                  {probe
+                    ? `${pinnedProbe ? "Pinned" : "Hover"} ${probe.mode === "point" ? "point" : "3x3 mean"} at x=${probe.xMeters.toFixed(0)} m, z=${probe.zMeters.toFixed(0)} m`
+                    : "Hover or click a cell"}
+                </dd>
+              </div>
+            </dl>
+          </section>
 
           <div className="probe-diagnostics" aria-label="Probe diagnostics">
             {probe ? (
@@ -254,10 +272,6 @@ export function ScientificDashboard({
       </div>
     </section>
   );
-}
-
-function formatDisplayedNumber(sourceUnit: string, displayValue: number): string {
-  return sourceUnit === "K" ? displayValue.toFixed(2) : displayValue.toExponential(2);
 }
 
 function renderFrame(canvas: HTMLCanvasElement, frame: SimulationFrame, selectedField: string) {

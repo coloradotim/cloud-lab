@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import isfinite
+from math import isfinite, sqrt
 
 from app.sim.presets import fair_weather_cumulus_preset
 from app.sim.schemas import (
@@ -16,6 +16,7 @@ from app.sim.schemas import (
 )
 
 CLOUD_TOP_THRESHOLD_KG_PER_KG = 1e-6
+DIVERGENCE_VELOCITY_FLOOR_M_PER_S = 1e-3
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,8 @@ class BoussinesqModelSize:
 class BoussinesqDiagnostics:
     max_abs_horizontal_velocity_m_per_s: float
     max_abs_vertical_velocity_m_per_s: float
+    max_velocity_m_per_s: float
+    mean_velocity_m_per_s: float
     max_temperature_perturbation_k: float
     min_temperature_perturbation_k: float
     max_water_vapor_kg_per_kg: float
@@ -47,6 +50,9 @@ class BoussinesqDiagnostics:
     max_cloud_liquid_water_height_m: float | None
     max_abs_divergence_per_second: float
     mean_abs_divergence_per_second: float
+    rms_divergence_per_second: float
+    max_dimensionless_divergence: float
+    rms_dimensionless_divergence: float
     non_finite_value_count: int
     min_moisture_kg_per_kg: float
 
@@ -177,6 +183,19 @@ def boussinesq_model_sizes() -> list[BoussinesqModelSize]:
 def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnostics:
     fields = frame.fields
     divergence = compute_divergence_field(frame)
+    speed = _speed_grid(
+        fields.horizontal_velocity_m_per_s.values,
+        fields.vertical_velocity_m_per_s.values,
+    )
+    max_velocity = _max(speed)
+    mean_velocity = _mean(speed)
+    max_abs_divergence = _max_abs(divergence)
+    rms_divergence = _rms(divergence)
+    length_scale_m = min(
+        frame.config.domain.width_m / frame.grid.columns,
+        frame.config.domain.height_m / frame.grid.rows,
+    )
+    dimensionless_velocity_scale = max(max_velocity, DIVERGENCE_VELOCITY_FLOOR_M_PER_S)
     cloud_top_height_m: float | None = None
     max_cloud_height_m: float | None = None
     max_cloud = _max(fields.cloud_liquid_water_kg_per_kg.values)
@@ -201,6 +220,8 @@ def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnost
     return BoussinesqDiagnostics(
         max_abs_horizontal_velocity_m_per_s=_max_abs(fields.horizontal_velocity_m_per_s.values),
         max_abs_vertical_velocity_m_per_s=_max_abs(fields.vertical_velocity_m_per_s.values),
+        max_velocity_m_per_s=max_velocity,
+        mean_velocity_m_per_s=mean_velocity,
         max_temperature_perturbation_k=_max(fields.temperature_perturbation_k.values),
         min_temperature_perturbation_k=_min(fields.temperature_perturbation_k.values),
         max_water_vapor_kg_per_kg=_max(fields.water_vapor_kg_per_kg.values),
@@ -210,8 +231,15 @@ def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnost
         ),
         cloud_top_height_m=cloud_top_height_m,
         max_cloud_liquid_water_height_m=max_cloud_height_m,
-        max_abs_divergence_per_second=_max_abs(divergence),
+        max_abs_divergence_per_second=max_abs_divergence,
         mean_abs_divergence_per_second=_mean_abs(divergence),
+        rms_divergence_per_second=rms_divergence,
+        max_dimensionless_divergence=(
+            max_abs_divergence * length_scale_m / dimensionless_velocity_scale
+        ),
+        rms_dimensionless_divergence=(
+            rms_divergence * length_scale_m / dimensionless_velocity_scale
+        ),
         non_finite_value_count=sum(1 for value in all_values if not isfinite(value)),
         min_moisture_kg_per_kg=min(moisture_values),
     )
@@ -285,12 +313,40 @@ def _mean_abs(grid: list[list[float]]) -> float:
     return sum(values) / len(values)
 
 
+def _mean(grid: list[list[float]]) -> float:
+    values = [value for row in grid for value in row]
+    return sum(values) / len(values)
+
+
+def _rms(grid: list[list[float]]) -> float:
+    values = [value for row in grid for value in row]
+    return sqrt(sum(value * value for value in values) / len(values))
+
+
 def _max(grid: list[list[float]]) -> float:
     return max(value for row in grid for value in row)
 
 
 def _min(grid: list[list[float]]) -> float:
     return min(value for row in grid for value in row)
+
+
+def _speed_grid(
+    horizontal_velocity: list[list[float]],
+    vertical_velocity: list[list[float]],
+) -> list[list[float]]:
+    return [
+        [
+            sqrt(
+                horizontal_velocity[row_index][column_index]
+                * horizontal_velocity[row_index][column_index]
+                + vertical_velocity[row_index][column_index]
+                * vertical_velocity[row_index][column_index]
+            )
+            for column_index in range(len(row))
+        ]
+        for row_index, row in enumerate(horizontal_velocity)
+    ]
 
 
 def _grid_derivative_x(

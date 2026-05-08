@@ -35,6 +35,17 @@ The cloud liquid water display scale is tuned for the current toy solver's small
 
 Probe mode consumes only the shared `SimulationFrame` contract. Hovering the canvas updates an immediate probe, and clicking pins the current cell so values continue to update as playback advances. The probe can sample either the exact cell or a 3x3 neighborhood mean.
 
+The canvas is the stable inspection stage. Probe details live in a right-side readout
+panel with its own scroll area on wider screens, so pinning, clearing, or updating a
+probe does not resize the plot or create blank space beneath it. On narrow screens the
+readout stacks below the canvas.
+
+The readout separates three concepts:
+
+- run/frame metadata, such as time, buffered frames, and displayed frame
+- field summaries, such as selected field and field max or min/max
+- probe values, such as point coordinates and point/neighborhood diagnostics
+
 The probe readout currently displays:
 
 - absolute temperature, converted from K to deg C for display
@@ -48,6 +59,26 @@ The probe readout currently displays:
 Missing fields are shown as "Not emitted" instead of failing the dashboard. This keeps probe behavior compatible with future solver backends that may emit different diagnostics.
 
 Relative humidity and buoyancy are derived diagnostics. They are useful for inspecting the current educational model, but they should not be treated as full physical diagnostics from a pressure-coupled or validated cloud model.
+
+## Field Summaries
+
+Field summaries are computed in the frontend from the displayed frame. They do not
+change solver output or transport values.
+
+Signed fields such as temperature perturbation and velocity display `Field min / max`
+because sign is physically meaningful. Absolute temperature is converted from Kelvin
+transport values to Celsius for display. Condensate fields such as cloud liquid water
+and rain water display `Field max` when their minimum is below the display-noise
+threshold. This prevents roundoff-like tails such as `5e-73 kg kg-1` from being shown
+as meaningful cloud-water minima while preserving the useful maximum.
+
+Current condensate display-noise thresholds:
+
+- cloud liquid water: `1e-8 kg kg-1`
+- rain water: `1e-8 kg kg-1`
+
+Water vapor remains eligible for ordinary min/max display because small vapor values
+can be physically meaningful in dry cases.
 
 ## Playback Controls
 
