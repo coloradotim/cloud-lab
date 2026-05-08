@@ -32,7 +32,7 @@ Do not add advanced microphysics until the current Boussinesq reference cases in
 Current gate decision: `boussinesq_2d` remains experimental. It is useful for
 controlled visual experiments, UI/schema validation, and targeted dynamics work, but
 it should not be treated as the final dynamics core for advanced microphysics until
-boundary-localized divergence and cloud-water placement issues are resolved.
+cloud-water placement and the remaining dynamics limitations are resolved.
 
 ## Fluid Dynamics Assumptions To Start
 
@@ -49,8 +49,8 @@ The initial solver uses localized surface heating, first-order advection, simple
 3. Stream live frames to the browser over WebSockets.
 4. Add visualization layers for velocity, vapor, cloud water, rain water, buoyancy, and condensation.
 5. Validate the Boussinesq solver against quiet, dry, humid, stable, and resolution/runtime reference cases.
-6. Improve or replace the experimental Boussinesq dynamics boundary treatment before
-   treating it as a microphysics host.
+6. Continue improving or replace the experimental Boussinesq dynamics before treating
+   it as a microphysics host.
 7. Evaluate PySDM integration for droplet-size distribution and rain formation.
 8. Add terrain forcing for orographic lift experiments.
 9. Extend toward 2.5-D where selected 3-D effects can be approximated.

@@ -74,22 +74,22 @@ The evidence supports continuing to improve it in narrow steps:
 - the dry thermal-bubble benchmark rises, stays cloud-free, and develops symmetric
   circulation
 - humid cases produce bounded condensate and preserve non-negative moisture
+- active-flow reference cases pass whole-frame nondimensional divergence gates
 - normal reference cases do not hit the public velocity, temperature, cloud-water,
   or vapor safety caps
 - seeded runs are reproducible
 
 The evidence does not yet support treating it as a quantitatively credible CFD core:
 
-- whole-frame nondimensional divergence fails the initial active-flow gates because
-  error is boundary-localized
 - the humid reference case still places peak cloud water below the boundary-layer top
-- the model uses strong prototype stabilizers and simple saturation adjustment
+- the model uses strong prototype stabilizers, simple saturation adjustment, and a
+  diagnostic boundary extrapolation because emitted frames do not carry ghost cells
 
 Recommendation: keep using `boussinesq_2d` for controlled visual experiments,
 schema/UI validation, thermal-bubble and reference-case regression tests, and targeted
 dynamics improvements. Do not integrate advanced microphysics on top of it as though
-the dynamics are solved. Boundary treatment and thermodynamic placement of cloud water
-are the next science gates.
+the dynamics are solved. Thermodynamic placement of cloud water remains the next
+science gate.
 
 ## Stabilizers And Guardrails
 
@@ -134,9 +134,12 @@ complete warm-cloud thermodynamics.
 - minimum moisture value across vapor, cloud water, and rain water
 
 The divergence diagnostic uses finite differences on the emitted frame grid. Interior
-cells use centered differences. Boundary cells use one-sided differences because the
-frame does not include ghost cells. Dimensional divergence remains useful for quiet
-cases where the velocity scale should be exactly zero.
+cells use centered differences. Boundary cells are filled from the nearest centered
+interior diagnostic value because emitted frames do not include the ghost cells needed
+for a physically consistent wall derivative. This changes the diagnostic derivative
+stencil and emitted-frame handling only; it does not change the Boussinesq solver,
+velocity diagnosis, or boundary conditions. Dimensional divergence remains useful for
+quiet cases where the velocity scale should be exactly zero.
 
 The nondimensional divergence metrics are:
 
@@ -159,8 +162,8 @@ The older dimensional CI bounds remain as prototype guardrails:
 - mean absolute divergence less than `2e-5 s^-1`
 
 Those thresholds are empirical prototype guardrails. They are above the observed
-medium-grid reference cases (`0` for quiet, about `7e-4 s^-1` for dry thermal, and
-about `1.4e-3 s^-1` for humid thermal) and are intended to catch obvious mass-
+medium-grid reference cases (`0` for quiet, about `1.6e-8 s^-1` for dry thermal, and
+about `3.6e-8 s^-1` for humid thermal) and are intended to catch obvious mass-
 consistency regressions without pretending the boundary treatment has been formally
 validated.
 
@@ -169,21 +172,19 @@ Quiet no-forcing runs are gated dimensionally:
 - max absolute divergence less than `1e-6 s^-1`
 - max velocity magnitude less than `1e-3 m s^-1`
 
-Active-flow whole-frame nondimensional gates are currently marked expected-failure
-because the emitted divergence error is boundary-localized. Interior cells pass the
-same nondimensional gates with large margin. Current medium-grid final-frame results:
+Active-flow whole-frame nondimensional gates are hard validation requirements. The
+current medium-grid final-frame results are:
 
-| Case | Full RMS D* | Full max D* | Interior RMS D* | Interior max D* | Boundary RMS D* | Boundary max D* |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Dry thermal bubble | `1.39e-2` | `2.07e-1` | `6.43e-7` | `4.83e-6` | `3.79e-2` | `2.07e-1` |
-| Humid lifted thermal | `1.39e-2` | `2.43e-1` | `7.46e-7` | `6.33e-6` | `3.80e-2` | `2.43e-1` |
-| Stable suppression | `1.11e-2` | `1.62e-1` | `2.80e-7` | `2.29e-6` | `3.03e-2` | `1.62e-1` |
+| Case | RMS D* | Max D* | RMS divergence | Max divergence |
+| --- | ---: | ---: | ---: | ---: |
+| Dry thermal bubble | `8.23e-7` | `4.83e-6` | `2.80e-9 s^-1` | `1.64e-8 s^-1` |
+| Humid lifted thermal | `9.70e-7` | `6.33e-6` | `5.48e-9 s^-1` | `3.58e-8 s^-1` |
+| Stable suppression | `3.83e-7` | `2.29e-6` | `1.39e-9 s^-1` | `8.32e-9 s^-1` |
 
-This means the streamfunction-derived interior velocity field is close to
-divergence-free, but the current boundary treatment is not yet good enough to claim
-whole-frame incompressibility. Follow-up issue #43 tracks fixing the boundary-localized
-divergence so the whole-frame RMS and max nondimensional gates can become hard CI
-requirements.
+The earlier boundary-localized failures came from applying one-sided finite
+differences to frame-edge cells without solver ghost cells. The streamfunction-derived
+interior velocity field was already close to divergence-free; the diagnostic now
+reports the centered-stencil quantity consistently across the emitted frame.
 
 ## Thermal Bubble Benchmark
 
@@ -218,17 +219,13 @@ The validation tests require finite fields, non-negative moisture, bounded veloc
 bounded cloud water, a quiet no-forcing case, no cloud water in the dry case, cloud
 water in the humid case, reproducibility, weaker vertical growth in the stable case,
 similar qualitative behavior across the small and medium model sizes, bounded
-divergence in reference cases, exactly zero divergence growth in the quiet case, and
-canonical dry thermal-bubble rise.
+whole-frame and interior divergence in reference cases, exactly zero divergence growth
+in the quiet case, and canonical dry thermal-bubble rise.
 
-Three science checks are intentionally marked as expected failures:
+One science check is intentionally marked as an expected failure:
 
 - the humid lifted case currently places its cloud-water maximum below the
   boundary-layer top
-- active-flow whole-frame nondimensional divergence exceeds the initial RMS/max gates
-  because the error is boundary-localized
-- stable-case whole-frame nondimensional divergence grows slowly above the RMS gate
-  because boundary-localized divergence accumulates over time
 
 Earlier
 attempts to force this maximum upward by gating condensation at the mixed-layer top

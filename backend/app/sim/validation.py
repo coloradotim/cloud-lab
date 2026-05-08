@@ -246,7 +246,13 @@ def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnost
 
 
 def compute_divergence_field(frame: SimulationFrame) -> list[list[float]]:
-    """Compute du/dx + dw/dz on the frame grid in s^-1."""
+    """Compute du/dx + dw/dz on the frame grid in s^-1.
+
+    The Boussinesq streamfunction solve stores only physical frame cells, not ghost
+    cells. Centered derivatives are therefore the numerically consistent diagnostic
+    stencil; edge cells are filled from the nearest centered interior value instead
+    of inventing a one-sided wall stencil that is not part of the solver.
+    """
 
     u = frame.fields.horizontal_velocity_m_per_s.values
     w = frame.fields.vertical_velocity_m_per_s.values
@@ -254,17 +260,29 @@ def compute_divergence_field(frame: SimulationFrame) -> list[list[float]]:
     dz_m = frame.config.domain.height_m / frame.grid.rows
     rows = frame.grid.rows
     columns = frame.grid.columns
-    divergence: list[list[float]] = []
+    divergence = [[0.0 for _ in range(columns)] for _ in range(rows)]
 
-    for row_index in range(rows):
-        divergence_row: list[float] = []
-        for column_index in range(columns):
-            du_dx = _grid_derivative_x(u, row_index, column_index, dx_m)
-            dw_dz = _grid_derivative_z(w, row_index, column_index, dz_m)
-            divergence_row.append(du_dx + dw_dz)
-        divergence.append(divergence_row)
+    for row_index in range(1, rows - 1):
+        for column_index in range(1, columns - 1):
+            du_dx = (u[row_index][column_index + 1] - u[row_index][column_index - 1]) / (2.0 * dx_m)
+            dw_dz = (w[row_index + 1][column_index] - w[row_index - 1][column_index]) / (2.0 * dz_m)
+            divergence[row_index][column_index] = du_dx + dw_dz
+
+    _fill_boundary_from_nearest_interior(divergence)
 
     return divergence
+
+
+def _fill_boundary_from_nearest_interior(grid: list[list[float]]) -> None:
+    rows = len(grid)
+    columns = len(grid[0])
+
+    for row_index in range(1, rows - 1):
+        grid[row_index][0] = grid[row_index][1]
+        grid[row_index][columns - 1] = grid[row_index][columns - 2]
+    for column_index in range(columns):
+        grid[0][column_index] = grid[1][column_index]
+        grid[rows - 1][column_index] = grid[rows - 2][column_index]
 
 
 def _reference_config(
@@ -347,31 +365,3 @@ def _speed_grid(
         ]
         for row_index, row in enumerate(horizontal_velocity)
     ]
-
-
-def _grid_derivative_x(
-    grid: list[list[float]],
-    row_index: int,
-    column_index: int,
-    dx_m: float,
-) -> float:
-    columns = len(grid[0])
-    if column_index == 0:
-        return (grid[row_index][1] - grid[row_index][0]) / dx_m
-    if column_index == columns - 1:
-        return (grid[row_index][columns - 1] - grid[row_index][columns - 2]) / dx_m
-    return (grid[row_index][column_index + 1] - grid[row_index][column_index - 1]) / (2.0 * dx_m)
-
-
-def _grid_derivative_z(
-    grid: list[list[float]],
-    row_index: int,
-    column_index: int,
-    dz_m: float,
-) -> float:
-    rows = len(grid)
-    if row_index == 0:
-        return (grid[1][column_index] - grid[0][column_index]) / dz_m
-    if row_index == rows - 1:
-        return (grid[rows - 1][column_index] - grid[rows - 2][column_index]) / dz_m
-    return (grid[row_index + 1][column_index] - grid[row_index - 1][column_index]) / (2.0 * dz_m)
