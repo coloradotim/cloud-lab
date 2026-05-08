@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import "./App.css";
+import { MicrophysicsDiagnosticsPanel } from "./MicrophysicsDiagnosticsPanel";
 import { ScientificDashboard } from "./ScientificDashboard";
 import {
   BOUSSINESQ_MODEL_SIZES,
@@ -540,6 +541,12 @@ export function App() {
           setDisplayedFrameIndex(frameIndex);
         }}
       />
+
+      <MicrophysicsDiagnosticsPanel
+        frames={frames}
+        displayedFrame={frames[displayedFrameIndex] ?? null}
+        config={simulationConfig}
+      />
     </main>
   );
 }
@@ -937,6 +944,13 @@ function SimulationControls({
             value={config.background_wind.u_m_per_s}
             limits={CONTROL_LIMITS.wind}
             onChange={(value) => update("background_wind.u_m_per_s", value)}
+          />
+          <NumberControl
+            label="Vertical wind / lift"
+            unit="m/s"
+            value={config.background_wind.w_m_per_s}
+            limits={CONTROL_LIMITS.wind}
+            onChange={(value) => update("background_wind.w_m_per_s", value)}
           />
           <NumberControl
             label="Random seed"

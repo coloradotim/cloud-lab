@@ -10,7 +10,9 @@ The frontend keeps rendering separate from solver and API concerns:
 - `simulationTypes.ts` defines the frontend view of the shared frame schema.
 - `visualization.ts` contains pure helper logic for field option mapping, ranges, color mapping, and cursor-to-grid conversion.
 - `probe.ts` maps frame fields into solver-neutral point and neighborhood diagnostics.
+- `microphysicsDiagnostics.ts` derives parcel/box water-budget and timing summaries from buffered frames.
 - `ScientificDashboard.tsx` renders scalar fields and velocity vectors onto a canvas.
+- `MicrophysicsDiagnosticsPanel.tsx` renders the `microphysics_lab` summary and optional droplet histogram.
 
 Solver code still lives only in the backend. The dashboard consumes serialized `SimulationFrame` JSON and field metadata.
 
@@ -60,6 +62,40 @@ Missing fields are shown as "Not emitted" instead of failing the dashboard. This
 
 Relative humidity and buoyancy are derived diagnostics. They are useful for inspecting the current educational model, but they should not be treated as full physical diagnostics from a pressure-coupled or validated cloud model.
 
+## Microphysics Lab Diagnostics
+
+The current `microphysics_lab` solver emits a controlled 0-D parcel/box state through
+the same 2-D frame schema used by the rest of the app. Its spatial plots are therefore
+uniform by design. The dashboard shows a separate microphysics diagnostics panel when
+`microphysics_lab` is selected or when frames include an optional `microphysics`
+payload.
+
+The panel derives:
+
+- initial and final temperature
+- initial and final water vapor
+- final cloud liquid water and rain water
+- prescribed vertical velocity and implied parcel height
+- first cloud-water time
+- peak cloud-water amount and time
+- first rain-water time and peak rain amount
+- maximum relative-humidity proxy
+- total-water budget drift
+
+The total-water budget uses frame-mean values:
+
+```text
+water vapor + cloud liquid water + rain water
+```
+
+For the current broadcast parcel this is equivalent to reading any cell, but using a
+mean keeps the helper tolerant of later regional or gridded microphysics outputs.
+
+If an optional droplet-size distribution is present under the proposed
+`microphysics.global_distribution` payload, the panel shows a histogram for the
+displayed frame. If the payload is absent, the panel shows a clear empty state instead
+of failing the dashboard.
+
 ## Field Summaries
 
 Field summaries are computed in the frontend from the displayed frame. They do not
@@ -102,6 +138,7 @@ Pausing affects displayed playback, not backend simulation execution. Frames may
 - Pause/resume does not yet send flow-control messages to the backend.
 - The dashboard does not yet render multiple synchronized panels at once.
 - Probe diagnostics are point or 3x3 cell samples only; they are not parcel trajectories or pathlines.
+- Current microphysics summaries are global/per-frame; probe or regional droplet distributions remain future work.
 - Accessibility is limited to controls and text readouts; the canvas itself needs richer non-visual summaries later.
 
 ## Future Level-Up Path

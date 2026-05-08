@@ -75,6 +75,63 @@ No PySDM-specific internals are added to the generic frame schema. Future
 droplet-size distribution outputs should use the optional microphysics payload
 proposed in `docs/microphysics-schema.md`.
 
+## Interpreting Runs In The UI
+
+Because the current lab mode is 0-D, spatial plots are intentionally uniform. Use the
+microphysics diagnostics panel for the meaningful result:
+
+- initial and final parcel temperature
+- initial and final water vapor
+- final cloud liquid water and rain water
+- prescribed vertical velocity and implied parcel height
+- first cloud-water time
+- peak cloud-water amount and timing
+- first rain-water time and peak rain amount
+- maximum relative-humidity proxy
+- total-water budget drift
+
+The water budget is computed from the bulk fields:
+
+```text
+total water = water vapor + cloud liquid water + rain water
+```
+
+Small drift is expected from numerical adjustment and display precision. Large drift
+is flagged as a budget concern.
+
+Probe values are spatially uniform for the current lab solver because the parcel/box
+state is broadcast across every grid cell. This is expected, not a sign that the
+microphysics failed.
+
+## Suggested Manual Cases
+
+Case A: no lift / sub-saturated.
+Set vertical wind to `0 m s-1`, relative humidity below saturation, and external
+heating to `0 K s-1`. Expected result: no cloud water, no rain water, nearly steady
+vapor, and nearly steady temperature.
+
+Case B: lift a humid parcel.
+Set relative humidity near `0.99`, vertical wind near `2 m s-1`, and external heating
+to `0 K s-1`. Expected result: temperature decreases with height, vapor decreases
+after saturation, and cloud liquid water appears.
+
+Case C: strong lift / high humidity.
+Increase vertical wind or start very near saturation. Expected result: earlier
+condensation, more cloud water, and possible rain water if the simple autoconversion
+threshold is exceeded.
+
+Case D: heating offsets lift.
+Run the same lift case with positive external heating. Expected result: less cooling
+and delayed or suppressed condensation compared with the unheated lift case.
+
+## Droplet Outputs
+
+Current production frames do not emit droplet-size distributions. If a future frame
+includes the optional `microphysics` payload from `docs/microphysics-schema.md`, the
+UI can show a global droplet histogram for the displayed frame. When that payload is
+absent, the dashboard keeps showing the bulk parcel diagnostics and a clear empty
+state for droplet distributions.
+
 ## Future PySDM Host
 
 If PySDM is adopted, this solver mode is the intended integration point for parcel,
