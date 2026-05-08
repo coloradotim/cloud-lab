@@ -3,11 +3,16 @@ from math import isfinite
 import pytest
 
 from app.sim import (
+    DomainConfig,
+    GridConfig,
+    InitialAtmosphereConfig,
     SimulationConfig,
     TimeConfig,
+    build_grid_metadata,
     fair_weather_cumulus_preset,
     run_simulation,
 )
+from app.sim.boussinesq_2d import initialize_state
 
 pytestmark = [pytest.mark.boussinesq, pytest.mark.science]
 
@@ -49,6 +54,31 @@ def test_boussinesq_solver_keeps_moisture_non_negative() -> None:
         assert min(value for row in field.values for value in row) >= 0.0
 
 
+def test_boussinesq_initial_vapor_is_well_mixed_in_uniform_boundary_layer() -> None:
+    config = _boussinesq_config(relative_humidity=0.65).model_copy(
+        update={
+            "domain": DomainConfig(width_m=4_000.0, height_m=3_000.0),
+            "grid": GridConfig(columns=4, rows=6),
+            "initial_atmosphere": InitialAtmosphereConfig(
+                surface_temperature_k=300.0,
+                relative_humidity=0.65,
+                boundary_layer_depth_m=1_000.0,
+            ),
+        }
+    )
+
+    state = initialize_state(config)
+    grid = build_grid_metadata(config)
+    mixed_layer_values = {
+        state.water_vapor_kg_per_kg[row_index][column_index]
+        for row_index, z_m in enumerate(grid.z_coordinates_m)
+        if z_m <= config.initial_atmosphere.boundary_layer_depth_m
+        for column_index in range(config.grid.columns)
+    }
+
+    assert len(mixed_layer_values) == 1
+
+
 def test_boussinesq_solver_produces_buoyant_motion_and_cloud_water() -> None:
     config = _boussinesq_config(
         relative_humidity=1.0,
@@ -76,7 +106,7 @@ def test_boussinesq_solver_produces_buoyant_motion_and_cloud_water() -> None:
 def test_boussinesq_solver_does_not_hit_safety_clamps_in_normal_long_run() -> None:
     config = _boussinesq_config(
         duration_seconds=1_800.0,
-        relative_humidity=1.0,
+        relative_humidity=0.65,
         heating_rate=0.018,
     )
 
@@ -100,7 +130,7 @@ def test_boussinesq_solver_does_not_hit_safety_clamps_in_normal_long_run() -> No
 def test_boussinesq_solver_does_not_create_clouds_without_forcing() -> None:
     config = _boussinesq_config(
         duration_seconds=1_800.0,
-        relative_humidity=1.0,
+        relative_humidity=0.65,
         heating_rate=0.0,
     )
 

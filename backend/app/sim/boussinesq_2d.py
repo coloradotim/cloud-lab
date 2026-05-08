@@ -34,6 +34,7 @@ MAX_ABS_THETA_PERTURBATION_K = 10.0
 MAX_ABS_VORTICITY_PER_SECOND = 0.08
 MAX_WATER_VAPOR_KG_PER_KG = 0.04
 MAX_CLOUD_LIQUID_WATER_KG_PER_KG = 0.01
+MIXED_LAYER_HUMIDITY_PROFILES = {"uniform", "moist_boundary_layer"}
 
 
 @dataclass(frozen=True)
@@ -70,8 +71,12 @@ def initialize_state(config: SimulationConfig) -> BoussinesqState:
             [
                 max(
                     0.0,
-                    _saturation_specific_humidity_kg_per_kg(env_temp)
-                    * initial_relative_humidity(config, x_m, z_m),
+                    _initial_water_vapor_specific_humidity_kg_per_kg(
+                        config,
+                        x_m,
+                        z_m,
+                        env_temp,
+                    ),
                 )
                 for x_m in grid.x_coordinates_m
             ]
@@ -231,6 +236,28 @@ def _initial_temperature_k(config: SimulationConfig, z_m: float) -> float:
     )
     return top_temperature - config.initial_atmosphere.lapse_rate_k_per_m * (
         z_m - mixed_layer_depth_m
+    )
+
+
+def _initial_water_vapor_specific_humidity_kg_per_kg(
+    config: SimulationConfig,
+    x_m: float,
+    z_m: float,
+    temperature_k: float,
+) -> float:
+    if (
+        z_m <= config.initial_atmosphere.boundary_layer_depth_m
+        and config.initial_atmosphere.humidity_profile in MIXED_LAYER_HUMIDITY_PROFILES
+    ):
+        surface_temperature_k = _initial_temperature_k(config, 0.0)
+        return _saturation_specific_humidity_kg_per_kg(
+            surface_temperature_k
+        ) * initial_relative_humidity(config, x_m, 0.0)
+
+    return _saturation_specific_humidity_kg_per_kg(temperature_k) * initial_relative_humidity(
+        config,
+        x_m,
+        z_m,
     )
 
 

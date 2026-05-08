@@ -44,10 +44,10 @@ All reference cases use `solver_type = "boussinesq_2d"` and the shared frame sch
 
 | Case | Purpose | Key defaults | Expected behavior |
 | --- | --- | --- | --- |
-| Quiet atmosphere / no forcing | Ensure the solver does not invent weather. | RH 1.0, heating 0, wind 0, 10 minute run. | Zero vertical motion, zero temperature perturbation, zero cloud water. |
+| Quiet atmosphere / no forcing | Ensure the solver does not invent weather. | RH 0.65, heating 0, wind 0, 10 minute run. | Zero vertical motion, zero temperature perturbation, zero cloud water. |
 | Dry thermal bubble | Check buoyant circulation without cloud physics. | RH 0.45, heating 0.016 K/s, no background wind, 15 minute run. | Warm perturbation and circulation develop; cloud water remains zero. |
 | Humid lifted thermal | Check uplift, cooling, and saturation adjustment. | RH 0.98, heating 0.022 K/s, light wind, 20 minute run. | Updraft and bounded cloud water appear near or above the boundary-layer top; moisture stays non-negative. |
-| Stable stratification suppression | Check environmental stability response. | RH 0.95, heating 0.016 K/s, lapse rate 0.0035 K/m. | Vertical development is weaker than the less-stable dry thermal case. |
+| Stable stratification suppression | Check environmental stability response. | RH 0.45, heating 0.016 K/s, lapse rate 0.0035 K/m. | Vertical development is weaker than the less-stable dry thermal case. |
 | Fair-weather Boussinesq baseline | Manual comparison baseline. | RH 1.0, heating 0.014 K/s, light wind. | Conservative plume and cloud-water response for visual inspection. |
 
 ## Model Sizes
@@ -185,6 +185,80 @@ The earlier boundary-localized failures came from applying one-sided finite
 differences to frame-edge cells without solver ghost cells. The streamfunction-derived
 interior velocity field was already close to divergence-free; the diagnostic now
 reports the centered-stencil quantity consistently across the emitted frame.
+
+## Fair-Weather Thermodynamic Structure
+
+Fair-weather cumulus often has a visually flat cloud base because parcels rising
+from a well-mixed source layer tend to share a similar lifting condensation level
+(LCL). Tops vary more because plume strength, entrainment, wind shear, and local
+mixing vary after condensation begins.
+
+Cloud Lab now checks this structure diagnostically. These diagnostics do not clamp
+cloud water, hide cloud water below an LCL, or force flat bases in the renderer.
+They report whether the simulated cloud water is thermodynamically plausible for the
+configured initial state.
+
+The expected LCL is estimated numerically by dry-lifting the initial surface parcel
+until its conserved water vapor reaches the diagnostic saturation curve. This keeps
+the LCL diagnostic consistent with the Boussinesq prototype's current saturation
+calculation. That saturation calculation still uses a fixed `900 hPa` reference
+pressure, so the validation should be read as a consistency check for this prototype,
+not a full hydrostatic parcel calculation.
+
+The thermodynamic validation suite reports:
+
+- expected LCL height
+- first cloud-water time and height above a `1e-8 kg kg-1` threshold
+- first-cloud height relative to the expected LCL
+- cloud-water fraction below, near, and above the LCL tolerance band
+- cloud-water centroid and maximum-cloud-water height
+- cloud-region count, base heights, top heights, base spread, and top spread
+- source-layer potential-temperature spread, water-vapor spread, and RH spread
+- saturation sanity for a dry-adiabatically lifted diagnostic parcel
+- boundary-cloud fraction and low-level return-flow cloud fraction
+
+The source-layer mixedness diagnostic uses dry potential-temperature proxy
+`theta ~= T + Gamma_d z` plus specific humidity spread. Relative-humidity spread is
+reported separately. This distinction matters because a physically mixed boundary
+layer should conserve water vapor while RH changes with height as temperature
+changes. The `uniform` and `moist_boundary_layer` initializers now use conserved
+boundary-layer water vapor; explicitly layered and custom humidity profiles remain
+non-mixed by design.
+
+Run the thermodynamic structure report with:
+
+```bash
+cd backend
+.venv/bin/python -m app.sim.validation --thermodynamics
+```
+
+Use `--json` for machine-readable output. The current medium-grid diagnostics pass
+without hard failures, but every case reports at least one warning:
+
+| Case | LCL | First cloud | Status | Main interpretation |
+| --- | ---: | ---: | --- | --- |
+| Humid well-mixed fair-weather | 34 m | 62 m | warn | Very low LCL; cloud forms near the lowest grid level, with low-level return-flow cloud water elevated. |
+| Drier well-mixed fair-weather | 413 m | 312 m | warn | Higher LCL; cloud onset is within the grid-cell tolerance band but the sampled onset cell is not saturated after transport/diffusion. |
+| Warmer/drier fair-weather | 610 m | 438 m | warn | Still higher LCL; small below-band condensate and an unsaturated sampled onset cell are reported as warnings. |
+| Multi-patch fair-weather | 34 m | 62 m | warn | Very low LCL; cloud forms near the lowest grid level, with low-level return-flow cloud water elevated. |
+| Layered-moisture fair-weather | 331 m | 938 m | warn | Layered humidity intentionally weakens the expectation of shared cloud bases. |
+
+Current warning thresholds are:
+
+- first cloud more than one grid cell below the LCL: warn
+- first cloud more than two grid cells below the LCL: fail
+- more than 5% of cloud water below the LCL tolerance band: warn
+- more than 20% of cloud water below the LCL tolerance band: fail
+- more than 10% of cloud water on emitted-frame boundaries: warn
+- more than 10% of cloud water in low-level downward motion: warn
+- multi-region cloud-base spread above two grid cells in a mixed source layer: warn
+- multi-region cloud-base spread above four grid cells in a mixed source layer: fail
+
+These diagnostics are a science gate, not a visual target. If future runs lack flat
+bases, the next question is whether the source layer is actually well mixed in
+potential temperature and water vapor, whether the LCL diagnostic is appropriate for
+the configured moisture profile, and whether transport or boundary effects are
+placing condensate in implausible regions.
 
 ## Thermal Bubble Benchmark
 

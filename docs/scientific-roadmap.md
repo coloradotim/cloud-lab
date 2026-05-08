@@ -51,6 +51,12 @@ controlled visual experiments, UI/schema validation, and targeted dynamics work,
 it should not be treated as the final dynamics core for advanced microphysics until
 cloud-water placement and the remaining dynamics limitations are resolved.
 
+The current fair-weather gate includes thermodynamic structure diagnostics for
+cloud-base plausibility: expected LCL, source-layer theta and water-vapor mixedness,
+actual condensate onset height, cloud-water distribution relative to LCL, and
+multi-region base spread. These diagnostics intentionally report behavior rather
+than forcing cloud-water placement or renderer shape.
+
 Bulk cloud and rain visualization can improve before PySDM. The renderer may use
 bulk cloud liquid water plus assumed effective radius for labeled optical-depth,
 opacity, and lighting approximations. Bulk rain water and simple autoconversion or
