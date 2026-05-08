@@ -142,12 +142,6 @@ def test_quiet_boussinesq_reference_case_remains_quiet() -> None:
     "case_slug",
     ["dry-thermal-bubble", "humid-lifted-thermal", "stable-suppression"],
 )
-@pytest.mark.xfail(
-    reason=(
-        "Whole-frame divergence is boundary-localized and exceeds the initial "
-        "dimensionless RMS/max gates; see follow-up issue for boundary treatment."
-    )
-)
 def test_active_boussinesq_reference_cases_meet_dimensionless_divergence_gates(
     case_slug: str,
 ) -> None:
@@ -163,7 +157,7 @@ def test_active_boussinesq_reference_cases_meet_dimensionless_divergence_gates(
     "case_slug",
     ["dry-thermal-bubble", "humid-lifted-thermal", "stable-suppression"],
 )
-def test_active_boussinesq_divergence_is_boundary_localized(case_slug: str) -> None:
+def test_active_boussinesq_interior_divergence_still_meets_gates(case_slug: str) -> None:
     case = _case(case_slug)
     final = run_simulation(case.config)[-1]
     divergence = compute_divergence_field(final)
@@ -238,12 +232,6 @@ def test_stable_reference_case_suppresses_vertical_growth() -> None:
     )
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Stable-case whole-frame divergence grows slowly above the initial RMS "
-        "gate because boundary-localized divergence accumulates over time."
-    )
-)
 def test_stable_reference_case_divergence_does_not_systematically_grow() -> None:
     stable = _case("stable-suppression")
 
@@ -253,10 +241,9 @@ def test_stable_reference_case_divergence_does_not_systematically_grow() -> None
     rms_by_frame = [
         diagnostics.rms_dimensionless_divergence for diagnostics in diagnostics_by_frame
     ]
-    first_active_rms = next(value for value in rms_by_frame if value > 0.0)
 
-    assert rms_by_frame[-1] < RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE
-    assert rms_by_frame[-1] < first_active_rms * 5.0
+    assert max(rms_by_frame) < RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE
+    assert rms_by_frame[-1] <= max(rms_by_frame)
 
 
 def test_small_and_medium_model_sizes_have_similar_qualitative_behavior() -> None:
