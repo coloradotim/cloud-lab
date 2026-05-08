@@ -27,6 +27,10 @@ As the model matures, evaluate PySDM or a similar library for more credible warm
 
 The v1 frame schema already reserves `water_vapor_kg_per_kg`, `cloud_liquid_water_kg_per_kg`, and `rain_water_kg_per_kg` fields with units metadata so later warm-cloud work can evolve without inventing new transport names in the frontend.
 
+The current next-core decision is documented in `docs/next-physics-core.md`: keep the
+existing solvers, evaluate PySDM in isolated microphysics-lab cases first, and delay
+full dynamics/microphysics coupling until both paths are separately credible.
+
 Do not add advanced microphysics until the current Boussinesq reference cases in `docs/boussinesq-validation.md` remain stable and understandable. Those cases are the current science gate for deciding whether the dynamics are trustworthy enough to build on.
 
 Current gate decision: `boussinesq_2d` remains experimental. It is useful for
@@ -51,7 +55,8 @@ The initial solver uses localized surface heating, first-order advection, simple
 5. Validate the Boussinesq solver against quiet, dry, humid, stable, and resolution/runtime reference cases.
 6. Continue improving or replace the experimental Boussinesq dynamics before treating
    it as a microphysics host.
-7. Evaluate PySDM integration for droplet-size distribution and rain formation.
+7. Evaluate PySDM in isolated microphysics-lab cases for droplet-size distribution
+   and rain formation.
 8. Add terrain forcing for orographic lift experiments.
 9. Extend toward 2.5-D where selected 3-D effects can be approximated.
 10. Move toward true 3-D only after the 2-D model, tests, schemas, and visualization pipeline are stable.

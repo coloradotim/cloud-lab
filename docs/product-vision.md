@@ -182,7 +182,8 @@ This kind of explanation would make Cloud Lab feel like a scientific assistant, 
 - First scientific visualization dashboard
 - Interactive controls and fair-weather cumulus preset
 - Field probe diagnostics
-- PySDM evaluation prototype
+- Next physics-core decision document
+- Isolated PySDM evaluation prototype
 
 ### V1.5 / near-future
 
@@ -190,6 +191,7 @@ This kind of explanation would make Cloud Lab feel like a scientific assistant, 
 - Painted moisture fields
 - Saved scenarios and replay
 - Time scrubbing
+- Microphysics lab solver mode
 - Droplet-size distribution visualization
 - Condensation/evaporation overlays
 - Terrain/orographic lift prototype
