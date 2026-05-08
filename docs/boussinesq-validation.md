@@ -62,6 +62,8 @@ grid size and emitted frame count.
 
 - max absolute horizontal velocity
 - max absolute vertical velocity
+- max velocity magnitude
+- mean velocity magnitude
 - max and min temperature perturbation
 - max water vapor
 - max cloud liquid water
@@ -71,12 +73,33 @@ grid size and emitted frame count.
 - divergence field, `du/dx + dw/dz`, in `s^-1`
 - max absolute divergence
 - mean absolute divergence
+- RMS divergence
+- max dimensionless divergence
+- RMS dimensionless divergence
 - non-finite value count
 - minimum moisture value across vapor, cloud water, and rain water
 
 The divergence diagnostic uses finite differences on the emitted frame grid. Interior
 cells use centered differences. Boundary cells use one-sided differences because the
-frame does not include ghost cells. The current CI bound is:
+frame does not include ghost cells. Dimensional divergence remains useful for quiet
+cases where the velocity scale should be exactly zero.
+
+The nondimensional divergence metrics are:
+
+```text
+D* = |du/dx + dw/dz| * L / U
+L = min(dx, dz)
+U = max(max velocity magnitude, 1e-3 m s-1)
+```
+
+The initial whole-frame active-flow target bands are:
+
+| Metric | Excellent | Acceptable | Concerning | Fail |
+| --- | ---: | ---: | ---: | ---: |
+| RMS dimensionless divergence | < 1e-3 | < 1e-2 | >= 1e-2 | >= 5e-2 |
+| Max dimensionless divergence | < 1e-2 | < 5e-2 | >= 5e-2 | >= 1e-1 |
+
+The older dimensional CI bounds remain as prototype guardrails:
 
 - max absolute divergence less than `2e-3 s^-1`
 - mean absolute divergence less than `2e-5 s^-1`
@@ -86,6 +109,27 @@ medium-grid reference cases (`0` for quiet, about `7e-4 s^-1` for dry thermal, a
 about `1.4e-3 s^-1` for humid thermal) and are intended to catch obvious mass-
 consistency regressions without pretending the boundary treatment has been formally
 validated.
+
+Quiet no-forcing runs are gated dimensionally:
+
+- max absolute divergence less than `1e-6 s^-1`
+- max velocity magnitude less than `1e-3 m s^-1`
+
+Active-flow whole-frame nondimensional gates are currently marked expected-failure
+because the emitted divergence error is boundary-localized. Interior cells pass the
+same nondimensional gates with large margin. Current medium-grid final-frame results:
+
+| Case | Full RMS D* | Full max D* | Interior RMS D* | Interior max D* | Boundary RMS D* | Boundary max D* |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Dry thermal bubble | `1.39e-2` | `2.07e-1` | `6.43e-7` | `4.83e-6` | `3.79e-2` | `2.07e-1` |
+| Humid lifted thermal | `1.39e-2` | `2.43e-1` | `7.46e-7` | `6.33e-6` | `3.80e-2` | `2.43e-1` |
+| Stable suppression | `1.11e-2` | `1.62e-1` | `2.80e-7` | `2.29e-6` | `3.03e-2` | `1.62e-1` |
+
+This means the streamfunction-derived interior velocity field is close to
+divergence-free, but the current boundary treatment is not yet good enough to claim
+whole-frame incompressibility. Follow-up issue #43 tracks fixing the boundary-localized
+divergence so the whole-frame RMS and max nondimensional gates can become hard CI
+requirements.
 
 ## Thermal Bubble Benchmark
 
@@ -123,8 +167,16 @@ similar qualitative behavior across the small and medium model sizes, bounded
 divergence in reference cases, exactly zero divergence growth in the quiet case, and
 canonical dry thermal-bubble rise.
 
-One science check is intentionally marked as an expected failure: the humid lifted
-case currently places its cloud-water maximum below the boundary-layer top. Earlier
+Three science checks are intentionally marked as expected failures:
+
+- the humid lifted case currently places its cloud-water maximum below the
+  boundary-layer top
+- active-flow whole-frame nondimensional divergence exceeds the initial RMS/max gates
+  because the error is boundary-localized
+- stable-case whole-frame nondimensional divergence grows slowly above the RMS gate
+  because boundary-localized divergence accumulates over time
+
+Earlier
 attempts to force this maximum upward by gating condensation at the mixed-layer top
 created an artificial cloud shelf and stronger cellular return flow. That behavior
 should be fixed by improving the thermodynamics, boundary conditions, or vertical

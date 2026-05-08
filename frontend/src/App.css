@@ -415,11 +415,13 @@ h2 {
 
 .visualization-grid {
   display: grid;
+  align-items: start;
   grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
   gap: 18px;
 }
 
 .canvas-shell {
+  height: fit-content;
   min-height: 360px;
   overflow: hidden;
   border: 1px solid #cbd8d1;
@@ -448,6 +450,22 @@ h2 {
   display: grid;
   align-content: start;
   gap: 16px;
+  max-height: clamp(360px, 52vw, 640px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.readout-group {
+  display: grid;
+  gap: 10px;
+}
+
+.readout-group h3 {
+  margin: 0;
+  color: #153137;
+  font-size: 0.92rem;
+  font-weight: 800;
+  line-height: 1.2;
 }
 
 .field-readout dl {
@@ -555,5 +573,11 @@ h2 {
 
   .visualization-grid {
     grid-template-columns: 1fr;
+  }
+
+  .field-readout {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
   }
 }

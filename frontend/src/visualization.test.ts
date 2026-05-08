@@ -7,6 +7,7 @@ import {
   displayStatsForField,
   displayUnitForField,
   displayValueForField,
+  fieldSummaryForField,
   fieldOptionsFromFrame,
   formatDisplayValue,
   getFieldStats,
@@ -134,6 +135,39 @@ describe("visualization helpers", () => {
     expect(displayRangeForField(velocity)).toEqual({ min: -0.4, max: 0.4 });
     expect(normalizedDisplayValueForField(velocity, 0)).toBeCloseTo(0.5);
     expect(normalizedDisplayValueForField(velocity, 0.4)).toBeCloseTo(1);
+  });
+
+  it("summarizes cloud water without presenting numerical-noise minima as a range", () => {
+    const cloudWithNoise = {
+      ...frame.fields.cloud_liquid_water_kg_per_kg,
+      values: [
+        [5e-73, 6.8e-3],
+        [0, 1e-10],
+      ],
+    };
+
+    expect(fieldSummaryForField("cloud_liquid_water_kg_per_kg", cloudWithNoise)).toEqual({
+      label: "Field max",
+      value: "6.80e-3",
+      unit: "kg kg-1",
+      helper: "Values below 1.0e-8 kg kg-1 are display noise.",
+    });
+  });
+
+  it("keeps signed fields as min and max summaries", () => {
+    expect(fieldSummaryForField("vertical_velocity_m_per_s", frame.fields.vertical_velocity_m_per_s))
+      .toMatchObject({
+        label: "Field min / max",
+        value: "1.00e-1 to 4.00e-1",
+        unit: "m s-1",
+      });
+    expect(
+      fieldSummaryForField("temperature_perturbation_k", frame.fields.temperature_perturbation_k),
+    ).toMatchObject({
+      label: "Field min / max",
+      value: "-1.00 to 2.00",
+      unit: "K",
+    });
   });
 
   it("maps blue condensate colors from clear sky toward white cloud", () => {

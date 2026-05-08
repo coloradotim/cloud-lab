@@ -1,6 +1,7 @@
 import pytest
 
 from app.sim import (
+    DIVERGENCE_VELOCITY_FLOOR_M_PER_S,
     BoussinesqReferenceCase,
     boussinesq_model_sizes,
     boussinesq_reference_cases,
@@ -12,6 +13,10 @@ from app.sim.schemas import SimulationConfig
 
 MAX_REFERENCE_DIVERGENCE_PER_SECOND = 2e-3
 MEAN_REFERENCE_DIVERGENCE_PER_SECOND = 2e-5
+MAX_ACTIVE_DIMENSIONLESS_DIVERGENCE = 5e-2
+RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE = 1e-2
+QUIET_MAX_DIVERGENCE_PER_SECOND = 1e-6
+QUIET_MAX_VELOCITY_M_PER_S = 1e-3
 
 
 def test_boussinesq_reference_cases_map_to_valid_configs() -> None:
@@ -56,6 +61,29 @@ def test_boussinesq_reference_cases_remain_finite_and_moisture_safe() -> None:
         assert diagnostics.max_cloud_liquid_water_kg_per_kg < 0.005
         assert diagnostics.max_abs_divergence_per_second < MAX_REFERENCE_DIVERGENCE_PER_SECOND
         assert diagnostics.mean_abs_divergence_per_second < MEAN_REFERENCE_DIVERGENCE_PER_SECOND
+        assert diagnostics.rms_divergence_per_second >= diagnostics.mean_abs_divergence_per_second
+        assert diagnostics.max_velocity_m_per_s >= diagnostics.mean_velocity_m_per_s
+        assert diagnostics.max_dimensionless_divergence >= diagnostics.rms_dimensionless_divergence
+
+
+def test_boussinesq_diagnostics_include_dimensionless_divergence() -> None:
+    dry = _case("dry-thermal-bubble")
+
+    final = run_simulation(dry.config)[-1]
+    diagnostics = compute_boussinesq_diagnostics(final)
+    length_scale_m = min(
+        final.config.domain.width_m / final.grid.columns,
+        final.config.domain.height_m / final.grid.rows,
+    )
+    velocity_scale = max(diagnostics.max_velocity_m_per_s, DIVERGENCE_VELOCITY_FLOOR_M_PER_S)
+
+    assert diagnostics.rms_divergence_per_second > 0.0
+    assert diagnostics.max_dimensionless_divergence == pytest.approx(
+        diagnostics.max_abs_divergence_per_second * length_scale_m / velocity_scale
+    )
+    assert diagnostics.rms_dimensionless_divergence == pytest.approx(
+        diagnostics.rms_divergence_per_second * length_scale_m / velocity_scale
+    )
 
 
 def test_boussinesq_divergence_field_matches_frame_shape() -> None:
@@ -80,6 +108,15 @@ def test_quiet_boussinesq_divergence_does_not_grow() -> None:
     assert max_divergence_by_frame[-1] == max_divergence_by_frame[0]
 
 
+def test_quiet_boussinesq_divergence_and_velocity_stay_below_dimensional_ceilings() -> None:
+    quiet = _case("quiet-atmosphere")
+
+    diagnostics = compute_boussinesq_diagnostics(run_simulation(quiet.config)[-1])
+
+    assert diagnostics.max_abs_divergence_per_second < QUIET_MAX_DIVERGENCE_PER_SECOND
+    assert diagnostics.max_velocity_m_per_s < QUIET_MAX_VELOCITY_M_PER_S
+
+
 def test_quiet_boussinesq_reference_case_remains_quiet() -> None:
     quiet = _case("quiet-atmosphere")
 
@@ -87,9 +124,60 @@ def test_quiet_boussinesq_reference_case_remains_quiet() -> None:
 
     assert diagnostics.max_abs_horizontal_velocity_m_per_s == 0.0
     assert diagnostics.max_abs_vertical_velocity_m_per_s == 0.0
+    assert diagnostics.max_velocity_m_per_s == 0.0
+    assert diagnostics.mean_velocity_m_per_s == 0.0
     assert diagnostics.max_temperature_perturbation_k == 0.0
     assert diagnostics.min_temperature_perturbation_k == 0.0
     assert diagnostics.max_cloud_liquid_water_kg_per_kg == 0.0
+
+
+@pytest.mark.parametrize(
+    "case_slug",
+    ["dry-thermal-bubble", "humid-lifted-thermal", "stable-suppression"],
+)
+@pytest.mark.xfail(
+    reason=(
+        "Whole-frame divergence is boundary-localized and exceeds the initial "
+        "dimensionless RMS/max gates; see follow-up issue for boundary treatment."
+    )
+)
+def test_active_boussinesq_reference_cases_meet_dimensionless_divergence_gates(
+    case_slug: str,
+) -> None:
+    case = _case(case_slug)
+
+    diagnostics = compute_boussinesq_diagnostics(run_simulation(case.config)[-1])
+
+    assert diagnostics.rms_dimensionless_divergence < RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE
+    assert diagnostics.max_dimensionless_divergence < MAX_ACTIVE_DIMENSIONLESS_DIVERGENCE
+
+
+@pytest.mark.parametrize(
+    "case_slug",
+    ["dry-thermal-bubble", "humid-lifted-thermal", "stable-suppression"],
+)
+def test_active_boussinesq_divergence_is_boundary_localized(case_slug: str) -> None:
+    case = _case(case_slug)
+    final = run_simulation(case.config)[-1]
+    divergence = compute_divergence_field(final)
+    diagnostics = compute_boussinesq_diagnostics(final)
+    length_scale_m = min(
+        final.config.domain.width_m / final.grid.columns,
+        final.config.domain.height_m / final.grid.rows,
+    )
+    velocity_scale = max(diagnostics.max_velocity_m_per_s, DIVERGENCE_VELOCITY_FLOOR_M_PER_S)
+    interior_divergence = [
+        divergence[row_index][column_index]
+        for row_index in range(1, final.grid.rows - 1)
+        for column_index in range(1, final.grid.columns - 1)
+    ]
+    interior_rms = (
+        sum(value * value for value in interior_divergence) / len(interior_divergence)
+    ) ** 0.5
+    interior_max = max(abs(value) for value in interior_divergence)
+
+    assert interior_rms * length_scale_m / velocity_scale < RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE
+    assert interior_max * length_scale_m / velocity_scale < MAX_ACTIVE_DIMENSIONLESS_DIVERGENCE
 
 
 def test_dry_boussinesq_reference_case_lifts_without_cloud_water() -> None:
@@ -141,6 +229,27 @@ def test_stable_reference_case_suppresses_vertical_growth() -> None:
     assert stable_diagnostics.total_cloud_liquid_water_kg_per_kg <= (
         dry_diagnostics.total_cloud_liquid_water_kg_per_kg
     )
+
+
+@pytest.mark.xfail(
+    reason=(
+        "Stable-case whole-frame divergence grows slowly above the initial RMS "
+        "gate because boundary-localized divergence accumulates over time."
+    )
+)
+def test_stable_reference_case_divergence_does_not_systematically_grow() -> None:
+    stable = _case("stable-suppression")
+
+    diagnostics_by_frame = [
+        compute_boussinesq_diagnostics(frame) for frame in run_simulation(stable.config)
+    ]
+    rms_by_frame = [
+        diagnostics.rms_dimensionless_divergence for diagnostics in diagnostics_by_frame
+    ]
+    first_active_rms = next(value for value in rms_by_frame if value > 0.0)
+
+    assert rms_by_frame[-1] < RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE
+    assert rms_by_frame[-1] < first_active_rms * 5.0
 
 
 def test_small_and_medium_model_sizes_have_similar_qualitative_behavior() -> None:

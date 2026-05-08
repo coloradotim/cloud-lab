@@ -35,6 +35,7 @@ from app.sim.solver import (
 )
 from app.sim.streaming import stream_run
 from app.sim.validation import (
+    DIVERGENCE_VELOCITY_FLOOR_M_PER_S,
     BoussinesqDiagnostics,
     BoussinesqModelSize,
     BoussinesqReferenceCase,
@@ -50,6 +51,7 @@ __all__ = [
     "BoussinesqDiagnostics",
     "BoussinesqModelSize",
     "BoussinesqReferenceCase",
+    "DIVERGENCE_VELOCITY_FLOOR_M_PER_S",
     "DisplayScale",
     "DomainConfig",
     "FieldMetadata",
