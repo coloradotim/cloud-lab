@@ -103,6 +103,10 @@ Probe values are spatially uniform for the current lab solver because the parcel
 state is broadcast across every grid cell. This is expected, not a sign that the
 microphysics failed.
 
+The surface-heating control is interpreted as lower-boundary heating in this lab. It
+tapers to zero by the configured boundary-layer top as the parcel rises, so a lifted
+parcel is not heated indefinitely through the full column.
+
 ## Suggested Manual Cases
 
 Case A: no lift / sub-saturated.
@@ -131,6 +135,9 @@ includes the optional `microphysics` payload from `docs/microphysics-schema.md`,
 UI can show a global droplet histogram for the displayed frame. When that payload is
 absent, the dashboard keeps showing the bulk parcel diagnostics and a clear empty
 state for droplet distributions.
+
+`docs/microphysics-comparison.md` compares the current bulk lab behavior against a
+simpler saturation-adjustment baseline across controlled cases.
 
 ## Future PySDM Host
 

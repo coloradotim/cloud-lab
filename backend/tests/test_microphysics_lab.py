@@ -1,6 +1,8 @@
 import asyncio
 from typing import Any, cast
 
+import pytest
+
 from app.sim import (
     BackgroundWindConfig,
     GridConfig,
@@ -66,6 +68,45 @@ def test_microphysics_lab_uses_prescribed_velocity_not_boussinesq_flow() -> None
 
     assert {value for row in u_values for value in row} == {0.0}
     assert {value for row in w_values for value in row} == {1.25}
+
+
+def test_microphysics_lab_lifted_parcel_cools_to_3600_m_with_max_heating() -> None:
+    config = _lab_config(
+        duration_seconds=3_600.0,
+        frame_interval_seconds=600.0,
+        vertical_velocity_m_per_s=1.0,
+    ).model_copy(
+        update={
+            "surface_heating": SurfaceHeatingConfig(max_warming_rate_k_per_s=0.025),
+        }
+    )
+
+    final = run_simulation(config)[-1]
+    final_temperature_k = final.fields.temperature_k.values[0][0]
+
+    assert final_temperature_k < config.initial_atmosphere.surface_temperature_k
+    assert final_temperature_k < 303.15
+
+
+def test_microphysics_lab_dry_lift_tracks_dry_adiabatic_cooling() -> None:
+    config = _lab_config(
+        duration_seconds=600.0,
+        frame_interval_seconds=600.0,
+        vertical_velocity_m_per_s=1.0,
+    ).model_copy(
+        update={
+            "initial_atmosphere": InitialAtmosphereConfig(
+                surface_temperature_k=298.15,
+                relative_humidity=0.3,
+            ),
+            "surface_heating": SurfaceHeatingConfig(max_warming_rate_k_per_s=0.0),
+        }
+    )
+
+    final = run_simulation(config)[-1]
+    final_temperature_k = final.fields.temperature_k.values[0][0]
+
+    assert final_temperature_k == pytest.approx(298.15 - 0.0098 * 600.0)
 
 
 def test_microphysics_lab_streams_through_run_manager() -> None:
