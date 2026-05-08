@@ -65,7 +65,7 @@ def test_initial_temperature_is_smooth_and_well_mixed_in_boundary_layer() -> Non
     ) / free_atmosphere_dz == pytest.approx(0.006)
 
 
-def test_initial_vapor_is_well_mixed_in_uniform_boundary_layer() -> None:
+def test_educational_initial_vapor_follows_relative_humidity_profile() -> None:
     config = SimulationConfig(
         domain=DomainConfig(height_m=3_000.0),
         grid=GridConfig(columns=4, rows=6),
@@ -77,19 +77,9 @@ def test_initial_vapor_is_well_mixed_in_uniform_boundary_layer() -> None:
     )
     state = initialize_state(config)
     solver_grid = _solver_grid(config)
-    mixed_layer_rows = [
-        row_index
-        for row_index, z_m in enumerate(solver_grid.z_coordinates_m)
-        if z_m <= config.initial_atmosphere.boundary_layer_depth_m
-    ]
 
-    mixed_layer_vapor_values = {
-        state.water_vapor_kg_per_kg[row_index][column_index]
-        for row_index in mixed_layer_rows
-        for column_index in range(config.grid.columns)
-    }
-
-    assert len(mixed_layer_vapor_values) == 1
+    assert state.water_vapor_kg_per_kg[0][0] > state.water_vapor_kg_per_kg[1][0]
+    assert solver_grid.z_coordinates_m[1] <= config.initial_atmosphere.boundary_layer_depth_m
 
 
 def test_surface_heating_produces_buoyant_plume() -> None:
@@ -284,6 +274,30 @@ def test_top_boundary_sponge_limits_lid_cloud_water_relative_to_main_plume() -> 
 
     assert top_cloud_max < 1e-6
     assert interior_cloud_max > top_cloud_max * 100
+
+
+def test_long_interactive_educational_run_stays_bounded() -> None:
+    preset = fair_weather_cumulus_preset()
+    config = preset.config.model_copy(
+        update={
+            "time": preset.config.time.model_copy(
+                update={"duration_seconds": 3_600.0, "frame_interval_seconds": 9.0}
+            ),
+            "surface_heating": preset.config.surface_heating.model_copy(
+                update={"max_warming_rate_k_per_s": 0.025}
+            ),
+        }
+    )
+
+    final = run_simulation(config)[-1]
+    final_cloud = final.fields.cloud_liquid_water_kg_per_kg.values
+    final_temperature = final.fields.temperature_k.values
+    final_w = final.fields.vertical_velocity_m_per_s.values
+
+    assert all(isfinite(value) for row in final_cloud for value in row)
+    assert all(isfinite(value) for row in final_temperature for value in row)
+    assert _max_value(final_cloud) < 0.02
+    assert _max_value(final_w) < 12.0
 
 
 def test_top_boundary_sponge_does_not_damp_surface_heating() -> None:
