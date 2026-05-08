@@ -128,6 +128,67 @@ Case D: heating offsets lift.
 Run the same lift case with positive external heating. Expected result: less cooling
 and delayed or suppressed condensation compared with the unheated lift case.
 
+## Automated Validation
+
+The manual cases above also have an automated sanity-check runner:
+
+```bash
+cd backend
+.venv/bin/python -m app.sim.microphysics_validation
+```
+
+Use `--json` for machine-readable output:
+
+```bash
+cd backend
+.venv/bin/python -m app.sim.microphysics_validation --json
+```
+
+The validator runs four compact `microphysics_lab` cases:
+
+| Case | Expected behavior |
+| --- | --- |
+| Sub-saturated no-lift control | RH near `0.75`, no lift, no heating. No cloud or rain should form, temperature and vapor should stay constant, and total water should be conserved. |
+| Humid lifted parcel | RH near `0.99`, positive prescribed lift, no heating. Height should increase monotonically, temperature should cool before condensation, cloud should form after saturation, vapor should decrease after condensation, latent heating should reduce the cooling rate, and total water should be conserved. |
+| Strong lift / rain threshold | Near-saturated parcel with stronger lift and longer runtime. It should condense earlier and produce at least as much cloud water as the gentler lift case, exceed the bulk autoconversion threshold, and form rain only after cloud water crosses that threshold. |
+| Heating offsets lift | Same humid lifted parcel with positive boundary-layer heating. Condensation should be delayed, reduced, or suppressed compared with the no-heating reference. |
+
+Each case reports:
+
+- initial and final temperature, vapor, cloud liquid water, and rain water
+- final parcel height
+- first cloud and rain times
+- maximum cloud and rain amounts and their times
+- total-water initial/final values and maximum drift
+- cooling rates before and after condensation
+- minimum moisture value and non-finite value count
+
+The budget and cooling-rate diagnostics use:
+
+```text
+total water = water vapor + cloud liquid water + rain water
+maximum drift = max(abs(total_water(t) - total_water(0)))
+cooling rate = delta temperature / delta time
+```
+
+The current pass/fail thresholds are intentionally tight for this deterministic
+parcel/box solver:
+
+| Diagnostic | Threshold |
+| --- | --- |
+| Cloud presence | `1e-8 kg kg-1` |
+| Rain presence | `1e-10 kg kg-1` |
+| Total-water drift | `1e-8 kg kg-1` |
+| No-lift temperature change | `1e-6 K` |
+| No-lift vapor change | `1e-10 kg kg-1` |
+| Bulk rain autoconversion | `8e-4 kg kg-1` cloud liquid water |
+
+These checks validate the current bulk parcel/box behavior. They do not validate
+droplet-resolved microphysics, PySDM behavior, Boussinesq dynamics, or resolved
+boundary interactions. First-cloud and first-rain times are sampled at the emitted
+frame cadence, so timing assertions are frame-scale diagnostics rather than exact
+sub-step event times.
+
 ## Droplet Outputs
 
 Current production frames do not emit droplet-size distributions. If a future frame
