@@ -54,13 +54,13 @@ def step_state(config: SimulationConfig, state: MicrophysicsLabState) -> Microph
     dt = config.time.time_step_seconds
     prescribed_w_m_per_s = config.background_wind.w_m_per_s
     parcel_height_m = max(0.0, state.parcel_height_m + prescribed_w_m_per_s * dt)
+    heating_rate_k_per_s = (
+        config.surface_heating.max_warming_rate_k_per_s
+        * _boundary_layer_heating_weight(config, state.parcel_height_m)
+    )
     temperature_k = (
         state.temperature_k
-        + (
-            config.surface_heating.max_warming_rate_k_per_s
-            - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * prescribed_w_m_per_s
-        )
-        * dt
+        + (heating_rate_k_per_s - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * prescribed_w_m_per_s) * dt
     )
     vapor = state.water_vapor_kg_per_kg
     cloud = state.cloud_liquid_water_kg_per_kg
@@ -157,6 +157,14 @@ def _saturation_specific_humidity_kg_per_kg(temperature_k: float) -> float:
 
 def _constant_grid(rows: int, columns: int, value: float) -> Grid:
     return [[float(value) for _column_index in range(columns)] for _row_index in range(rows)]
+
+
+def _boundary_layer_heating_weight(config: SimulationConfig, parcel_height_m: float) -> float:
+    boundary_layer_depth_m = config.initial_atmosphere.boundary_layer_depth_m
+    if boundary_layer_depth_m <= 0.0:
+        return 0.0
+
+    return _bounded(1.0 - parcel_height_m / boundary_layer_depth_m, 0.0, 1.0)
 
 
 def _bounded(value: float, minimum: float, maximum: float) -> float:
