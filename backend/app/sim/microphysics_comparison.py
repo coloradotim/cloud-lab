@@ -11,6 +11,7 @@ from app.sim.schemas import (
     GridConfig,
     InitialAtmosphereConfig,
     SimulationConfig,
+    SimulationFrame,
     SurfaceHeatingConfig,
     TimeConfig,
 )
@@ -218,7 +219,7 @@ def _run_simple_saturation_adjustment(config: SimulationConfig) -> list[dict[str
     return samples
 
 
-def _sample_from_frame(frame: Any) -> dict[str, float]:
+def _sample_from_frame(frame: SimulationFrame) -> dict[str, float]:
     return {
         "time_seconds": frame.time_seconds,
         "temperature_k": _field_value(frame, "temperature_k"),
@@ -298,9 +299,9 @@ def _integrate_time_series(samples: list[dict[str, float]], key: str) -> float:
     return total
 
 
-def _field_value(frame: Any, field_key: str) -> float:
-    values = frame.fields.__getattribute__(field_key).values
-    return values[0][0]
+def _field_value(frame: SimulationFrame, field_key: str) -> float:
+    values = getattr(frame.fields, field_key).values
+    return float(values[0][0])
 
 
 def _base_config() -> SimulationConfig:
