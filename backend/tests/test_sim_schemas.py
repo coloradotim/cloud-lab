@@ -4,11 +4,21 @@ from pydantic import ValidationError
 from app.sim import (
     FieldMetadata,
     GridConfig,
+    HeatingPatchConfig,
+    HumidityLayerConfig,
+    HumidityPatchConfig,
+    InitialAtmosphereConfig,
     ScalarField2D,
     SimulationConfig,
     SimulationFrame,
     SurfaceHeatingConfig,
     create_sample_frame,
+)
+from app.sim.sample import build_grid_metadata
+from app.sim.structured_fields import (
+    StructuredGrid,
+    initial_relative_humidity_field,
+    surface_heating_weight_field,
 )
 
 
@@ -26,7 +36,9 @@ def test_default_simulation_config_defines_vertical_slice_controls() -> None:
     assert config.initial_atmosphere.surface_temperature_k == 298.15
     assert config.initial_atmosphere.lapse_rate_k_per_m == 0.0065
     assert config.initial_atmosphere.relative_humidity == 0.78
+    assert config.initial_atmosphere.humidity_profile == "uniform"
     assert config.surface_heating.max_warming_rate_k_per_s == 0.003
+    assert config.surface_heating.pattern == "single_patch"
     assert config.background_wind.u_m_per_s == 1.5
     assert config.seed == 42
 
@@ -48,6 +60,81 @@ def test_simulation_config_rejects_invalid_values(payload: dict[str, object]) ->
 def test_simulation_config_rejects_spatial_values_outside_domain() -> None:
     with pytest.raises(ValidationError, match="patch_center_x_m"):
         SimulationConfig(surface_heating=SurfaceHeatingConfig(patch_center_x_m=20_000.0))
+
+
+def test_structured_heating_and_humidity_config_validate_domain_bounds() -> None:
+    with pytest.raises(ValidationError, match="patches\\[0\\].width_m"):
+        SimulationConfig(
+            surface_heating=SurfaceHeatingConfig(
+                pattern="custom_patches",
+                patches=[HeatingPatchConfig(width_m=20_000.0)],
+            )
+        )
+
+    with pytest.raises(ValidationError, match="humidity_layers\\[0\\].top_m"):
+        SimulationConfig(
+            initial_atmosphere=InitialAtmosphereConfig(
+                humidity_profile="custom_layers",
+                humidity_layers=[
+                    HumidityLayerConfig(bottom_m=1_000.0, top_m=5_000.0, relative_humidity=0.9)
+                ],
+            )
+        )
+
+    with pytest.raises(ValidationError, match="humidity_patch.width_m"):
+        SimulationConfig(
+            initial_atmosphere=InitialAtmosphereConfig(
+                humidity_patch=HumidityPatchConfig(width_m=20_000.0)
+            )
+        )
+
+
+def test_structured_heating_field_has_shape_and_bounded_weights() -> None:
+    config = SimulationConfig(
+        grid=GridConfig(columns=8, rows=4),
+        surface_heating=SurfaceHeatingConfig(pattern="two_patches"),
+    )
+    metadata = build_grid_metadata(config)
+    field = surface_heating_weight_field(
+        config,
+        StructuredGrid(
+            dx_m=config.domain.width_m / config.grid.columns,
+            x_coordinates_m=metadata.x_coordinates_m,
+            z_coordinates_m=metadata.z_coordinates_m,
+        ),
+    )
+
+    assert len(field) == config.grid.rows
+    assert all(len(row) == config.grid.columns for row in field)
+    assert max(max(row) for row in field) <= 1.0
+    assert min(min(row) for row in field) >= 0.0
+    assert sum(1 for value in field[0] if value > 0.0) >= 2
+
+
+def test_structured_humidity_field_has_shape_and_expected_layers() -> None:
+    config = SimulationConfig(
+        grid=GridConfig(columns=6, rows=6),
+        initial_atmosphere=InitialAtmosphereConfig(
+            relative_humidity=0.7,
+            boundary_layer_depth_m=1_000.0,
+            humidity_profile="moist_boundary_layer",
+        ),
+    )
+    metadata = build_grid_metadata(config)
+    field = initial_relative_humidity_field(
+        config,
+        StructuredGrid(
+            dx_m=config.domain.width_m / config.grid.columns,
+            x_coordinates_m=metadata.x_coordinates_m,
+            z_coordinates_m=metadata.z_coordinates_m,
+        ),
+    )
+
+    assert len(field) == config.grid.rows
+    assert all(len(row) == config.grid.columns for row in field)
+    assert max(max(row) for row in field) <= 1.0
+    assert min(min(row) for row in field) >= 0.0
+    assert field[0][0] > field[-1][0]
 
 
 def test_simulation_config_accepts_microphysics_lab_solver_type() -> None:

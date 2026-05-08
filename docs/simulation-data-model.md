@@ -20,9 +20,14 @@ Cloud Lab uses explicit Pydantic models for simulation configuration and frame o
 | `initial_atmosphere` | `lapse_rate_k_per_m` | K m-1 | Environmental temperature decrease with height above the mixed layer. |
 | `initial_atmosphere` | `relative_humidity` | fraction | Initial humidity from 0 to 1. |
 | `initial_atmosphere` | `boundary_layer_depth_m` | m | Must not exceed domain height. |
+| `initial_atmosphere` | `humidity_profile` | identifier | Structured humidity pattern. Current options are `uniform`, `moist_boundary_layer`, `dry_cap`, `moist_layer`, and `custom_layers`. |
+| `initial_atmosphere` | `humidity_layers` | m, fraction | Optional vertical RH layers for custom structured scenarios and future painting compatibility. |
+| `initial_atmosphere` | `humidity_patch` | m, fraction | Optional horizontal RH patch. |
 | `surface_heating` | `max_warming_rate_k_per_s` | K s-1 | Lower-boundary warming rate. |
 | `surface_heating` | `patch_center_x_m` | m | Must fit inside the domain width. |
 | `surface_heating` | `patch_width_m` | m | Must be positive and no wider than the domain. |
+| `surface_heating` | `pattern` | identifier | Structured lower-boundary heating pattern. Current options are `single_patch`, `two_patches`, `broad_plateau`, `weak_random`, and `custom_patches`. |
+| `surface_heating` | `patches` | m, fraction | Optional custom heating patches for later painted-map workflows. |
 | `background_wind` | `u_m_per_s` | m s-1 | Uniform horizontal background wind. |
 | `background_wind` | `w_m_per_s` | m s-1 | Uniform vertical background wind. |
 | root | `seed` | integer | Random seed for reproducible generated fields. |
@@ -38,6 +43,30 @@ Current solver descriptors are exposed by `GET /simulations/solvers`:
 - `microphysics_lab`: available. Controlled warm-cloud parcel/box experiments with prescribed lift and bulk vapor/cloud/rain outputs broadcast through the shared frame schema.
 
 To add a backend, implement the solver interface, register a descriptor in the solver registry, ensure frames validate against `SimulationFrame`, and document any missing fields or approximations.
+
+## Structured Initial Conditions
+
+Structured controls are scenario configuration, not renderer state. The current 2-D
+solvers reduce them to deterministic heating weights and relative-humidity fields:
+
+- `single_patch` preserves the legacy heating sliders.
+- `two_patches` uses two horizontally separated warm patches, with the width slider
+  controlling both.
+- `broad_plateau` creates a wider, smoother central heating region.
+- `weak_random` creates a seeded low-amplitude uneven heating pattern.
+- `custom_patches` is the schema path for later painting and saved scenarios.
+
+Humidity profiles work similarly:
+
+- `uniform` preserves the scalar relative-humidity slider.
+- `moist_boundary_layer` moistens the mixed layer and slightly dries the air above.
+- `dry_cap` places a dry layer near the boundary-layer top.
+- `moist_layer` adds an elevated moist layer around and above the boundary-layer top.
+- `custom_layers` is the schema path for later explicit layer editing and painting.
+
+If a solver cannot consume a full map directly, it should document the reduction. The
+current `microphysics_lab` parcel/box mode still uses the scalar initial humidity and
+heating controls because it has no resolved horizontal or vertical grid dynamics.
 
 ## Frame Schema
 

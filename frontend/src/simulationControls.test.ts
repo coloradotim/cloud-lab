@@ -9,6 +9,7 @@ import {
   kelvinToCelsius,
   normalizeConfig,
   updateConfigNumber,
+  updateConfigValue,
 } from "./simulationControls";
 
 const config: SimulationConfig = {
@@ -38,6 +39,23 @@ describe("simulation controls", () => {
 
     expect(updated.initial_atmosphere.relative_humidity).toBe(0.8);
     expect(config.initial_atmosphere.relative_humidity).toBe(1.0);
+  });
+
+  it("updates structured pattern config values immutably", () => {
+    const updated = updateConfigValue(config, "surface_heating.pattern", "two_patches");
+
+    expect(updated.surface_heating.pattern).toBe("two_patches");
+    expect(config.surface_heating.pattern).toBeUndefined();
+  });
+
+  it("backfills structured scenario defaults for older configs", () => {
+    const normalized = normalizeConfig(config);
+
+    expect(normalized.surface_heating.pattern).toBe("single_patch");
+    expect(normalized.surface_heating.patches).toEqual([]);
+    expect(normalized.initial_atmosphere.humidity_profile).toBe("uniform");
+    expect(normalized.initial_atmosphere.humidity_layers).toEqual([]);
+    expect(normalized.initial_atmosphere.humidity_patch).toBeNull();
   });
 
   it("normalizes dependent spatial settings", () => {

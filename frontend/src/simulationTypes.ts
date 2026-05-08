@@ -33,11 +33,38 @@ export type SimulationConfig = {
     lapse_rate_k_per_m: number;
     relative_humidity: number;
     boundary_layer_depth_m: number;
+    humidity_profile?:
+      | "uniform"
+      | "moist_boundary_layer"
+      | "dry_cap"
+      | "moist_layer"
+      | "custom_layers";
+    humidity_layers?: Array<{
+      bottom_m: number;
+      top_m: number;
+      relative_humidity: number;
+    }>;
+    humidity_patch?: {
+      center_x_m: number;
+      width_m: number;
+      relative_humidity: number;
+    } | null;
   };
   surface_heating: {
     max_warming_rate_k_per_s: number;
     patch_center_x_m: number;
     patch_width_m: number;
+    pattern?:
+      | "single_patch"
+      | "two_patches"
+      | "broad_plateau"
+      | "weak_random"
+      | "custom_patches";
+    patches?: Array<{
+      center_x_m: number;
+      width_m: number;
+      intensity_fraction: number;
+    }>;
   };
   background_wind: {
     u_m_per_s: number;

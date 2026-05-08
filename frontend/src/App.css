@@ -318,12 +318,26 @@ h2 {
   background: #ffffff;
 }
 
+.select-control {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 12px;
+  background: #ffffff;
+}
+
 .number-control span {
   display: flex;
   grid-column: 1 / -1;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
+  color: #153137;
+  font-weight: 800;
+}
+
+.select-control span {
   color: #153137;
   font-weight: 800;
 }
@@ -346,6 +360,16 @@ h2 {
   border: 1px solid #8a9e98;
   border-radius: 8px;
   padding: 6px 8px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+.select-control select {
+  min-height: 38px;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 8px 10px;
   color: #153137;
   background: #ffffff;
   font-weight: 700;

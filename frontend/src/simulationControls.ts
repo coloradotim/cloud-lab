@@ -35,6 +35,54 @@ export type BoussinesqModelSize = {
   apply: (config: SimulationConfig) => SimulationConfig;
 };
 
+export const SURFACE_HEATING_PATTERNS = [
+  {
+    value: "single_patch",
+    label: "Single hot patch",
+    description: "Uses center, width, and heating-rate sliders.",
+  },
+  {
+    value: "two_patches",
+    label: "Two hot patches",
+    description: "Uses the width slider for paired thermals.",
+  },
+  {
+    value: "broad_plateau",
+    label: "Broad heated plateau",
+    description: "Wide, smoother heating across the center of the domain.",
+  },
+  {
+    value: "weak_random",
+    label: "Weak uneven heating",
+    description: "Seeded low-amplitude bumps for less symmetrical initiation.",
+  },
+] as const;
+
+export const HUMIDITY_PROFILES = [
+  {
+    value: "uniform",
+    label: "Uniform RH",
+    description: "Uses the base relative-humidity slider everywhere.",
+  },
+  {
+    value: "moist_boundary_layer",
+    label: "Moist boundary layer",
+    description: "Adds moisture below the boundary-layer top and dries the air above.",
+  },
+  {
+    value: "dry_cap",
+    label: "Dry cap",
+    description: "Places a dry layer near the boundary-layer top.",
+  },
+  {
+    value: "moist_layer",
+    label: "Elevated moist layer",
+    description: "Adds a moist layer around and above the boundary-layer top.",
+  },
+] as const;
+
+type ConfigPathValue = string | number | null | Record<string, unknown> | Array<unknown>;
+
 export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
   {
     slug: "quiet-atmosphere",
@@ -216,6 +264,14 @@ export function updateConfigNumber(
   path: string,
   value: number,
 ): SimulationConfig {
+  return updateConfigValue(config, path, value);
+}
+
+export function updateConfigValue(
+  config: SimulationConfig,
+  path: string,
+  value: ConfigPathValue,
+): SimulationConfig {
   const nextConfig = cloneConfig(config);
   const parts = path.split(".");
   let target: Record<string, unknown> = nextConfig as unknown as Record<string, unknown>;
@@ -230,6 +286,11 @@ export function updateConfigNumber(
 
 export function normalizeConfig(config: SimulationConfig): SimulationConfig {
   const nextConfig = cloneConfig(config);
+  nextConfig.surface_heating.pattern ??= "single_patch";
+  nextConfig.surface_heating.patches ??= [];
+  nextConfig.initial_atmosphere.humidity_profile ??= "uniform";
+  nextConfig.initial_atmosphere.humidity_layers ??= [];
+  nextConfig.initial_atmosphere.humidity_patch ??= null;
   nextConfig.initial_atmosphere.surface_temperature_k = clamp(
     nextConfig.initial_atmosphere.surface_temperature_k,
     celsiusToKelvin(CONTROL_LIMITS.surfaceTemperatureC.min),

@@ -124,6 +124,36 @@ def test_surface_heating_width_is_uniform_across_configured_patch() -> None:
     assert max(outside_deltas) == 0.0
 
 
+def test_structured_heating_patterns_produce_different_lower_boundary_forcing() -> None:
+    config = _small_config()
+    grid = _solver_grid(config)
+    base_temperature = _constant_grid(config.grid.rows, config.grid.columns, 290.0)
+    single_patch = _apply_surface_heating(config, grid, base_temperature, dt=2.0)
+    two_patch_config = config.model_copy(
+        update={
+            "surface_heating": config.surface_heating.model_copy(update={"pattern": "two_patches"})
+        }
+    )
+    two_patch = _apply_surface_heating(two_patch_config, grid, base_temperature, dt=2.0)
+
+    assert single_patch[0] != two_patch[0]
+
+
+def test_moist_boundary_layer_profile_changes_initial_vapor_with_height() -> None:
+    base_config = _small_config(relative_humidity=0.7)
+    config = base_config.model_copy(
+        update={
+            "initial_atmosphere": base_config.initial_atmosphere.model_copy(
+                update={"humidity_profile": "moist_boundary_layer"}
+            )
+        }
+    )
+
+    state = initialize_state(config)
+
+    assert state.water_vapor_kg_per_kg[0][0] > state.water_vapor_kg_per_kg[-1][0]
+
+
 def test_fair_weather_preset_keeps_heated_lower_patch_warm_and_upward() -> None:
     config = fair_weather_cumulus_preset().config
     state = initialize_state(config)
