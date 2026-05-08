@@ -14,7 +14,7 @@ CI runs the short regression suite:
 
 ```bash
 cd backend
-.venv/bin/pytest tests/test_boussinesq_2d.py tests/test_boussinesq_validation.py
+.venv/bin/pytest tests/test_boussinesq_2d.py tests/test_boussinesq_validation.py tests/test_boussinesq_thermal_bubble.py
 ```
 
 For the full backend check:
@@ -87,11 +87,41 @@ about `1.4e-3 s^-1` for humid thermal) and are intended to catch obvious mass-
 consistency regressions without pretending the boundary treatment has been formally
 validated.
 
+## Thermal Bubble Benchmark
+
+The dedicated thermal bubble benchmark is a dry, quiescent Boussinesq sanity case.
+It directly initializes a Gaussian positive temperature perturbation rather than
+using surface heating:
+
+- domain: 8 km x 3 km
+- grid: 40 x 24
+- runtime: 300 s with a 2 s timestep
+- initial atmosphere: dry, no background wind, no surface heating
+- perturbation: 3 K Gaussian bubble centered horizontally near 700 m AGL with a
+  500 m radius
+
+The test tracks max vertical velocity, the positive-temperature centroid height,
+the height of the maximum temperature perturbation, cloud liquid water, and left/right
+horizontal-circulation symmetry. It asserts:
+
+- positive early vertical velocity
+- a bounded but measurable rise rate
+- monotonic positive-temperature centroid rise within a one-cell-scale tolerance
+- no cloud water in the dry case
+- comparable left and right horizontal circulation strength
+
+Failure usually means the solver has broken one of the core dry-buoyancy behaviors:
+the bubble does not rise, rises only through a one-sided circulation artifact,
+generates moisture in a dry atmosphere, or accelerates outside the current prototype
+guardrails. This benchmark is intentionally qualitative and does not claim an exact
+analytic solution.
+
 The validation tests require finite fields, non-negative moisture, bounded velocities,
 bounded cloud water, a quiet no-forcing case, no cloud water in the dry case, cloud
 water in the humid case, reproducibility, weaker vertical growth in the stable case,
 similar qualitative behavior across the small and medium model sizes, bounded
-divergence in reference cases, and exactly zero divergence growth in the quiet case.
+divergence in reference cases, exactly zero divergence growth in the quiet case, and
+canonical dry thermal-bubble rise.
 
 One science check is intentionally marked as an expected failure: the humid lifted
 case currently places its cloud-water maximum below the boundary-layer top. Earlier
