@@ -66,6 +66,7 @@ Initial priority order:
   - validation notes in docs, or
   - a deliberately scoped explanation of why automated validation is deferred.
 - Tests should cover invariants such as shape consistency, units expectations, deterministic seeded output, non-negative moisture fields, and stable frame schemas.
+- Run targeted checks appropriate to the files changed. Full local validation is not required for every PR and should be reserved for solver-wide, release/checkpoint, high-risk, or user-requested validation work.
 - Do not merge work that breaks CI.
 - Do not bypass failing tests or builds.
 
@@ -96,8 +97,8 @@ When the user asks to work an issue, treat that as instruction to implement the 
 5. Make the requested changes.
 6. Consider whether documentation needs to be updated.
 7. Consider whether tests need to be updated.
-8. Run the backend test/lint commands documented in the repo.
-9. Run the frontend test/lint/build commands documented in the repo.
+8. Run the documented Tier 1 quick checks plus any Tier 2 targeted checks relevant to the changed files.
+9. Run frontend test/lint/build commands when frontend code changed, or when the PR affects shared contracts consumed by the frontend.
 10. Commit changes to the feature branch.
 11. Push the branch.
 12. Open a PR that links the issue.
@@ -107,8 +108,8 @@ When the user asks to work an issue, treat that as instruction to implement the 
 
 Before finishing any change:
 
-- Run the documented tests.
-- Run the documented build checks.
+- Run the documented quick and targeted checks for the change.
+- Reserve full local validation for solver-wide, release/checkpoint, high-risk, or user-requested work.
 - Do not change app behavior unless requested or clearly required by the issue.
 - Prefer small PRs.
 - Preserve existing tests.
@@ -140,9 +141,10 @@ When creating or refining issues, include an impact audit section when the chang
 ## CI and workflow rules
 
 - CI should run on pushes and pull requests to `main`.
-- CI should check backend tests, backend lint/formatting, frontend build, and frontend lint where configured.
+- PR CI should run fast backend tests, backend lint/formatting/type checks, frontend tests, frontend build, and frontend lint where configured.
+- Slower science validation should be grouped separately and run manually or on a schedule unless a PR explicitly needs it.
 - Prefer small branches with descriptive names.
-- PR descriptions should include what changed, how it was tested, and any scientific/numerical assumptions introduced.
+- PR descriptions should include what changed, which validation tier was run, and any scientific/numerical assumptions introduced.
 
 ## Visualization rules
 

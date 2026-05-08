@@ -11,6 +11,13 @@ from app.sim import (
 )
 from app.sim.schemas import SimulationConfig
 
+pytestmark = [
+    pytest.mark.boussinesq,
+    pytest.mark.science,
+    pytest.mark.slow,
+    pytest.mark.validation,
+]
+
 MAX_REFERENCE_DIVERGENCE_PER_SECOND = 2e-3
 MEAN_REFERENCE_DIVERGENCE_PER_SECOND = 2e-5
 MAX_ACTIVE_DIMENSIONLESS_DIVERGENCE = 5e-2

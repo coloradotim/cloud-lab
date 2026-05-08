@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from math import exp
 
+import pytest
+
 from app.sim.boussinesq_2d import initialize_state, state_to_frame, step_state
 from app.sim.schemas import (
     BackgroundWindConfig,
@@ -12,6 +14,8 @@ from app.sim.schemas import (
     SurfaceHeatingConfig,
     TimeConfig,
 )
+
+pytestmark = [pytest.mark.boussinesq, pytest.mark.science, pytest.mark.validation]
 
 
 @dataclass(frozen=True)

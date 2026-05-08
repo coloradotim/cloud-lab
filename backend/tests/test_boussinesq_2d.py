@@ -1,11 +1,15 @@
 from math import isfinite
 
+import pytest
+
 from app.sim import (
     SimulationConfig,
     TimeConfig,
     fair_weather_cumulus_preset,
     run_simulation,
 )
+
+pytestmark = [pytest.mark.boussinesq, pytest.mark.science]
 
 
 def test_boussinesq_solver_emits_valid_stable_frames() -> None:
@@ -68,6 +72,7 @@ def test_boussinesq_solver_produces_buoyant_motion_and_cloud_water() -> None:
     assert max_cloud > 0.0
 
 
+@pytest.mark.slow
 def test_boussinesq_solver_does_not_hit_safety_clamps_in_normal_long_run() -> None:
     config = _boussinesq_config(
         duration_seconds=1_800.0,
@@ -91,6 +96,7 @@ def test_boussinesq_solver_does_not_hit_safety_clamps_in_normal_long_run() -> No
     assert max_cloud < 0.005
 
 
+@pytest.mark.slow
 def test_boussinesq_solver_does_not_create_clouds_without_forcing() -> None:
     config = _boussinesq_config(
         duration_seconds=1_800.0,

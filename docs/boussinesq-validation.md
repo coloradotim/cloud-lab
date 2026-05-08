@@ -10,21 +10,28 @@ and safety caps.
 
 ## How to Run
 
-CI runs the short regression suite:
+The fast PR backend job excludes slower science validation:
 
 ```bash
 cd backend
-.venv/bin/pytest tests/test_boussinesq_2d.py tests/test_boussinesq_validation.py tests/test_boussinesq_thermal_bubble.py
+.venv/bin/pytest -m "not slow and not science"
+.venv/bin/pytest -m "boussinesq and not slow"
 ```
 
-For the full backend check:
+Run short Boussinesq sanity checks, including the thermal-bubble benchmark, when
+touching the Boussinesq solver or diagnostics:
 
 ```bash
 cd backend
-.venv/bin/pytest
-.venv/bin/ruff format --check .
-.venv/bin/ruff check .
-.venv/bin/mypy app tests
+.venv/bin/pytest -m "boussinesq and not slow"
+```
+
+Run the slower reference validation suite manually or through the scheduled/manual
+GitHub Actions **Science validation** job:
+
+```bash
+cd backend
+.venv/bin/pytest -m "science and validation"
 ```
 
 The same cases are available from the frontend in the **Reference case** selector
@@ -55,6 +62,53 @@ The S/M/L presets are deliberately simple and laptop-oriented:
 
 Large runs are not required for CI because the streamfunction solve cost scales with
 grid size and emitted frame count.
+
+## Current Decision
+
+`boussinesq_2d` should remain an experimental dynamics core and validation scaffold,
+not the frozen foundation for advanced microphysics yet.
+
+The evidence supports continuing to improve it in narrow steps:
+
+- quiet no-forcing cases remain quiet
+- the dry thermal-bubble benchmark rises, stays cloud-free, and develops symmetric
+  circulation
+- humid cases produce bounded condensate and preserve non-negative moisture
+- normal reference cases do not hit the public velocity, temperature, cloud-water,
+  or vapor safety caps
+- seeded runs are reproducible
+
+The evidence does not yet support treating it as a quantitatively credible CFD core:
+
+- whole-frame nondimensional divergence fails the initial active-flow gates because
+  error is boundary-localized
+- the humid reference case still places peak cloud water below the boundary-layer top
+- the model uses strong prototype stabilizers and simple saturation adjustment
+
+Recommendation: keep using `boussinesq_2d` for controlled visual experiments,
+schema/UI validation, thermal-bubble and reference-case regression tests, and targeted
+dynamics improvements. Do not integrate advanced microphysics on top of it as though
+the dynamics are solved. Boundary treatment and thermodynamic placement of cloud water
+are the next science gates.
+
+## Stabilizers And Guardrails
+
+The solver currently uses these stabilizers:
+
+| Mechanism | Role | Type |
+| --- | --- | --- |
+| Thermal diffusion | Smooths temperature perturbations and limits grid-scale noise. | Numerical model simplification |
+| Moisture diffusion | Smooths vapor/cloud fields. | Numerical model simplification |
+| Kinematic viscosity | Diffuses vorticity. | Numerical model simplification |
+| Vorticity damping | Prevents persistent grid-scale circulation growth. | Prototype numerical stabilizer |
+| Thermal relaxation | Slowly damps perturbation temperature. | Prototype numerical stabilizer |
+| Velocity damping | Present as a named constant for guardrail visibility; emitted velocity is diagnosed from streamfunction rather than accumulated. | Prototype guardrail |
+| Top sponge | Relaxes top rows toward quiet conditions to reduce lid artifacts. | Boundary-condition stabilizer |
+| Velocity, theta, vorticity, vapor, and cloud-water caps | Prevent runaway fields and expose whether normal reference runs approach unsafe values. | Safety guardrail |
+
+These mechanisms make the prototype more usable, but they are not a substitute for
+validated boundary conditions, pressure coupling, turbulence closure, or physically
+complete warm-cloud thermodynamics.
 
 ## Diagnostics
 

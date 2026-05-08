@@ -29,6 +29,11 @@ The v1 frame schema already reserves `water_vapor_kg_per_kg`, `cloud_liquid_wate
 
 Do not add advanced microphysics until the current Boussinesq reference cases in `docs/boussinesq-validation.md` remain stable and understandable. Those cases are the current science gate for deciding whether the dynamics are trustworthy enough to build on.
 
+Current gate decision: `boussinesq_2d` remains experimental. It is useful for
+controlled visual experiments, UI/schema validation, and targeted dynamics work, but
+it should not be treated as the final dynamics core for advanced microphysics until
+boundary-localized divergence and cloud-water placement issues are resolved.
+
 ## Fluid Dynamics Assumptions To Start
 
 The starting dynamics can be simplified and educational, but the assumptions must be explicit. Initial work may use coarse approximations for advection, buoyancy, and diffusion while tests cover shape consistency, non-negative moisture fields, deterministic output, and stable schemas.
@@ -44,7 +49,8 @@ The initial solver uses localized surface heating, first-order advection, simple
 3. Stream live frames to the browser over WebSockets.
 4. Add visualization layers for velocity, vapor, cloud water, rain water, buoyancy, and condensation.
 5. Validate the Boussinesq solver against quiet, dry, humid, stable, and resolution/runtime reference cases.
-6. Explore better numerical dynamics and warm-cloud microphysics.
+6. Improve or replace the experimental Boussinesq dynamics boundary treatment before
+   treating it as a microphysics host.
 7. Evaluate PySDM integration for droplet-size distribution and rain formation.
 8. Add terrain forcing for orographic lift experiments.
 9. Extend toward 2.5-D where selected 3-D effects can be approximated.
