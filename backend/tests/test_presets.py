@@ -52,7 +52,7 @@ def test_start_run_accepts_custom_config_from_frontend_controls() -> None:
     assert payload["frame_interval_seconds"] == 12.0
 
 
-def test_solver_catalog_exposes_available_educational_and_planned_backends() -> None:
+def test_solver_catalog_exposes_available_solver_backends() -> None:
     client = TestClient(app)
 
     response = client.get("/simulations/solvers")
@@ -62,7 +62,9 @@ def test_solver_catalog_exposes_available_educational_and_planned_backends() -> 
     assert solvers[0]["solver_type"] == "educational_2d"
     assert solvers[0]["status"] == "available"
     boussinesq = next(solver for solver in solvers if solver["solver_type"] == "boussinesq_2d")
+    microphysics = next(solver for solver in solvers if solver["solver_type"] == "microphysics_lab")
     assert boussinesq["status"] == "available"
+    assert microphysics["status"] == "available"
 
 
 def test_start_run_accepts_boussinesq_solver_backend() -> None:
@@ -70,6 +72,23 @@ def test_start_run_accepts_boussinesq_solver_backend() -> None:
     config = fair_weather_cumulus_preset().config.model_copy(
         update={
             "solver_type": "boussinesq_2d",
+            "time": fair_weather_cumulus_preset().config.time.model_copy(
+                update={"duration_seconds": 20.0, "frame_interval_seconds": 10.0}
+            ),
+        }
+    )
+
+    response = client.post("/simulations/runs", json=config.model_dump(mode="json"))
+
+    assert response.status_code == 201
+    assert response.json()["duration_seconds"] == 20.0
+
+
+def test_start_run_accepts_microphysics_lab_solver_backend() -> None:
+    client = TestClient(app)
+    config = fair_weather_cumulus_preset().config.model_copy(
+        update={
+            "solver_type": "microphysics_lab",
             "time": fair_weather_cumulus_preset().config.time.model_copy(
                 update={"duration_seconds": 20.0, "frame_interval_seconds": 10.0}
             ),
