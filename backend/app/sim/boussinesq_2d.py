@@ -5,6 +5,11 @@ from math import exp, isfinite
 
 from app.sim.sample import build_grid_metadata, make_simulation_fields
 from app.sim.schemas import SimulationConfig, SimulationFrame
+from app.sim.structured_fields import (
+    StructuredGrid,
+    initial_relative_humidity,
+    surface_heating_weight,
+)
 
 Grid = list[list[float]]
 
@@ -20,7 +25,6 @@ KINEMATIC_VISCOSITY_M2_PER_S = 90.0
 VORTICITY_DAMPING_PER_SECOND = 0.025
 THERMAL_RELAXATION_PER_SECOND = 0.0018
 SURFACE_HEATING_LAYER_FRACTION = 0.10
-SURFACE_HEATING_EDGE_TAPER_FRACTION = 0.25
 POISSON_ITERATIONS = 80
 VELOCITY_DAMPING_PER_SECOND = 0.004
 TOP_SPONGE_DEPTH_CELLS = 2
@@ -67,9 +71,9 @@ def initialize_state(config: SimulationConfig) -> BoussinesqState:
                 max(
                     0.0,
                     _saturation_specific_humidity_kg_per_kg(env_temp)
-                    * config.initial_atmosphere.relative_humidity,
+                    * initial_relative_humidity(config, x_m, z_m),
                 )
-                for _x_m in grid.x_coordinates_m
+                for x_m in grid.x_coordinates_m
             ]
         )
 
@@ -486,19 +490,15 @@ def _diffuse(field: Grid, grid: SolverGrid, dt: float, diffusivity_m2_per_s: flo
 
 
 def _surface_heating_weight(config: SimulationConfig, grid: SolverGrid, x_m: float) -> float:
-    half_width_m = config.surface_heating.patch_width_m / 2.0
-    distance_from_edge_m = abs(x_m - config.surface_heating.patch_center_x_m) - half_width_m
-    if distance_from_edge_m <= 0.0:
-        return 1.0
-
-    taper_width_m = max(
-        grid.dx_m,
-        config.surface_heating.patch_width_m * SURFACE_HEATING_EDGE_TAPER_FRACTION,
+    return surface_heating_weight(
+        config,
+        StructuredGrid(
+            dx_m=grid.dx_m,
+            x_coordinates_m=grid.x_coordinates_m,
+            z_coordinates_m=grid.z_coordinates_m,
+        ),
+        x_m,
     )
-    if distance_from_edge_m >= taper_width_m:
-        return 0.0
-
-    return 1.0 - distance_from_edge_m / taper_width_m
 
 
 def _buoyancy(theta_perturbation: Grid) -> Grid:

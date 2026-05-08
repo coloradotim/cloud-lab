@@ -5,6 +5,11 @@ from math import exp, isfinite
 
 from app.sim.sample import build_grid_metadata, make_simulation_fields
 from app.sim.schemas import SimulationConfig, SimulationFrame
+from app.sim.structured_fields import (
+    StructuredGrid,
+    initial_relative_humidity,
+    surface_heating_weight,
+)
 
 Grid = list[list[float]]
 
@@ -29,7 +34,6 @@ MOISTURE_DIFFUSIVITY_M2_PER_S = 9.0
 VELOCITY_DIFFUSIVITY_M2_PER_S = 30.0
 MAX_ABS_VELOCITY_M_PER_S = 12.0
 SURFACE_HEATING_LAYER_FRACTION = 0.12
-SURFACE_HEATING_EDGE_TAPER_FRACTION = 0.2
 
 
 @dataclass(frozen=True)
@@ -68,9 +72,9 @@ def initialize_state(config: SimulationConfig) -> AtmosphereState:
             max(
                 0.0,
                 _saturation_specific_humidity_kg_per_kg(env_temp)
-                * config.initial_atmosphere.relative_humidity,
+                * initial_relative_humidity(config, x_m, z_m),
             )
-            for _x_m in solver_grid.x_coordinates_m
+            for x_m in solver_grid.x_coordinates_m
         ]
         environmental_temperature.append(env_row)
         temperature.append(temp_row)
@@ -406,8 +410,6 @@ def _update_velocity(
 ) -> tuple[Grid, Grid]:
     u = _copy_grid(base_u)
     w = _copy_grid(base_w)
-    half_width_m = config.surface_heating.patch_width_m / 2.0
-
     for row_index, z_m in enumerate(grid.z_coordinates_m):
         lower_layer = max(
             0.0,
@@ -420,9 +422,27 @@ def _update_velocity(
                 - state.environmental_temperature_k[row_index][column_index]
             )
             buoyancy = GRAVITY_M_PER_S2 * temp_perturbation / REFERENCE_TEMPERATURE_K
-            center_offset = (x_m - config.surface_heating.patch_center_x_m) / half_width_m
-            circulation_weight = exp(-(center_offset**2))
-            circulation = -center_offset * circulation_weight * (lower_layer - 0.35 * upper_layer)
+            if config.surface_heating.pattern == "single_patch":
+                half_width_m = config.surface_heating.patch_width_m / 2.0
+                center_offset = (x_m - config.surface_heating.patch_center_x_m) / half_width_m
+                circulation_weight = exp(-(center_offset**2))
+                circulation = (
+                    -center_offset * circulation_weight * (lower_layer - 0.35 * upper_layer)
+                )
+            else:
+                left_weight = _surface_heating_weight(config, grid, max(0.0, x_m - grid.dx_m))
+                right_weight = _surface_heating_weight(
+                    config,
+                    grid,
+                    min(config.domain.width_m, x_m + grid.dx_m),
+                )
+                heating_gradient = (right_weight - left_weight) / (2.0 * grid.dx_m)
+                circulation = (
+                    -heating_gradient
+                    * max(config.surface_heating.patch_width_m, grid.dx_m)
+                    * (lower_layer - 0.35 * upper_layer)
+                )
+                circulation = _clamp(circulation, -1.0, 1.0)
 
             positive_buoyancy = max(0.0, buoyancy)
             w[row_index][column_index] += (
@@ -446,19 +466,15 @@ def _update_velocity(
 
 
 def _surface_heating_weight(config: SimulationConfig, grid: SolverGrid, x_m: float) -> float:
-    half_width_m = config.surface_heating.patch_width_m / 2.0
-    distance_from_edge_m = abs(x_m - config.surface_heating.patch_center_x_m) - half_width_m
-    if distance_from_edge_m <= 0.0:
-        return 1.0
-
-    taper_width_m = max(
-        grid.dx_m,
-        config.surface_heating.patch_width_m * SURFACE_HEATING_EDGE_TAPER_FRACTION,
+    return surface_heating_weight(
+        config,
+        StructuredGrid(
+            dx_m=grid.dx_m,
+            x_coordinates_m=grid.x_coordinates_m,
+            z_coordinates_m=grid.z_coordinates_m,
+        ),
+        x_m,
     )
-    if distance_from_edge_m >= taper_width_m:
-        return 0.0
-
-    return 1.0 - distance_from_edge_m / taper_width_m
 
 
 def _advect(field: Grid, state: AtmosphereState, grid: SolverGrid, dt: float) -> Grid:

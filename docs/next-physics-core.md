@@ -8,6 +8,10 @@ sides are individually credible.
 This is the architecture decision that frames the current solver split and the
 initial `microphysics_lab` implementation.
 
+It does not block product work on interactive experiments. Structured forcing,
+scenario controls, replay/scrubbing, and bulk physically informed rendering should
+move forward while the physics-credibility track continues.
+
 ## Current State
 
 Cloud Lab currently has three available solver backends behind one shared frame
@@ -74,6 +78,12 @@ Cloud Lab should use a hybrid next-core strategy:
 5. Use `microphysics_lab` as the controlled warm-cloud experiment mode.
 6. Revisit Boussinesq/PySDM coupling only after the dynamics and microphysics paths
    are separately credible.
+
+In parallel, build the interactive cloud-lab track: structured surface heating,
+structured moisture initial conditions, lift controls, simple terrain/orographic
+forcing, scenario presets, replay/scrubbing, and bulk renderer improvements. These
+features should consume documented solver fields and approximation metadata rather
+than reaching into solver internals.
 
 This keeps Cloud Lab moving toward better science without coupling a stronger
 microphysics package to unresolved flow and thermodynamic-placement behavior.
@@ -191,18 +201,26 @@ credible warm-cloud microphysics under controlled motion and thermodynamic histo
 
 1. Keep this design document as the current architecture decision.
 2. Use `docs/pysdm-evaluation.md` as the current isolated PySDM evaluation record.
-3. Expand `microphysics_lab` from its initial parcel/box bulk mode toward column and
+3. Continue interactive scenario controls and bulk visualization improvements using
+   documented approximations.
+4. Expand `microphysics_lab` from its initial parcel/box bulk mode toward column and
    prescribed-flow experiments.
-4. Implement the optional microphysics payload proposed in
+5. Implement the optional microphysics payload proposed in
    `docs/microphysics-schema.md` without breaking existing scalar-field consumers.
-5. Compare Cloud Lab's simple saturation adjustment against PySDM under controlled
+6. Compare Cloud Lab's simple saturation adjustment against PySDM under controlled
    conditions.
-6. Add validation cases for parcel ascent, condensation onset, droplet growth, and
+7. Add validation cases for parcel ascent, condensation onset, droplet growth, and
    rain-initiation thresholds as the PySDM path matures.
-7. Decide later whether PySDM should couple to `boussinesq_2d`, an improved in-house
+8. Decide later whether PySDM should couple to `boussinesq_2d`, an improved in-house
    dynamics core, or a library-backed PDE dynamics path.
-8. Consider a later Dedalus/PDE-framework spike once local performance, packaging,
+9. Consider a later Dedalus/PDE-framework spike once local performance, packaging,
    and schema needs are better understood.
+
+Bulk optical rendering may use cloud liquid water and an assumed effective radius as
+a labeled approximation. Droplet-aware optics should wait for droplet-size or
+effective-radius outputs. Bulk rain-water visualization and autoconversion or
+sedimentation indicators are useful near-term feedback, but they should not be
+described as droplet-resolved precipitation formation.
 
 ## Success Criteria For The Next Core
 
@@ -265,3 +283,6 @@ visual shortcuts.
 
 Validation strategy: maintain separate validation tracks for educational behavior,
 Boussinesq dynamics, and microphysics-lab physics.
+
+Product strategy: keep Cloud Lab moving toward a hands-on experiment sandbox while
+guarding against scientific overclaiming.

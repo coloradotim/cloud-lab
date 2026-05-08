@@ -44,6 +44,21 @@ The V1 experience should include:
 - Documented units and assumptions
 - Tests, CI, and a sustainable development workflow
 
+## Near-Term Dual Track
+
+Cloud Lab should now move on two parallel tracks.
+
+The interactive cloud-experiment track should make the sandbox more playful and
+useful now: structured and eventually painted surface-heating maps, structured
+moisture fields, lifting controls, simple terrain/orographic forcing, scenario
+presets, replay and scrubbing, and physically informed bulk visualization.
+
+The physics-credibility track should keep the science honest: automated sanity
+checks, `microphysics_lab` validation, PySDM evaluation in isolation, and clear
+labels for every approximation. These tracks support each other, but PySDM or a
+final CFD core is not required before building better scenario controls and bulk
+field rendering.
+
 ## First scientific scope
 
 Start with a 2-D vertical slice. The early model should be simple but extensible:
@@ -128,6 +143,11 @@ A reasonable staged path:
 - camera controls
 - sun angle controls
 
+This phase may use bulk cloud liquid water plus an assumed effective radius as a
+bulk optical approximation. It should be labeled that way. Droplet-aware optics wait
+for droplet-size or effective-radius outputs, but PySDM is not a prerequisite for
+first cloud opacity, lighting, or shadow improvements.
+
 ### Phase 2 — Physically informed
 
 - optical depth approximation
@@ -141,6 +161,12 @@ A reasonable staged path:
 - droplet size influences brightness, opacity, and scattering behavior
 - rain shafts become visible through attenuation and fall streaks
 - aerosol/haze interactions become possible
+
+Near-term rain visualization may use bulk rain-water fields and simple
+autoconversion or sedimentation indicators. That is useful for scenario feedback and
+rain-shaft visualization, but it must not be described as droplet-resolved
+precipitation formation. PySDM collision/coalescence remains the later path for more
+credible rain initiation.
 
 ### Phase 4 — Advanced rendering
 

@@ -4,6 +4,20 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 ScalarGrid = list[list[float]]
 SolverType = Literal["educational_2d", "boussinesq_2d", "microphysics_lab"]
+SurfaceHeatingPattern = Literal[
+    "single_patch",
+    "two_patches",
+    "broad_plateau",
+    "weak_random",
+    "custom_patches",
+]
+HumidityProfilePattern = Literal[
+    "uniform",
+    "moist_boundary_layer",
+    "dry_cap",
+    "moist_layer",
+    "custom_layers",
+]
 
 
 class DomainConfig(BaseModel):
@@ -75,6 +89,63 @@ class InitialAtmosphereConfig(BaseModel):
         gt=0,
         description="Initial mixed-layer depth in meters.",
     )
+    humidity_profile: HumidityProfilePattern = Field(
+        default="uniform",
+        description="Structured relative-humidity profile used to initialize 2-D solvers.",
+    )
+    humidity_layers: list["HumidityLayerConfig"] = Field(
+        default_factory=list,
+        description="Optional vertical relative-humidity layers for future painted scenarios.",
+    )
+    humidity_patch: "HumidityPatchConfig | None" = Field(
+        default=None,
+        description="Optional horizontal relative-humidity patch for future painted scenarios.",
+    )
+
+
+class HumidityLayerConfig(BaseModel):
+    """A vertical relative-humidity layer for structured initial conditions."""
+
+    bottom_m: float = Field(default=0.0, ge=0, description="Layer bottom height in meters.")
+    top_m: float = Field(default=1_000.0, gt=0, description="Layer top height in meters.")
+    relative_humidity: float = Field(
+        default=0.95,
+        ge=0,
+        le=1,
+        description="Relative humidity used within this layer.",
+    )
+
+    @model_validator(mode="after")
+    def validate_layer_order(self) -> "HumidityLayerConfig":
+        if self.top_m <= self.bottom_m:
+            raise ValueError("humidity layer top_m must be greater than bottom_m")
+        return self
+
+
+class HumidityPatchConfig(BaseModel):
+    """A horizontal relative-humidity patch for early structured experiments."""
+
+    center_x_m: float = Field(default=5_000.0, ge=0, description="Patch center x position.")
+    width_m: float = Field(default=2_000.0, gt=0, description="Patch width in meters.")
+    relative_humidity: float = Field(
+        default=0.98,
+        ge=0,
+        le=1,
+        description="Relative humidity inside the patch.",
+    )
+
+
+class HeatingPatchConfig(BaseModel):
+    """A horizontal heating patch used by structured surface-heating patterns."""
+
+    center_x_m: float = Field(default=5_000.0, ge=0, description="Patch center x position.")
+    width_m: float = Field(default=2_000.0, gt=0, description="Patch width in meters.")
+    intensity_fraction: float = Field(
+        default=1.0,
+        ge=0,
+        le=1,
+        description="Fraction of max_warming_rate_k_per_s applied in this patch.",
+    )
 
 
 class SurfaceHeatingConfig(BaseModel):
@@ -92,6 +163,14 @@ class SurfaceHeatingConfig(BaseModel):
     )
     patch_width_m: float = Field(
         default=2_000.0, gt=0, description="Heating patch width in meters."
+    )
+    pattern: SurfaceHeatingPattern = Field(
+        default="single_patch",
+        description="Structured surface-heating pattern for 2-D solvers.",
+    )
+    patches: list[HeatingPatchConfig] = Field(
+        default_factory=list,
+        description="Optional custom heating patches for future painted-map compatibility.",
     )
 
 
@@ -133,6 +212,24 @@ class SimulationConfig(BaseModel):
             raise ValueError("patch_center_x_m must fit inside the domain width")
         if self.surface_heating.patch_width_m > self.domain.width_m:
             raise ValueError("patch_width_m must not exceed domain width")
+        for index, patch in enumerate(self.surface_heating.patches):
+            if patch.center_x_m > self.domain.width_m:
+                raise ValueError(
+                    f"surface_heating.patches[{index}].center_x_m exceeds domain width"
+                )
+            if patch.width_m > self.domain.width_m:
+                raise ValueError(f"surface_heating.patches[{index}].width_m exceeds domain width")
+        for index, layer in enumerate(self.initial_atmosphere.humidity_layers):
+            if layer.top_m > self.domain.height_m:
+                raise ValueError(
+                    f"initial_atmosphere.humidity_layers[{index}].top_m exceeds domain height"
+                )
+        if self.initial_atmosphere.humidity_patch is not None:
+            humidity_patch = self.initial_atmosphere.humidity_patch
+            if humidity_patch.center_x_m > self.domain.width_m:
+                raise ValueError("humidity_patch.center_x_m must fit inside the domain width")
+            if humidity_patch.width_m > self.domain.width_m:
+                raise ValueError("humidity_patch.width_m must not exceed domain width")
         return self
 
 

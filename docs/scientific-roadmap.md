@@ -19,6 +19,18 @@ Fair-weather cumulus is the first target because it is visually understandable a
 
 The first preset should make it easy to explore how surface heating, boundary-layer humidity, and lapse rate affect shallow cloud formation in a vertical slice.
 
+## Product And Physics Tracks
+
+Cloud Lab is not only a solver exercise. The near-term product should become a
+hands-on cloud laboratory where users can manipulate initial states and forcing,
+then inspect meaningful and beautiful results.
+
+That means interactive scenario work can proceed in parallel with physics
+validation. Structured surface heating, structured moisture profiles, lift controls,
+scenario presets, replay/scrubbing, and bulk physically informed rendering are valid
+near-term product work as long as they preserve solver/renderer/UI separation and
+document their approximations.
+
 ## Warm-Cloud Microphysics Direction
 
 Early microphysics should remain deliberately simple: vapor, cloud water, and rain water fields with non-negative invariants and documented approximations. The project should avoid unexplained constants and should separate physically meaningful quantities from visualization shortcuts.
@@ -39,6 +51,13 @@ controlled visual experiments, UI/schema validation, and targeted dynamics work,
 it should not be treated as the final dynamics core for advanced microphysics until
 cloud-water placement and the remaining dynamics limitations are resolved.
 
+Bulk cloud and rain visualization can improve before PySDM. The renderer may use
+bulk cloud liquid water plus assumed effective radius for labeled optical-depth,
+opacity, and lighting approximations. Bulk rain water and simple autoconversion or
+sedimentation indicators are useful for visual feedback, but they are not
+droplet-resolved precipitation formation. Droplet-aware optics and more credible
+collision/coalescence remain later PySDM-adjacent work.
+
 ## Fluid Dynamics Assumptions To Start
 
 The starting dynamics can be simplified and educational, but the assumptions must be explicit. Initial work may use coarse approximations for advection, buoyancy, and diffusion while tests cover shape consistency, non-negative moisture fields, deterministic output, and stable schemas.
@@ -56,8 +75,10 @@ The initial solver uses localized surface heating, first-order advection, simple
 5. Validate the Boussinesq solver against quiet, dry, humid, stable, and resolution/runtime reference cases.
 6. Continue improving or replace the experimental Boussinesq dynamics before treating
    it as a microphysics host.
-7. Expand `microphysics_lab` validation cases, then evaluate PySDM there for
+7. Add structured surface-heating and moisture scenario controls for interactive
+   experiments while keeping solver assumptions explicit.
+8. Expand `microphysics_lab` validation cases, then evaluate PySDM there for
    droplet-size distribution and rain formation.
-8. Add terrain forcing for orographic lift experiments.
-9. Extend toward 2.5-D where selected 3-D effects can be approximated.
-10. Move toward true 3-D only after the 2-D model, tests, schemas, and visualization pipeline are stable.
+9. Add terrain forcing for orographic lift experiments.
+10. Extend toward 2.5-D where selected 3-D effects can be approximated.
+11. Move toward true 3-D only after the 2-D model, tests, schemas, and visualization pipeline are stable.

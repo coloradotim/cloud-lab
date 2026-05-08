@@ -8,10 +8,13 @@ import {
   BOUSSINESQ_MODEL_SIZES,
   BOUSSINESQ_REFERENCE_CASES,
   CONTROL_LIMITS,
+  HUMIDITY_PROFILES,
+  SURFACE_HEATING_PATTERNS,
   celsiusToKelvin,
   configWarnings,
   kelvinToCelsius,
   updateConfigNumber,
+  updateConfigValue,
 } from "./simulationControls";
 import type {
   SimulationConfig,
@@ -683,6 +686,13 @@ function SimulationControls({
     onConfigChange(updateConfigNumber(config, path, value));
   }
 
+  function updateValue(path: string, value: string) {
+    if (!config) {
+      return;
+    }
+    onConfigChange(updateConfigValue(config, path, value));
+  }
+
   function updateSolverType(solverType: SimulationConfig["solver_type"]) {
     if (!config) {
       return;
@@ -724,6 +734,10 @@ function SimulationControls({
   const activeModelSize = BOUSSINESQ_MODEL_SIZES.find((candidate) => {
     return candidate.slug === selectedModelSize;
   });
+  const heatingPattern = config.surface_heating.pattern ?? "single_patch";
+  const humidityProfile = config.initial_atmosphere.humidity_profile ?? "uniform";
+  const showHeatingCenter = heatingPattern === "single_patch" || heatingPattern === "custom_patches";
+  const showHeatingWidth = heatingPattern !== "weak_random";
 
   return (
     <section className="controls-panel" aria-labelledby="controls-title">
@@ -816,7 +830,7 @@ function SimulationControls({
           ) : null}
         </ControlGroup>
 
-        <ControlGroup title="Atmosphere">
+        <ControlGroup title="Thermodynamics">
           <NumberControl
             label="Surface temperature"
             unit="deg C"
@@ -852,7 +866,28 @@ function SimulationControls({
           />
         </ControlGroup>
 
-        <ControlGroup title="Surface heating">
+        <ControlGroup title="Moisture structure">
+          <SelectControl
+            label="Humidity pattern"
+            value={humidityProfile}
+            options={HUMIDITY_PROFILES}
+            onChange={(value) => updateValue("initial_atmosphere.humidity_profile", value)}
+          />
+          <p className="control-note">
+            {HUMIDITY_PROFILES.find((profile) => profile.value === humidityProfile)?.description}
+          </p>
+        </ControlGroup>
+
+        <ControlGroup title="Surface forcing">
+          <SelectControl
+            label="Heating pattern"
+            value={heatingPattern}
+            options={SURFACE_HEATING_PATTERNS}
+            onChange={(value) => updateValue("surface_heating.pattern", value)}
+          />
+          <p className="control-note">
+            {SURFACE_HEATING_PATTERNS.find((pattern) => pattern.value === heatingPattern)?.description}
+          </p>
           <NumberControl
             label="Heating rate"
             unit="K/s"
@@ -860,26 +895,30 @@ function SimulationControls({
             limits={CONTROL_LIMITS.surfaceHeatingRate}
             onChange={(value) => update("surface_heating.max_warming_rate_k_per_s", value)}
           />
-          <NumberControl
-            label="Patch width"
-            unit="m"
-            value={config.surface_heating.patch_width_m}
-            limits={{
-              ...CONTROL_LIMITS.heatingWidth,
-              max: config.domain.width_m,
-            }}
-            onChange={(value) => update("surface_heating.patch_width_m", value)}
-          />
-          <NumberControl
-            label="Patch center"
-            unit="m"
-            value={config.surface_heating.patch_center_x_m}
-            limits={{
-              ...CONTROL_LIMITS.heatingCenter,
-              max: config.domain.width_m,
-            }}
-            onChange={(value) => update("surface_heating.patch_center_x_m", value)}
-          />
+          {showHeatingWidth ? (
+            <NumberControl
+              label="Patch width"
+              unit="m"
+              value={config.surface_heating.patch_width_m}
+              limits={{
+                ...CONTROL_LIMITS.heatingWidth,
+                max: config.domain.width_m,
+              }}
+              onChange={(value) => update("surface_heating.patch_width_m", value)}
+            />
+          ) : null}
+          {showHeatingCenter ? (
+            <NumberControl
+              label="Patch center"
+              unit="m"
+              value={config.surface_heating.patch_center_x_m}
+              limits={{
+                ...CONTROL_LIMITS.heatingCenter,
+                max: config.domain.width_m,
+              }}
+              onChange={(value) => update("surface_heating.patch_center_x_m", value)}
+            />
+          ) : null}
         </ControlGroup>
 
         <ControlGroup title="Domain and grid">
@@ -984,6 +1023,12 @@ type ControlLimits = {
   step: number;
 };
 
+type SelectOption = {
+  value: string;
+  label: string;
+  description?: string;
+};
+
 function ControlGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <fieldset className="control-group">
@@ -1030,6 +1075,31 @@ function NumberControl({
         value={displayValue}
         onChange={(event) => onChange(Number(event.target.value))}
       />
+    </label>
+  );
+}
+
+function SelectControl({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: readonly SelectOption[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="select-control">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
