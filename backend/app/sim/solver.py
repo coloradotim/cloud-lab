@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from app.sim import boussinesq_2d, educational_2d
+from app.sim import boussinesq_2d, educational_2d, microphysics_lab
 from app.sim.schemas import SimulationConfig, SimulationFrame, SolverType
 from app.sim.solver_interface import SolverBackend, SolverDescriptor
 
@@ -72,9 +72,33 @@ class Boussinesq2DBackend:
                 next_frame_time += config.time.frame_interval_seconds
 
 
+class MicrophysicsLabBackend:
+    descriptor = SolverDescriptor(
+        solver_type="microphysics_lab",
+        name="Microphysics Lab",
+        description=(
+            "Controlled parcel/box warm-cloud microphysics mode with prescribed lift, "
+            "adiabatic cooling, saturation adjustment, and simple bulk rain conversion."
+        ),
+        status="available",
+        limitations=(
+            "No resolved 2-D dynamics or Boussinesq velocity coupling.",
+            "Bulk placeholder microphysics, not PySDM and not a validated cloud model.",
+            "Scalar parcel/box state is broadcast over the shared 2-D frame grid.",
+        ),
+    )
+
+    def run(self, config: SimulationConfig) -> list[SimulationFrame]:
+        return microphysics_lab.run_simulation(config)
+
+    def stream_frames(self, config: SimulationConfig) -> Iterator[SimulationFrame]:
+        return microphysics_lab.stream_frames(config)
+
+
 _BACKENDS: dict[SolverType, SolverBackend] = {
     "educational_2d": Educational2DBackend(),
     "boussinesq_2d": Boussinesq2DBackend(),
+    "microphysics_lab": MicrophysicsLabBackend(),
 }
 
 SUPPORTED_SOLVER_TYPES = tuple(_BACKENDS.keys())

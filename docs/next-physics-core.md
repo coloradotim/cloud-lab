@@ -1,21 +1,23 @@
 # Next Physics Core
 
 Cloud Lab should proceed with a hybrid next-core strategy: preserve the existing
-solvers, evaluate PySDM in isolation, add a microphysics-lab solver mode, and delay
-full dynamics/microphysics coupling until both sides are individually credible.
+solvers, evaluate PySDM in isolation, use a microphysics-lab solver mode for
+controlled experiments, and delay full dynamics/microphysics coupling until both
+sides are individually credible.
 
-This is an architecture decision, not an implementation plan for a new solver in
-this change.
+This is the architecture decision that frames the current solver split and the
+initial `microphysics_lab` implementation.
 
 ## Current State
 
-Cloud Lab currently has two available solver backends behind one shared frame
+Cloud Lab currently has three available solver backends behind one shared frame
 contract:
 
 | Solver | Role | Current status |
 | --- | --- | --- |
 | `educational_2d` | Fast teaching, UI, debugging, and regression model. | Complete enough for V1 interaction and schema validation. |
 | `boussinesq_2d` | Experimental streamfunction-vorticity dynamics scaffold. | Useful and validated as a prototype, but not a final CFD core. |
+| `microphysics_lab` | Controlled parcel/box warm-cloud microphysics experiments. | Initial bulk saturation-adjustment mode available; PySDM remains optional evaluation work. |
 
 The shared `sim-frame-v1` frame schema emits row-major 2-D scalar fields with units,
 field metadata, and display hints. Every frame carries:
@@ -69,7 +71,7 @@ Cloud Lab should use a hybrid next-core strategy:
    environment.
 3. Evaluate PySDM in isolated parcel, box, column, and prescribed-flow cases first.
 4. Do not integrate PySDM directly into `boussinesq_2d` yet.
-5. Add a future `microphysics_lab` solver mode for controlled warm-cloud experiments.
+5. Use `microphysics_lab` as the controlled warm-cloud experiment mode.
 6. Revisit Boussinesq/PySDM coupling only after the dynamics and microphysics paths
    are separately credible.
 
@@ -189,8 +191,8 @@ credible warm-cloud microphysics under controlled motion and thermodynamic histo
 
 1. Keep this design document as the current architecture decision.
 2. Use `docs/pysdm-evaluation.md` as the current isolated PySDM evaluation record.
-3. Add a `microphysics_lab` solver mode for parcel, box, column, and prescribed-flow
-   experiments.
+3. Expand `microphysics_lab` from its initial parcel/box bulk mode toward column and
+   prescribed-flow experiments.
 4. Implement the optional microphysics payload proposed in
    `docs/microphysics-schema.md` without breaking existing scalar-field consumers.
 5. Compare Cloud Lab's simple saturation adjustment against PySDM under controlled
@@ -235,7 +237,7 @@ without implying that Cloud Lab has solved full cloud dynamics.
 Create or update implementation issues for:
 
 - PySDM isolated parcel/box evaluation.
-- `microphysics_lab` solver descriptor and backend scaffold.
+- Continued `microphysics_lab` parcel/box/column validation and PySDM comparison work.
 - Frame/schema implementation for the droplet-size distribution proposal in
   `docs/microphysics-schema.md`.
 - Microphysics validation cases for parcel ascent and condensation onset.

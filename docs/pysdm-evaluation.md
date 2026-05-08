@@ -12,7 +12,7 @@ isolation first, and do not couple it to `boussinesq_2d` yet.
 
 ## Summary Recommendation
 
-Partially adopt PySDM as an optional evaluation dependency for an isolated
+Partially adopt PySDM as an optional evaluation dependency for the isolated
 `microphysics_lab` path.
 
 Do not make PySDM a required backend dependency yet, and do not integrate it into
@@ -100,6 +100,12 @@ touching production solvers.
 | Droplet-size distribution | Use size-spectral products such as particle volume versus radius-log bins. |
 | Rain initiation | Track growth of large-radius-bin mass, collision/coalescence products, and threshold crossing. |
 | Renderer inputs | Convert PySDM products into physical fields or run-level products; renderer stays separate. |
+
+The initial production `microphysics_lab` solver uses Cloud Lab's own lightweight
+bulk placeholder microphysics and does not import PySDM. It establishes the solver
+mode, API path, frame mapping, and documentation boundary that a later PySDM-backed
+parcel, box, column, or prescribed-flow experiment can use after the optional
+evaluation matures.
 
 The current `SimulationFrame` scalar fields can carry bulk vapor/cloud/rain values,
 but droplet-size distributions need a schema extension. The proposed Cloud Lab

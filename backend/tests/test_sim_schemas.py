@@ -50,6 +50,12 @@ def test_simulation_config_rejects_spatial_values_outside_domain() -> None:
         SimulationConfig(surface_heating=SurfaceHeatingConfig(patch_center_x_m=20_000.0))
 
 
+def test_simulation_config_accepts_microphysics_lab_solver_type() -> None:
+    config = SimulationConfig(solver_type="microphysics_lab")
+
+    assert config.solver_type == "microphysics_lab"
+
+
 def test_sample_frame_shape_matches_grid() -> None:
     config = SimulationConfig(grid=GridConfig(columns=4, rows=3))
 

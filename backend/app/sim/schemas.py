@@ -3,7 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 ScalarGrid = list[list[float]]
-SolverType = Literal["educational_2d", "boussinesq_2d"]
+SolverType = Literal["educational_2d", "boussinesq_2d", "microphysics_lab"]
 
 
 class DomainConfig(BaseModel):
@@ -112,8 +112,9 @@ class SimulationConfig(BaseModel):
     solver_type: SolverType = Field(
         default="educational_2d",
         description=(
-            "Simulation backend identifier. The current backend is an educational 2-D solver "
-            "reserved for learning, UI validation, and regression tests."
+            "Simulation backend identifier. Educational and Boussinesq solvers emit 2-D "
+            "vertical-slice fields; microphysics_lab emits controlled parcel/box "
+            "microphysics experiments through the same frame envelope."
         ),
     )
     domain: DomainConfig = Field(default_factory=DomainConfig)
