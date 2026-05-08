@@ -5,8 +5,11 @@ from app.sim import (
     BoussinesqReferenceCase,
     boussinesq_model_sizes,
     boussinesq_reference_cases,
+    boussinesq_thermodynamic_validation_cases,
     compute_boussinesq_diagnostics,
+    compute_boussinesq_thermodynamic_diagnostics,
     compute_divergence_field,
+    run_boussinesq_thermodynamic_validation,
     run_simulation,
 )
 from app.sim.schemas import SimulationConfig
@@ -24,6 +27,7 @@ MAX_ACTIVE_DIMENSIONLESS_DIVERGENCE = 5e-2
 RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE = 1e-2
 QUIET_MAX_DIVERGENCE_PER_SECOND = 1e-6
 QUIET_MAX_VELOCITY_M_PER_S = 1e-3
+MAX_REFERENCE_CLOUD_WATER_KG_PER_KG = 0.008
 
 
 def test_boussinesq_reference_cases_map_to_valid_configs() -> None:
@@ -65,7 +69,7 @@ def test_boussinesq_reference_cases_remain_finite_and_moisture_safe() -> None:
         assert diagnostics.min_moisture_kg_per_kg >= 0.0
         assert diagnostics.max_abs_horizontal_velocity_m_per_s < 1.0
         assert diagnostics.max_abs_vertical_velocity_m_per_s < 1.0
-        assert diagnostics.max_cloud_liquid_water_kg_per_kg < 0.005
+        assert diagnostics.max_cloud_liquid_water_kg_per_kg < MAX_REFERENCE_CLOUD_WATER_KG_PER_KG
         assert diagnostics.max_abs_divergence_per_second < MAX_REFERENCE_DIVERGENCE_PER_SECOND
         assert diagnostics.mean_abs_divergence_per_second < MEAN_REFERENCE_DIVERGENCE_PER_SECOND
         assert diagnostics.rms_divergence_per_second >= diagnostics.mean_abs_divergence_per_second
@@ -276,6 +280,64 @@ def test_reference_case_seeded_runs_are_reproducible() -> None:
     second = [frame.to_transport_dict() for frame in run_simulation(humid.config)]
 
     assert first == second
+
+
+def test_boussinesq_thermodynamic_validation_cases_report_statuses() -> None:
+    report = run_boussinesq_thermodynamic_validation()
+
+    assert report["schema_version"] == "boussinesq-thermodynamic-validation-v1"
+    cases = {case["slug"]: case for case in report["cases"]}
+    assert set(cases) == {
+        "humid-well-mixed-fair-weather",
+        "drier-well-mixed-fair-weather",
+        "warmer-drier-fair-weather",
+        "multi-patch-fair-weather",
+        "layered-moisture-fair-weather",
+    }
+    assert all(case["status"] in {"pass", "warn", "fail"} for case in cases.values())
+
+
+def test_boussinesq_thermodynamic_validation_cases_have_numeric_lcl_and_distribution() -> None:
+    for case in boussinesq_thermodynamic_validation_cases():
+        diagnostics = compute_boussinesq_thermodynamic_diagnostics(run_simulation(case.config))
+
+        assert diagnostics.expected_lcl_m >= 0.0
+        assert diagnostics.below_lcl_cloud_fraction >= 0.0
+        assert diagnostics.near_lcl_cloud_fraction >= 0.0
+        assert diagnostics.above_lcl_cloud_fraction >= 0.0
+        assert diagnostics.mixed_layer.theta_spread_k >= 0.0
+        assert diagnostics.cloud_regions.region_count >= 0
+        assert diagnostics.status in {"pass", "warn", "fail"}
+
+
+def test_drier_thermodynamic_case_has_higher_expected_lcl_than_humid_case() -> None:
+    cases = {case.slug: case for case in boussinesq_thermodynamic_validation_cases()}
+
+    humid = compute_boussinesq_thermodynamic_diagnostics(
+        run_simulation(cases["humid-well-mixed-fair-weather"].config)
+    )
+    drier = compute_boussinesq_thermodynamic_diagnostics(
+        run_simulation(cases["drier-well-mixed-fair-weather"].config)
+    )
+    warmer_drier = compute_boussinesq_thermodynamic_diagnostics(
+        run_simulation(cases["warmer-drier-fair-weather"].config)
+    )
+
+    assert drier.expected_lcl_m > humid.expected_lcl_m
+    assert warmer_drier.expected_lcl_m > humid.expected_lcl_m
+
+
+def test_layered_moisture_case_reports_non_mixed_source_layer_context() -> None:
+    case = next(
+        case
+        for case in boussinesq_thermodynamic_validation_cases()
+        if case.slug == "layered-moisture-fair-weather"
+    )
+
+    diagnostics = compute_boussinesq_thermodynamic_diagnostics(run_simulation(case.config))
+
+    assert diagnostics.mixed_layer.well_mixed is False
+    assert any("not well mixed" in note for note in diagnostics.notes)
 
 
 def _case(slug: str) -> BoussinesqReferenceCase:

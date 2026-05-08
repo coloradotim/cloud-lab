@@ -34,6 +34,7 @@ MOISTURE_DIFFUSIVITY_M2_PER_S = 9.0
 VELOCITY_DIFFUSIVITY_M2_PER_S = 30.0
 MAX_ABS_VELOCITY_M_PER_S = 12.0
 SURFACE_HEATING_LAYER_FRACTION = 0.12
+MIXED_LAYER_HUMIDITY_PROFILES = {"uniform", "moist_boundary_layer"}
 
 
 @dataclass(frozen=True)
@@ -71,8 +72,12 @@ def initialize_state(config: SimulationConfig) -> AtmosphereState:
         vapor_row = [
             max(
                 0.0,
-                _saturation_specific_humidity_kg_per_kg(env_temp)
-                * initial_relative_humidity(config, x_m, z_m),
+                _initial_water_vapor_specific_humidity_kg_per_kg(
+                    config,
+                    x_m,
+                    z_m,
+                    env_temp,
+                ),
             )
             for x_m in solver_grid.x_coordinates_m
         ]
@@ -114,6 +119,28 @@ def _initial_temperature_k(config: SimulationConfig, z_m: float) -> float:
     )
     return mixed_layer_top_temperature_k - config.initial_atmosphere.lapse_rate_k_per_m * (
         z_m - mixed_layer_depth_m
+    )
+
+
+def _initial_water_vapor_specific_humidity_kg_per_kg(
+    config: SimulationConfig,
+    x_m: float,
+    z_m: float,
+    temperature_k: float,
+) -> float:
+    if (
+        z_m <= config.initial_atmosphere.boundary_layer_depth_m
+        and config.initial_atmosphere.humidity_profile in MIXED_LAYER_HUMIDITY_PROFILES
+    ):
+        surface_temperature_k = _initial_temperature_k(config, 0.0)
+        return _saturation_specific_humidity_kg_per_kg(
+            surface_temperature_k
+        ) * initial_relative_humidity(config, x_m, 0.0)
+
+    return _saturation_specific_humidity_kg_per_kg(temperature_k) * initial_relative_humidity(
+        config,
+        x_m,
+        z_m,
     )
 
 

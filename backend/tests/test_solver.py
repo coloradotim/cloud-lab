@@ -65,6 +65,33 @@ def test_initial_temperature_is_smooth_and_well_mixed_in_boundary_layer() -> Non
     ) / free_atmosphere_dz == pytest.approx(0.006)
 
 
+def test_initial_vapor_is_well_mixed_in_uniform_boundary_layer() -> None:
+    config = SimulationConfig(
+        domain=DomainConfig(height_m=3_000.0),
+        grid=GridConfig(columns=4, rows=6),
+        initial_atmosphere=InitialAtmosphereConfig(
+            surface_temperature_k=300.0,
+            relative_humidity=0.65,
+            boundary_layer_depth_m=1_000.0,
+        ),
+    )
+    state = initialize_state(config)
+    solver_grid = _solver_grid(config)
+    mixed_layer_rows = [
+        row_index
+        for row_index, z_m in enumerate(solver_grid.z_coordinates_m)
+        if z_m <= config.initial_atmosphere.boundary_layer_depth_m
+    ]
+
+    mixed_layer_vapor_values = {
+        state.water_vapor_kg_per_kg[row_index][column_index]
+        for row_index in mixed_layer_rows
+        for column_index in range(config.grid.columns)
+    }
+
+    assert len(mixed_layer_vapor_values) == 1
+
+
 def test_surface_heating_produces_buoyant_plume() -> None:
     config = _small_config()
     initial_state = initialize_state(config)
