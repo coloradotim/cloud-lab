@@ -87,7 +87,7 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
   {
     slug: "quiet-atmosphere",
     name: "Quiet atmosphere / no forcing",
-    description: "Saturated, unforced slice for checking that motion and cloud water stay zero.",
+    description: "Unsaturated, unforced slice for checking that motion and cloud water stay zero.",
     apply: (config) =>
       normalizeConfig({
         ...config,
@@ -95,7 +95,7 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
         initial_atmosphere: {
           surface_temperature_k: celsiusToKelvin(25),
           lapse_rate_k_per_m: 0.0065,
-          relative_humidity: 1,
+          relative_humidity: 0.65,
           boundary_layer_depth_m: 1_000,
         },
         surface_heating: {
@@ -164,7 +164,7 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
         initial_atmosphere: {
           surface_temperature_k: celsiusToKelvin(25),
           lapse_rate_k_per_m: 0.0035,
-          relative_humidity: 0.95,
+          relative_humidity: 0.45,
           boundary_layer_depth_m: 1_000,
         },
         surface_heating: {
