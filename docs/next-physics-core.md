@@ -188,7 +188,7 @@ credible warm-cloud microphysics under controlled motion and thermodynamic histo
 ## Proposed Implementation Sequence
 
 1. Keep this design document as the current architecture decision.
-2. Update the PySDM issue to scope it as isolated evaluation only.
+2. Use `docs/pysdm-evaluation.md` as the current isolated PySDM evaluation record.
 3. Add a `microphysics_lab` solver mode for parcel, box, column, and prescribed-flow
    experiments.
 4. Extend the frame/schema contract for droplet-size distribution outputs without

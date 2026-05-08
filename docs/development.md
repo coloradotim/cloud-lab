@@ -124,6 +124,15 @@ PR job runs both the default fast subset and the short Boussinesq sanity subset.
 `Science validation` job is manual/scheduled and runs the slower Boussinesq validation
 markers.
 
+Optional PySDM evaluation checks require the heavy optional dependency group:
+
+```bash
+cd backend
+python -m pip install -e ".[pysdm-eval]"
+pytest -m pysdm
+python -m app.sim.pysdm_evaluation --json
+```
+
 ## Adding Simulation Features Responsibly
 
 New simulation features should keep physics code inside `backend/app/sim` or a clearly separated simulation package. API route handlers can validate inputs and orchestrate runs, but they should not contain core physics rules.
