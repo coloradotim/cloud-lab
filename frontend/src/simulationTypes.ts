@@ -12,19 +12,6 @@ export type ScalarField = {
   };
 };
 
-export type SimulationFrame = {
-  schema_version: "sim-frame-v1";
-  step: number;
-  time_seconds: number;
-  grid: {
-    columns: number;
-    rows: number;
-    x_coordinates_m: number[];
-    z_coordinates_m: number[];
-  };
-  fields: Record<string, ScalarField>;
-};
-
 export type SimulationConfig = {
   schema_version: "sim-config-v1";
   solver_type: "educational_2d" | "boussinesq_2d" | "microphysics_lab";
@@ -57,6 +44,42 @@ export type SimulationConfig = {
     w_m_per_s: number;
   };
   seed: number;
+};
+
+export type MicrophysicsPayload = {
+  schema_version?: string;
+  bin_axis?: {
+    name?: string;
+    edge_values?: number[];
+    unit?: string;
+    scale?: string;
+    closed?: string;
+  };
+  global_distribution?: {
+    scope?: string;
+    products?: Array<{
+      product?: string;
+      unit?: string;
+      normalization?: string;
+      values?: number[];
+    }>;
+    summary?: Record<string, number | string | null | undefined>;
+  };
+};
+
+export type SimulationFrame = {
+  schema_version: "sim-frame-v1";
+  step: number;
+  time_seconds: number;
+  config?: SimulationConfig;
+  grid: {
+    columns: number;
+    rows: number;
+    x_coordinates_m: number[];
+    z_coordinates_m: number[];
+  };
+  fields: Record<string, ScalarField>;
+  microphysics?: MicrophysicsPayload | null;
 };
 
 export type SolverDescriptor = {
