@@ -102,16 +102,13 @@ touching production solvers.
 | Renderer inputs | Convert PySDM products into physical fields or run-level products; renderer stays separate. |
 
 The current `SimulationFrame` scalar fields can carry bulk vapor/cloud/rain values,
-but droplet-size distributions need a schema extension. A likely shape is an optional
-frame-level or run-level diagnostic product with:
-
-- bin coordinate metadata
-- units
-- per-cell or bulk distribution values
-- radius-range definitions for cloud/rain aggregate fields
+but droplet-size distributions need a schema extension. The proposed Cloud Lab
+abstraction is documented in `docs/microphysics-schema.md`: optional microphysics
+payloads with bin-axis metadata, global/probe distributions, compact cell summaries,
+and explicit radius thresholds for cloud/rain aggregate fields.
 
 This should be added deliberately rather than squeezed into the existing scalar grid
-contract.
+contract or exposed as PySDM-specific frontend data.
 
 ## Dependency And License Findings
 
@@ -187,7 +184,7 @@ Create or update issues for:
 - Add `microphysics_lab` solver descriptor and backend scaffold.
 - Add a parcel-ascent PySDM prototype with condensation growth.
 - Add a prescribed-flow or single-column PySDM prototype.
-- Design a droplet-size distribution schema extension.
+- Implement the droplet-size distribution schema proposed in `docs/microphysics-schema.md`.
 - Add optional science CI or manual workflow for PySDM tests.
 - Audit GPLv3 implications before production dependency adoption.
 - Compare Cloud Lab saturation adjustment against PySDM parcel outputs.
