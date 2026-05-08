@@ -20,7 +20,6 @@ python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e ".[dev]"
-pytest
 ruff format --check .
 ruff check .
 mypy app tests
@@ -47,6 +46,83 @@ npm run build
 Backend tests should cover API contracts, simulation schemas, deterministic behavior, and numerical invariants as physics code is added. Frontend checks should cover linting and production builds from the start; browser-level or component tests can be added when UI behavior becomes more complex.
 
 CI should pass before a PR is merged. Do not bypass failing tests, lint checks, type checks, or builds.
+
+## Validation Tiers
+
+Use the lightest tier that honestly covers the change. Every PR description should
+say which tier ran and why.
+
+### Tier 1: Quick Local Checks
+
+Default before most PRs. Target runtime is roughly under 1-2 minutes locally.
+
+```bash
+cd backend
+pytest -m "not slow and not science"
+ruff format --check .
+ruff check .
+mypy app tests
+```
+
+For frontend changes, also run:
+
+```bash
+cd frontend
+npm run lint
+npm run test
+npm run build
+```
+
+### Tier 2: Targeted Validation
+
+Run when the PR touches a specific subsystem.
+
+```bash
+# Boussinesq smoke and short benchmark checks
+cd backend
+pytest -m "boussinesq and not slow"
+
+# Boussinesq reference validation checks
+cd backend
+pytest -m "science and validation"
+
+# Frontend visualization/probe helpers
+cd frontend
+npm run test -- visualization.test.ts probe.test.ts
+```
+
+Use focused file or marker selections for API, streaming, preset, or schema changes.
+
+### Tier 3: Full Local Validation
+
+Run full local validation for solver-wide changes, release/checkpoint work, CI
+outages, broad multi-subsystem changes, suspicious targeted failures, or explicit
+user requests.
+
+```bash
+cd backend
+pytest
+ruff format --check .
+ruff check .
+mypy app tests
+
+cd ../frontend
+npm run lint
+npm run test
+npm run build
+```
+
+### Tier 4: Heavy Science Validation
+
+Longer Boussinesq reference cases, future CFD benchmarks, future PySDM-heavy checks,
+and larger model-size sweeps should run manually, on a schedule, or before science
+checkpoints. They should not block routine UI/docs/config PRs unless the PR directly
+changes the solver behavior under validation.
+
+GitHub Actions runs the fast backend/frontend jobs on pushes and PRs. The backend
+PR job runs both the default fast subset and the short Boussinesq sanity subset. The
+`Science validation` job is manual/scheduled and runs the slower Boussinesq validation
+markers.
 
 ## Adding Simulation Features Responsibly
 

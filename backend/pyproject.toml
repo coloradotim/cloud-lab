@@ -26,6 +26,13 @@ packages = ["app"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = [
+  "smoke: fast smoke coverage for API, schema, and basic solver contracts",
+  "science: scientific validation checks that are valuable but slower than the default PR path",
+  "slow: long-running checks reserved for full or heavy validation tiers",
+  "boussinesq: checks for the Boussinesq 2-D solver and its diagnostics",
+  "validation: reference-case or benchmark validation checks",
+]
 
 [tool.ruff]
 line-length = 100
