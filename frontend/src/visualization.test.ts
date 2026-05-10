@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import type { SimulationFrame } from "./simulationTypes";
 import {
+  CLOUD_APPEARANCE_MODE,
+  DEFAULT_CLOUD_OPTICAL_ASSUMPTIONS,
+  cloudOpticalCell,
+  cloudOpticalGrid,
   colorForNormalizedValue,
   displayRangeForField,
   displayStatsForField,
@@ -20,6 +24,7 @@ import {
   truthMetadataForSolver,
   valueRangeForField,
   vectorScaleForFrame,
+  visualizationOptionsFromFrame,
 } from "./visualization";
 
 const frame: SimulationFrame = {
@@ -108,6 +113,14 @@ describe("visualization helpers", () => {
     });
   });
 
+  it("adds a bulk cloud appearance rendering option when cloud water is available", () => {
+    expect(visualizationOptionsFromFrame(frame)[0]).toMatchObject({
+      key: CLOUD_APPEARANCE_MODE,
+      label: "Cloud appearance",
+      categoryLabel: "Visual approximation",
+    });
+  });
+
   it("keeps raw ranges in transport units", () => {
     expect(valueRangeForField(frame.fields.temperature_k)).toEqual({ min: 280, max: 300 });
   });
@@ -186,10 +199,43 @@ describe("visualization helpers", () => {
     expect(truthMetadataForField("optical_depth")).toMatchObject({
       category: "visual_approximation",
     });
+    expect(truthMetadataForField(CLOUD_APPEARANCE_MODE)).toMatchObject({
+      category: "visual_approximation",
+      limitations: expect.stringContaining("not droplet-resolved Mie scattering"),
+    });
     expect(truthMetadataForSolver("boussinesq_2d")).toMatchObject({
       category: "experimental",
       limitations: expect.stringContaining("not quantitative CFD"),
     });
+  });
+
+  it("estimates optical response from bulk cloud water and effective radius", () => {
+    expect(cloudOpticalCell(0)).toMatchObject({
+      opticalDepth: 0,
+      opacity: 0,
+    });
+
+    const thin = cloudOpticalCell(1e-5);
+    const thick = cloudOpticalCell(1e-3);
+    expect(thick.opticalDepth).toBeGreaterThan(thin.opticalDepth);
+    expect(thick.opacity).toBeGreaterThan(thin.opacity);
+
+    const smallDroplets = cloudOpticalCell(1e-4, {
+      ...DEFAULT_CLOUD_OPTICAL_ASSUMPTIONS,
+      effectiveRadiusUm: 6,
+    });
+    const largeDroplets = cloudOpticalCell(1e-4, {
+      ...DEFAULT_CLOUD_OPTICAL_ASSUMPTIONS,
+      effectiveRadiusUm: 24,
+    });
+    expect(smallDroplets.opticalDepth).toBeGreaterThan(largeDroplets.opticalDepth);
+  });
+
+  it("builds an optical grid with transparent no-cloud cells", () => {
+    const opticalGrid = cloudOpticalGrid(frame.fields.cloud_liquid_water_kg_per_kg);
+
+    expect(opticalGrid[0][0].opacity).toBe(0);
+    expect(opticalGrid[1][1].opacity).toBeGreaterThan(opticalGrid[0][0].opacity);
   });
 
   it("uses field-specific scaling policies and suppresses condensate noise", () => {
