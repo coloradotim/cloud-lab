@@ -94,6 +94,108 @@ h2 {
   line-height: 1.6;
 }
 
+.top-action-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 12px;
+  background: rgb(245 247 243 / 94%);
+  box-shadow: 0 8px 24px rgb(21 49 55 / 10%);
+  backdrop-filter: blur(10px);
+}
+
+.top-scenario-select {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #4f6f68;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.top-scenario-select select {
+  min-width: 0;
+  min-height: 40px;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 800;
+  text-transform: none;
+}
+
+.top-action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.top-action-buttons button {
+  min-height: 40px;
+  padding: 8px 12px;
+  white-space: nowrap;
+}
+
+.top-action-buttons button[aria-pressed="true"] {
+  border-color: #3f6f67;
+  background: #edf6f2;
+}
+
+.top-action-buttons .has-inspector-context {
+  border-color: #3f8b75;
+  box-shadow: inset 0 -3px 0 #3f8b75;
+}
+
+.top-run-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 800;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.top-run-status strong {
+  color: #4f6f68;
+  font-size: 0.78rem;
+}
+
+.run-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #9aa8a3;
+}
+
+.run-status-running,
+.run-status-starting {
+  background: #3f8b75;
+}
+
+.run-status-complete {
+  background: #5b8fd6;
+}
+
+.run-status-error {
+  background: #c64b3f;
+}
+
 .status-panel,
   .schema-panel,
   .controls-panel,
@@ -1070,5 +1172,19 @@ h2 {
     max-height: none;
     overflow-y: visible;
     padding-right: 0;
+  }
+
+  .top-action-bar {
+    position: static;
+    grid-template-columns: 1fr;
+  }
+
+  .top-action-buttons,
+  .top-run-status {
+    justify-content: stretch;
+  }
+
+  .top-action-buttons button {
+    flex: 1 1 120px;
   }
 }
