@@ -66,6 +66,7 @@ Initial priority order:
   - validation notes in docs, or
   - a deliberately scoped explanation of why automated validation is deferred.
 - Tests should cover invariants such as shape consistency, units expectations, deterministic seeded output, non-negative moisture fields, and stable frame schemas.
+- Physics and scenario test failures must be classified before assertions are changed. Decide whether the failing check is a contract test, numerical sanity test, physics relationship test, scenario contract test, diagnostic/warning, or obsolete legacy expectation, then either fix the implementation, update the expectation, reframe the scenario, convert the check to a warning, move it to validation, or delete it only if truly obsolete.
 - Run targeted checks appropriate to the files changed. Full local validation is not required for every PR and should be reserved for solver-wide, release/checkpoint, high-risk, or user-requested validation work.
 - Do not merge work that breaks CI.
 - Do not bypass failing tests or builds.
@@ -80,6 +81,7 @@ Required docs should include:
 - `docs/architecture.md` for system structure and boundaries.
 - `docs/scientific-roadmap.md` for physics scope and level-up path.
 - `docs/development.md` for workflow, testing, validation, and contribution norms.
+- `docs/testing-and-validation.md` for test categories, validation tiers, and physics/scenario expectation policy.
 - `AGENTS.md` for durable instructions to coding agents.
 
 When adding a meaningful feature, update the relevant docs in the same PR.
@@ -194,5 +196,6 @@ Expected early files:
 - `docs/simulation-controls.md`: preset philosophy, user-facing parameters, expected effects, and limitations.
 - `docs/live-streaming.md`: run lifecycle, WebSocket message contract, cancellation behavior, and scaling notes.
 - `docs/visualization-dashboard.md`: rendering architecture, field display approach, limitations, and level-up path.
+- `docs/testing-and-validation.md`: testing taxonomy, validation tiers, scenario contracts, and expectation-update policy.
 - `docs/scientific-roadmap.md`: physics scope and level-up path.
 - `docs/development.md`: development workflow, tests, and validation expectations.

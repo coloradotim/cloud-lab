@@ -4,6 +4,10 @@
 production-facing home for isolated microphysics work, separate from the
 `boussinesq_2d` dynamics prototype.
 
+Its tests and validation expectations are governed by the
+[testing and validation plan](testing-and-validation.md), especially the
+`microphysics_lab` solver role and the lifted/no-lift scenario contracts.
+
 ## Purpose
 
 The lab mode answers smaller questions than a full cloud model:

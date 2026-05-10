@@ -2,6 +2,11 @@
 
 Cloud Lab's first scientific dashboard renders streamed `SimulationFrame` data in the browser with a canvas-based 2-D vertical slice view.
 
+Visualization tests should preserve truthful interpretation of solver fields
+without encoding solver state in the renderer. See
+the [testing and validation plan](testing-and-validation.md) for the broader
+distinction between contract, scenario, diagnostic, and visualization checks.
+
 ## Rendering Architecture
 
 The frontend keeps rendering separate from solver and API concerns:

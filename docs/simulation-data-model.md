@@ -2,6 +2,11 @@
 
 Cloud Lab uses explicit Pydantic models for simulation configuration and frame output. The goal is to keep solver code, API transport, and frontend visualization aligned around one documented contract.
 
+Schema and solver-catalog expectations are contract tests under the
+[testing and validation plan](testing-and-validation.md). Update that plan when
+the public/default solver contract, saved config format, or frame schema
+changes.
+
 ## Configuration Schema
 
 `SimulationConfig` is versioned with `schema_version = "sim-config-v1"`.
