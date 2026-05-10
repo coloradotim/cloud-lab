@@ -47,6 +47,12 @@ Backend tests should cover API contracts, simulation schemas, deterministic beha
 
 CI should pass before a PR is merged. Do not bypass failing tests, lint checks, type checks, or builds.
 
+Use the [testing and validation plan](testing-and-validation.md) as the
+governing plan for model-development tests. It defines contract tests, numerical
+sanity tests, physics relationship tests, scenario contract tests, reference
+validation, diagnostic warnings, and the rules for updating expectations when
+model assumptions change.
+
 ## Validation Tiers
 
 Use the lightest tier that honestly covers the change. Every PR description should
@@ -149,6 +155,13 @@ When adding a modeled field:
 ## Physics Validation Rule
 
 New physics code must include automated tests or validation notes. Tests are preferred for deterministic behavior, field shapes, units expectations, non-negative moisture fields, and stable frame schemas. If automated validation is deferred, the PR must explain why and include enough notes for the next implementation step.
+
+When physics or scenario tests fail, classify the failure before changing
+assertions. Decide whether the test is a contract check, numerical sanity check,
+physics relationship, scenario contract, diagnostic warning, or obsolete legacy
+expectation. Then choose whether to fix the implementation, update the
+expectation, reframe the scenario, convert to a warning, or move the check into a
+validation suite.
 
 For solver changes, update `docs/minimal-solver.md` when assumptions, equations, stability behavior, constants, validation checks, or known limitations change.
 

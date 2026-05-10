@@ -8,6 +8,10 @@ It does not prove atmospheric realism. The solver still uses simple transport,
 fixed-iteration streamfunction inversion, warm-cloud saturation adjustment, damping,
 and safety caps.
 
+For the broader test taxonomy, hard-failure policy, diagnostic-warning policy,
+and process for updating physics expectations, see
+the [testing and validation plan](testing-and-validation.md).
+
 ## How to Run
 
 The fast PR backend job excludes slower science validation:

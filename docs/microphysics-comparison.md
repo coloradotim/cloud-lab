@@ -19,6 +19,10 @@ No PySDM result is included yet. The comparison therefore does not validate
 droplet-resolved growth, collision/coalescence, or size distributions. It quantifies
 what the current bulk placeholder can and cannot tell us.
 
+Use the [testing and validation plan](testing-and-validation.md) for the broader
+policy on when microphysics checks are hard failures, diagnostics, or
+manual/science validation.
+
 ## Thermodynamic Forcing Fix
 
 Earlier `microphysics_lab` treated `surface_heating.max_warming_rate_k_per_s` as a

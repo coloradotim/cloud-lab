@@ -8,6 +8,11 @@ Reference cases remain separate. They are for regression tests and scientific
 guardrails. A built-in scenario may borrow from a reference case, but the UI
 should read like an experiment catalog rather than a test harness.
 
+Scenario contracts are tested according to the
+[testing and validation plan](testing-and-validation.md). That plan defines
+which scenario expectations are hard failures, which remain diagnostics, and how
+to update tests when scenario assumptions change.
+
 ## Built-In Scenario Catalog
 
 ### Fair-weather cumulus — moderate cloud base
