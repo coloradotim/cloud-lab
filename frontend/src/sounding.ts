@@ -1,5 +1,10 @@
 import type { ScalarField, SimulationConfig, SimulationFrame } from "./simulationTypes";
-import { displayUnitForField, displayValueForField } from "./visualization";
+import {
+  displayUnitForField,
+  displayValueForField,
+  truthMetadataForField,
+} from "./visualization";
+import type { TruthMetadata } from "./visualization";
 
 export type ProfileMode = "domain_average" | "column";
 
@@ -19,7 +24,13 @@ export type VerticalProfile = {
   columnIndex: number | null;
   xMeters: number | null;
   points: ProfilePoint[];
-  fields: Array<{ key: string; label: string; unit: string; source: "field" | "derived" }>;
+  fields: Array<{
+    key: string;
+    label: string;
+    unit: string;
+    source: "field" | "derived";
+    truth: TruthMetadata;
+  }>;
   markers: ProfileMarker[];
   note: string | null;
 };
@@ -84,6 +95,7 @@ function profileFieldDescriptor(
       label: "Relative humidity",
       unit: "%",
       source: "derived",
+      truth: truthMetadataForField("relative_humidity"),
     };
   }
 
@@ -97,6 +109,7 @@ function profileFieldDescriptor(
     label: field.metadata.display_name,
     unit: displayUnitForField(field),
     source: "field",
+    truth: truthMetadataForField(key, field, frame.config?.solver_type),
   };
 }
 

@@ -6,6 +6,8 @@ import {
   summarizeMicrophysicsFrames,
 } from "./microphysicsDiagnostics";
 import type { SimulationConfig, SimulationFrame } from "./simulationTypes";
+import { truthMetadataForField, truthMetadataForSolver } from "./visualization";
+import type { TruthMetadata } from "./visualization";
 
 type MicrophysicsDiagnosticsPanelProps = {
   frames: SimulationFrame[];
@@ -27,6 +29,14 @@ export function MicrophysicsDiagnosticsPanel({
     [config, frames],
   );
   const histogram = dropletHistogramFromPayload(displayedFrame?.microphysics);
+  const labTruth = truthMetadataForSolver("microphysics_lab");
+  const prescribedLiftTruth = truthMetadataForField(
+    "vertical_velocity_m_per_s",
+    displayedFrame?.fields.vertical_velocity_m_per_s,
+    "microphysics_lab",
+  );
+  const cloudWaterTruth = truthMetadataForField("cloud_liquid_water_kg_per_kg");
+  const rainWaterTruth = truthMetadataForField("rain_water_kg_per_kg");
 
   if (!shouldShow) {
     return null;
@@ -42,6 +52,12 @@ export function MicrophysicsDiagnosticsPanel({
         <p className="microphysics-note">
           Current lab output is a controlled bulk parcel broadcast over the grid; the useful signal
           is the time history and water budget.
+          <span
+            className={`truth-badge truth-${labTruth.category}`}
+            title={`${labTruth.explanation}${labTruth.limitations ? ` ${labTruth.limitations}` : ""}`}
+          >
+            {labTruth.label}
+          </span>
         </p>
       </div>
 
@@ -59,12 +75,18 @@ export function MicrophysicsDiagnosticsPanel({
               <Metric
                 label="Final cloud water"
                 value={formatMixingRatio(summary.finalCloudLiquidWaterKgPerKg)}
+                truth={cloudWaterTruth}
               />
-              <Metric label="Final rain water" value={formatMixingRatio(summary.finalRainWaterKgPerKg)} />
+              <Metric
+                label="Final rain water"
+                value={formatMixingRatio(summary.finalRainWaterKgPerKg)}
+                truth={rainWaterTruth}
+              />
               <Metric label="Parcel height" value={`${summary.finalParcelHeightM.toFixed(0)} m`} />
               <Metric
                 label="Prescribed lift"
                 value={`${summary.prescribedVerticalVelocityMPerS.toFixed(2)} m s-1`}
+                truth={prescribedLiftTruth}
               />
             </DiagnosticGroup>
 
@@ -73,17 +95,23 @@ export function MicrophysicsDiagnosticsPanel({
               <Metric
                 label="Max cloud water"
                 value={formatMixingRatio(summary.maxCloudLiquidWaterKgPerKg)}
+                truth={cloudWaterTruth}
               />
               <Metric
                 label="Max cloud time"
                 value={formatTime(summary.maxCloudLiquidWaterTimeSeconds)}
               />
               <Metric label="First rain water" value={formatTime(summary.firstRainWaterTimeSeconds)} />
-              <Metric label="Max rain water" value={formatMixingRatio(summary.maxRainWaterKgPerKg)} />
+              <Metric
+                label="Max rain water"
+                value={formatMixingRatio(summary.maxRainWaterKgPerKg)}
+                truth={rainWaterTruth}
+              />
               <Metric label="Max rain time" value={formatTime(summary.maxRainWaterTimeSeconds)} />
               <Metric
                 label="Max RH proxy"
                 value={`${summary.maxRelativeHumidityPercent.toFixed(1)} %`}
+                truth={truthMetadataForField("relative_humidity")}
               />
             </DiagnosticGroup>
 
@@ -130,6 +158,12 @@ export function MicrophysicsDiagnosticsPanel({
             {histogram
               ? `${histogram.product} (${histogram.productUnit}, ${histogram.normalization})`
               : "No droplet-size distribution is emitted by this run."}
+            <span
+              className="truth-badge truth-experimental"
+              title="Droplet histograms are optional experimental payloads and may be absent."
+            >
+              Experimental
+            </span>
           </p>
         </div>
         {histogram ? (
@@ -161,10 +195,20 @@ function DiagnosticGroup({ title, children }: { title: string; children: ReactNo
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
+function Metric({ label, value, truth }: { label: string; value: string; truth?: TruthMetadata }) {
   return (
     <div>
-      <dt>{label}</dt>
+      <dt>
+        {label}
+        {truth ? (
+          <span
+            className={`truth-badge truth-${truth.category}`}
+            title={`${truth.explanation}${truth.limitations ? ` ${truth.limitations}` : ""}`}
+          >
+            {truth.label}
+          </span>
+        ) : null}
+      </dt>
       <dd>{value}</dd>
     </div>
   );

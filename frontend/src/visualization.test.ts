@@ -13,6 +13,11 @@ import {
   getFieldStats,
   gridPointFromCanvas,
   normalizedDisplayValueForField,
+  normalizedDisplayValueForFieldKey,
+  scalingMetadataForField,
+  sharedDisplayRangeForField,
+  truthMetadataForField,
+  truthMetadataForSolver,
   valueRangeForField,
   vectorScaleForFrame,
 } from "./visualization";
@@ -98,6 +103,9 @@ describe("visualization helpers", () => {
       { key: "vertical_velocity_m_per_s", label: "Vertical velocity", unit: "m s-1" },
       { key: "horizontal_velocity_m_per_s", label: "Horizontal velocity", unit: "m s-1" },
     ]);
+    expect(fieldOptionsFromFrame(frame)[0]).toMatchObject({
+      categoryLabel: "Solver output",
+    });
   });
 
   it("keeps raw ranges in transport units", () => {
@@ -146,12 +154,101 @@ describe("visualization helpers", () => {
       ],
     };
 
-    expect(fieldSummaryForField("cloud_liquid_water_kg_per_kg", cloudWithNoise)).toEqual({
+    expect(fieldSummaryForField("cloud_liquid_water_kg_per_kg", cloudWithNoise)).toMatchObject({
       label: "Field max",
       value: "6.80e-3",
       unit: "kg kg-1",
       helper: "Values below 1.0e-8 kg kg-1 are display noise.",
+      truth: { category: "solver_output", label: "Solver output" },
+      scaling: { scale: "log", noiseThreshold: 1e-8 },
     });
+  });
+
+  it("defines truth metadata for fields, derived diagnostics, solvers, and visual renderings", () => {
+    expect(truthMetadataForField("relative_humidity")).toMatchObject({
+      category: "derived_diagnostic",
+      label: "Derived diagnostic",
+    });
+    expect(truthMetadataForField("buoyancy_m_per_s2")).toMatchObject({
+      category: "derived_diagnostic",
+      limitations: expect.stringContaining("Approximate thermal buoyancy"),
+    });
+    expect(
+      truthMetadataForField(
+        "vertical_velocity_m_per_s",
+        frame.fields.vertical_velocity_m_per_s,
+        "microphysics_lab",
+      ),
+    ).toMatchObject({
+      category: "prescribed_forcing",
+      label: "Prescribed forcing",
+    });
+    expect(truthMetadataForField("optical_depth")).toMatchObject({
+      category: "visual_approximation",
+    });
+    expect(truthMetadataForSolver("boussinesq_2d")).toMatchObject({
+      category: "experimental",
+      limitations: expect.stringContaining("not quantitative CFD"),
+    });
+  });
+
+  it("uses field-specific scaling policies and suppresses condensate noise", () => {
+    expect(scalingMetadataForField("cloud_liquid_water_kg_per_kg")).toMatchObject({
+      scale: "log",
+      range: "adaptive",
+      noiseThreshold: 1e-8,
+      comparison: "shared_by_default",
+    });
+    expect(scalingMetadataForField("temperature_perturbation_k")).toMatchObject({
+      scale: "linear",
+      range: "symmetric",
+      signed: true,
+    });
+    expect(
+      normalizedDisplayValueForFieldKey(
+        "cloud_liquid_water_kg_per_kg",
+        frame.fields.cloud_liquid_water_kg_per_kg,
+        1e-10,
+      ),
+    ).toBe(0);
+  });
+
+  it("falls back gracefully when scale metadata is missing", () => {
+    const unknownField = {
+      values: [
+        [3, 4],
+        [5, 6],
+      ],
+      metadata: {
+        unit: "arb",
+        display_name: "Future diagnostic",
+        description: "A future field without explicit frontend metadata.",
+      },
+    };
+
+    expect(scalingMetadataForField("future_diagnostic", unknownField)).toMatchObject({
+      scale: "linear",
+      range: "adaptive",
+      comparison: "shared_by_default",
+    });
+    expect(displayRangeForField(unknownField)).toEqual({ min: 3, max: 6 });
+  });
+
+  it("calculates shared comparison ranges with symmetric signed fields", () => {
+    const strongerVerticalVelocity = {
+      ...frame.fields.vertical_velocity_m_per_s,
+      values: [
+        [-2, 0],
+        [0.5, 1],
+      ],
+    };
+
+    expect(
+      sharedDisplayRangeForField("vertical_velocity_m_per_s", [
+        frame.fields.vertical_velocity_m_per_s,
+        strongerVerticalVelocity,
+      ]),
+    ).toEqual({ min: -2, max: 2 });
   });
 
   it("keeps signed fields as min and max summaries", () => {

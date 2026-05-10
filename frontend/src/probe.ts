@@ -1,5 +1,10 @@
 import type { ScalarField, SimulationFrame } from "./simulationTypes";
-import { displayUnitForField, formatDisplayValue } from "./visualization";
+import {
+  displayUnitForField,
+  formatDisplayValue,
+  truthMetadataForField,
+} from "./visualization";
+import type { TruthMetadata } from "./visualization";
 
 const GRAVITY_M_PER_S2 = 9.81;
 const REFERENCE_TEMPERATURE_K = 300.0;
@@ -19,6 +24,7 @@ export type ProbeDiagnostic = {
   formattedValue: string;
   value: number | null;
   source: "field" | "derived" | "missing";
+  truth: TruthMetadata;
   note?: string;
 };
 
@@ -97,6 +103,7 @@ function diagnosticForField(
     formattedValue: formatDisplayValue(field, value),
     value,
     source: "field",
+    truth: truthMetadataForField(fieldKey, field, frame.config?.solver_type),
   };
 }
 
@@ -122,6 +129,7 @@ function relativeHumidityDiagnostic(
     formattedValue: (relativeHumidity * 100).toFixed(1),
     value: relativeHumidity,
     source: "derived",
+    truth: truthMetadataForField("relative_humidity"),
     note: "Derived from temperature and water vapor with the V1 saturation approximation.",
   };
 }
@@ -147,6 +155,7 @@ function buoyancyDiagnostic(frame: SimulationFrame, selection: ProbeSelection): 
     formattedValue: buoyancy.toExponential(2),
     value: buoyancy,
     source: "derived",
+    truth: truthMetadataForField("buoyancy_m_per_s2"),
     note: "Educational diagnostic from temperature perturbation, not a full pressure-coupled acceleration.",
   };
 }
@@ -185,6 +194,7 @@ function missingDiagnostic(key: string, label: string): ProbeDiagnostic {
     formattedValue: "Not emitted",
     value: null,
     source: "missing",
+    truth: truthMetadataForField(key),
   };
 }
 

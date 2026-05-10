@@ -32,7 +32,7 @@ import {
 import type { SavedScenario } from "./savedScenarios";
 import { buildVerticalProfile } from "./sounding";
 import type { VerticalProfile } from "./sounding";
-import { displayUnit } from "./visualization";
+import { displayUnit, truthMetadataForSolver } from "./visualization";
 
 type HealthState =
   | { status: "checking" }
@@ -731,8 +731,12 @@ function VerticalProfilePanel({ profile }: { profile: VerticalProfile | null }) 
           {profile.note ? <p className="control-note">{profile.note}</p> : null}
           <div className="profile-markers">
             {profile.markers.map((marker) => (
-              <span key={marker.key}>
+              <span
+                key={marker.key}
+                title="Derived diagnostic from configuration and sounding assumptions."
+              >
                 {marker.label}: {marker.height_m.toFixed(0)} m
+                <em>Derived diagnostic</em>
               </span>
             ))}
           </div>
@@ -746,6 +750,12 @@ function VerticalProfilePanel({ profile }: { profile: VerticalProfile | null }) 
                     return field ? (
                       <th key={field.key}>
                         {field.label} ({field.unit})
+                        <span
+                          className={`truth-badge truth-${field.truth.category}`}
+                          title={`${field.truth.explanation}${field.truth.limitations ? ` ${field.truth.limitations}` : ""}`}
+                        >
+                          {field.truth.label}
+                        </span>
                       </th>
                     ) : null;
                   })}
@@ -880,6 +890,7 @@ function SimulationControls({
   }
 
   const activeSolver = solvers.find((solver) => solver.solver_type === config.solver_type);
+  const activeSolverTruth = truthMetadataForSolver(config.solver_type);
   const activeReferenceCase = BUILT_IN_SCENARIOS.find((candidate) => {
     return candidate.slug === selectedReferenceCase;
   });
@@ -959,6 +970,12 @@ function SimulationControls({
           {activeModelSize ? <p className="control-note">{activeModelSize.description}</p> : null}
           <p className="control-note">
             Solver: {activeSolver?.name ?? "Boussinesq 2-D"}
+            <span
+              className={`truth-badge truth-${activeSolverTruth.category}`}
+              title={`${activeSolverTruth.explanation}${activeSolverTruth.limitations ? ` ${activeSolverTruth.limitations}` : ""}`}
+            >
+              {activeSolverTruth.label}
+            </span>
           </p>
           {activeSolver?.limitations.length ? (
             <ul className="control-note-list">
