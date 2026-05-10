@@ -44,6 +44,319 @@ export type BoussinesqModelSize = {
   apply: (config: SimulationConfig) => SimulationConfig;
 };
 
+export type ControlKey =
+  | "scenario"
+  | "model_size"
+  | "surface_temperature"
+  | "lapse_rate"
+  | "boundary_layer_depth"
+  | "source_layer_relative_humidity"
+  | "humidity_profile"
+  | "moist_source_layer_depth"
+  | "free_atmosphere_relative_humidity"
+  | "heating_pattern"
+  | "surface_heating_rate"
+  | "heating_patch_width"
+  | "heating_patch_center"
+  | "runtime"
+  | "domain_width"
+  | "domain_height"
+  | "grid_columns"
+  | "grid_rows"
+  | "time_step"
+  | "frame_cadence"
+  | "background_wind"
+  | "prescribed_lift"
+  | "seed"
+  | "saved_scenarios";
+
+export type ControlImportance = "basic" | "advanced" | "developer";
+export type ControlState = "active" | "advanced" | "disabled" | "hidden" | "legacy";
+
+export type ControlMetadata = {
+  key: ControlKey;
+  label: string;
+  shortHelp: string;
+  units?: string;
+  category: string;
+  importance: ControlImportance;
+  appliesToSolvers: SimulationConfig["solver_type"][];
+  unavailableBehavior: "hide" | "disable";
+  unavailableReason: string;
+  truthCategory?: "solver_output" | "derived_diagnostic" | "prescribed_forcing" | "experimental";
+};
+
+export type ControlPresentation = ControlMetadata & {
+  state: ControlState;
+  disabledReason: string | null;
+};
+
+export const CONTROL_METADATA: Record<ControlKey, ControlMetadata> = {
+  scenario: {
+    key: "scenario",
+    label: "Scenario",
+    shortHelp: "Loads a documented experiment setup. Scenario choice drives the solver mode.",
+    category: "Setup",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Scenario selection is always available for public solvers.",
+  },
+  model_size: {
+    key: "model_size",
+    label: "Model size",
+    shortHelp: "Safe presets for Boussinesq domain, grid, runtime, and output cadence.",
+    category: "Setup",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Microphysics lab scenarios use fixed parcel/box resolution presets.",
+  },
+  surface_temperature: {
+    key: "surface_temperature",
+    label: "Surface temperature",
+    shortHelp: "Initial near-surface air temperature used by thermodynamics and saturation estimates.",
+    units: "deg C",
+    category: "Thermodynamics",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Temperature is not used by this solver.",
+  },
+  lapse_rate: {
+    key: "lapse_rate",
+    label: "Lapse rate",
+    shortHelp: "Environmental cooling rate with height. Larger values are less stable and support deeper vertical growth.",
+    units: "K/m",
+    category: "Thermodynamics",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Parcel microphysics uses prescribed lift rather than a resolved environmental stability profile.",
+  },
+  boundary_layer_depth: {
+    key: "boundary_layer_depth",
+    label: "BL / inversion top",
+    shortHelp: "Approximate top of the mixed layer or inversion. This is a scenario structure marker, not a hard cloud-base rule.",
+    units: "m",
+    category: "Thermodynamics",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab is a parcel/box mode without resolved boundary-layer depth.",
+  },
+  source_layer_relative_humidity: {
+    key: "source_layer_relative_humidity",
+    label: "Source-layer RH",
+    shortHelp: "Near-surface/source-layer humidity. Higher values lower the expected cloud base. Near-saturated values can create low cloud or fog-like behavior.",
+    units: "fraction",
+    category: "Moisture",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Humidity is not used by this solver.",
+  },
+  humidity_profile: {
+    key: "humidity_profile",
+    label: "Humidity pattern",
+    shortHelp: "Vertical moisture structure used to initialize the Boussinesq atmosphere.",
+    category: "Moisture",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab uses a single parcel/box humidity value.",
+  },
+  moist_source_layer_depth: {
+    key: "moist_source_layer_depth",
+    label: "Moist source depth",
+    shortHelp: "Depth of the near-surface moist air feeding thermals. Deeper source layers can support longer-lived cloud growth.",
+    units: "m",
+    category: "Moisture",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab has no resolved source layer.",
+  },
+  free_atmosphere_relative_humidity: {
+    key: "free_atmosphere_relative_humidity",
+    label: "Free-air RH",
+    shortHelp: "Humidity above the moist source layer. Lower values can limit cloud growth and promote evaporation-like drying.",
+    units: "fraction",
+    category: "Moisture",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab has no resolved free-atmosphere layer.",
+  },
+  heating_pattern: {
+    key: "heating_pattern",
+    label: "Heating pattern",
+    shortHelp: "Spatial pattern of lower-boundary warming that organizes Boussinesq thermals.",
+    category: "Surface forcing",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Parcel microphysics does not use horizontal surface heating patterns.",
+  },
+  surface_heating_rate: {
+    key: "surface_heating_rate",
+    label: "Heating rate",
+    shortHelp: "Strength of lower-boundary warming. Stronger heating produces stronger thermals, but cloud formation still depends on moisture and stability.",
+    units: "K/s",
+    category: "Surface forcing",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab uses prescribed parcel forcing instead of surface heating.",
+  },
+  heating_patch_width: {
+    key: "heating_patch_width",
+    label: "Patch width",
+    shortHelp: "Horizontal width of the heated patch or paired thermal sources.",
+    units: "m",
+    category: "Surface forcing",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "The selected heating pattern does not use patch width.",
+  },
+  heating_patch_center: {
+    key: "heating_patch_center",
+    label: "Patch center",
+    shortHelp: "Horizontal center of a single or custom heating patch.",
+    units: "m",
+    category: "Surface forcing",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "The selected heating pattern places its own heating centers.",
+  },
+  runtime: {
+    key: "runtime",
+    label: "Runtime",
+    shortHelp: "Simulated duration. Longer runs can reveal delayed cloud onset and later evolution.",
+    units: "s",
+    category: "Time and output",
+    importance: "basic",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Runtime is always relevant to public solvers.",
+  },
+  domain_width: {
+    key: "domain_width",
+    label: "Domain width",
+    shortHelp: "Horizontal domain size. Usually prefer model-size presets unless testing resolution/domain effects.",
+    units: "m",
+    category: "Domain and grid",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab broadcasts a parcel/box state over a fixed compatibility grid.",
+  },
+  domain_height: {
+    key: "domain_height",
+    label: "Domain height",
+    shortHelp: "Vertical domain size. Usually prefer model-size presets unless testing cloud-top or boundary effects.",
+    units: "m",
+    category: "Domain and grid",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab broadcasts a parcel/box state over a fixed compatibility grid.",
+  },
+  grid_columns: {
+    key: "grid_columns",
+    label: "Grid columns",
+    shortHelp: "Horizontal resolution. Larger values are slower and should be used for targeted inspection.",
+    units: "cells",
+    category: "Domain and grid",
+    importance: "developer",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab does not use resolved horizontal grid dynamics.",
+  },
+  grid_rows: {
+    key: "grid_rows",
+    label: "Grid rows",
+    shortHelp: "Vertical resolution. Larger values are slower and should be used for targeted inspection.",
+    units: "cells",
+    category: "Domain and grid",
+    importance: "developer",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab does not use resolved vertical grid dynamics.",
+  },
+  time_step: {
+    key: "time_step",
+    label: "Timestep",
+    shortHelp: "Numerical integration step. Smaller values can improve stability at higher cost.",
+    units: "s",
+    category: "Time and output",
+    importance: "developer",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Timestep is controlled by the selected scenario preset.",
+  },
+  frame_cadence: {
+    key: "frame_cadence",
+    label: "Frame cadence",
+    shortHelp: "Simulated seconds between streamed frames. Short cadence increases browser frame count.",
+    units: "s",
+    category: "Time and output",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Frame cadence is controlled by the selected scenario preset.",
+  },
+  background_wind: {
+    key: "background_wind",
+    label: "Background wind",
+    shortHelp: "Horizontal wind through the domain. Stronger wind can tilt or advect cloud features.",
+    units: "m/s",
+    category: "Wind and reproducibility",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d"],
+    unavailableBehavior: "hide",
+    unavailableReason: "Microphysics lab has no resolved horizontal advection.",
+    truthCategory: "prescribed_forcing",
+  },
+  prescribed_lift: {
+    key: "prescribed_lift",
+    label: "Prescribed lift",
+    shortHelp: "For microphysics_lab, imposed parcel lift. In Boussinesq runs, thermals are generated by surface heating instead.",
+    units: "m/s",
+    category: "Wind and reproducibility",
+    importance: "basic",
+    appliesToSolvers: ["microphysics_lab"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Boussinesq vertical motion is predicted from heating/dynamics; leave background vertical motion near zero.",
+    truthCategory: "prescribed_forcing",
+  },
+  seed: {
+    key: "seed",
+    label: "Random seed",
+    shortHelp: "Reproducibility seed for generated patterns and deterministic scenario variation.",
+    units: "seed",
+    category: "Wind and reproducibility",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Seed is only meaningful for deterministic generated patterns.",
+  },
+  saved_scenarios: {
+    key: "saved_scenarios",
+    label: "Saved experiments",
+    shortHelp: "Save or reload local browser copies of experiment configs.",
+    category: "Setup",
+    importance: "advanced",
+    appliesToSolvers: ["boussinesq_2d", "microphysics_lab"],
+    unavailableBehavior: "disable",
+    unavailableReason: "Saved experiments are available after a config is loaded.",
+  },
+};
+
+const PUBLIC_CONTROL_KEYS = Object.keys(CONTROL_METADATA) as ControlKey[];
+
 export const SURFACE_HEATING_PATTERNS = [
   {
     value: "single_patch",
@@ -476,6 +789,63 @@ export function updateConfigValue(
   target[parts[parts.length - 1]] = value;
 
   return normalizeConfig(nextConfig);
+}
+
+export function controlPresentationFor(
+  key: ControlKey,
+  config: SimulationConfig,
+  scenario?: BuiltInScenario | null,
+): ControlPresentation {
+  const metadata = CONTROL_METADATA[key];
+  const solver = scenario?.solverMode ?? config.solver_type;
+  const solverApplies = metadata.appliesToSolvers.includes(solver);
+  if (!solverApplies) {
+    return unavailablePresentation(metadata, metadata.unavailableReason);
+  }
+
+  const contextualReason = contextualUnavailableReason(key, config);
+  if (contextualReason) {
+    return unavailablePresentation(metadata, contextualReason);
+  }
+
+  const state = metadata.importance === "basic" ? "active" : "advanced";
+  return { ...metadata, state, disabledReason: null };
+}
+
+export function controlPresentationsFor(
+  config: SimulationConfig,
+  scenario?: BuiltInScenario | null,
+): ControlPresentation[] {
+  return PUBLIC_CONTROL_KEYS.map((key) => controlPresentationFor(key, config, scenario));
+}
+
+function unavailablePresentation(
+  metadata: ControlMetadata,
+  reason: string,
+): ControlPresentation {
+  const state = metadata.unavailableBehavior === "hide" ? "hidden" : "disabled";
+  return { ...metadata, state, disabledReason: reason };
+}
+
+function contextualUnavailableReason(
+  key: ControlKey,
+  config: SimulationConfig,
+): string | null {
+  const heatingPattern = config.surface_heating.pattern ?? "single_patch";
+  if (key === "heating_patch_width" && heatingPattern === "weak_random") {
+    return "Weak uneven heating uses seeded bumps rather than an editable patch width.";
+  }
+  if (
+    key === "heating_patch_center" &&
+    heatingPattern !== "single_patch" &&
+    heatingPattern !== "custom_patches"
+  ) {
+    return "The selected heating pattern places its own centers.";
+  }
+  if (key === "prescribed_lift" && config.solver_type === "boussinesq_2d") {
+    return CONTROL_METADATA.prescribed_lift.unavailableReason;
+  }
+  return null;
 }
 
 export function normalizeConfig(config: SimulationConfig): SimulationConfig {

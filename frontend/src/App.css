@@ -270,6 +270,13 @@ h2 {
   text-transform: uppercase;
 }
 
+.preset-select small {
+  color: #53615e;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-transform: none;
+}
+
 .preset-select select {
   min-height: 42px;
   border: 1px solid #8a9e98;
@@ -313,6 +320,13 @@ h2 {
   line-height: 1.4;
 }
 
+.changes-note {
+  border: 1px solid #d9e2dd;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
 .control-note-list {
   display: grid;
   gap: 4px;
@@ -328,6 +342,11 @@ h2 {
   border-radius: 8px;
   padding: 12px;
   background: #ffffff;
+}
+
+.disabled-control {
+  color: #596864;
+  background: #f1f4f1;
 }
 
 .select-control {
@@ -361,6 +380,15 @@ h2 {
   gap: 12px;
   color: #153137;
   font-weight: 800;
+}
+
+.number-control small,
+.select-control small {
+  grid-column: 1 / -1;
+  color: #53615e;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .select-control span {
@@ -414,6 +442,27 @@ h2 {
 
 .button-row.compact {
   margin: 0;
+}
+
+.advanced-controls {
+  display: grid;
+  gap: 14px;
+}
+
+.advanced-controls summary {
+  width: fit-content;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.advanced-controls[open] summary {
+  margin-bottom: 14px;
+  background: #edf6f2;
 }
 
 .scenario-metadata {
