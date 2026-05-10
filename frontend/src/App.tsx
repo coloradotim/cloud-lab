@@ -31,6 +31,8 @@ import {
 } from "./savedScenarios";
 import type { SavedScenario } from "./savedScenarios";
 import { replayEventTargets, replayStatus } from "./replay";
+import { evaluateScenarioRun } from "./scenarioDiagnostics";
+import type { ScenarioDiagnostics } from "./scenarioDiagnostics";
 import { buildVerticalProfile } from "./sounding";
 import type { VerticalProfile } from "./sounding";
 import { displayUnit, truthMetadataForSolver } from "./visualization";
@@ -178,6 +180,9 @@ export function App() {
   const [frames, setFrames] = useState<SimulationFrame[]>([]);
   const [displayedFrameIndex, setDisplayedFrameIndex] = useState(0);
   const [selectedField, setSelectedField] = useState(DEFAULT_VISUAL_FIELD);
+  const [selectedScenarioSlug, setSelectedScenarioSlug] = useState(
+    "fair-weather-moderate-base",
+  );
   const [profileColumnIndex, setProfileColumnIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -200,6 +205,20 @@ export function App() {
   const firstFrameAtRef = useRef<number | null>(null);
   const replayEvents = useMemo(() => replayEventTargets(frames), [frames]);
   const currentReplayStatus = replayStatus(playback.status, frames.length, displayedFrameIndex);
+  const activeScenario = useMemo(
+    () =>
+      BUILT_IN_SCENARIOS.find((candidate) => candidate.slug === selectedScenarioSlug) ?? null,
+    [selectedScenarioSlug],
+  );
+  const scenarioDiagnostics = useMemo(
+    () =>
+      evaluateScenarioRun({
+        scenario: activeScenario,
+        config: simulationConfig,
+        frames,
+      }),
+    [activeScenario, simulationConfig, frames],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -445,6 +464,7 @@ export function App() {
     }
 
     applySimulationConfig(scenario.config);
+    setSelectedScenarioSlug("");
     setConfigMessage(`Loaded saved experiment: ${scenario.name}`);
   }
 
@@ -560,8 +580,10 @@ export function App() {
         config={simulationConfig}
         solvers={solvers}
         savedScenarios={savedScenarios}
+        selectedReferenceCase={selectedScenarioSlug}
         message={configMessage}
         onConfigChange={applySimulationConfig}
+        onSelectedReferenceCaseChange={setSelectedScenarioSlug}
         onSaveScenario={saveScenario}
         onUpdateScenario={updateScenario}
         onLoadScenario={loadScenario}
@@ -582,6 +604,8 @@ export function App() {
           onReset={resetPlayback}
         />
       </section>
+
+      <ScenarioDiagnosticsPanel diagnostics={scenarioDiagnostics} />
 
       <ScientificDashboard
         frame={frames[displayedFrameIndex] ?? null}
@@ -801,6 +825,44 @@ function VerticalProfilePanel({ profile }: { profile: VerticalProfile | null }) 
   );
 }
 
+function ScenarioDiagnosticsPanel({
+  diagnostics,
+}: {
+  diagnostics: ScenarioDiagnostics;
+}) {
+  return (
+    <section className="scenario-diagnostics-panel" aria-labelledby="scenario-diagnostics-title">
+      <div className="scenario-diagnostics-header">
+        <div>
+          <p className="eyebrow">Scenario check</p>
+          <h2 id="scenario-diagnostics-title">Expected vs observed</h2>
+        </div>
+        <span className={`scenario-status scenario-status-${diagnostics.status}`}>
+          {diagnostics.statusLabel}
+        </span>
+      </div>
+      <div className="scenario-diagnostics-grid">
+        <div>
+          <h3>Expected</h3>
+          <p>{diagnostics.expected}</p>
+        </div>
+        <div>
+          <h3>Observed</h3>
+          <p>{diagnostics.observed}</p>
+        </div>
+        <div>
+          <h3>Notes</h3>
+          <ul>
+            {diagnostics.notes.map((note) => (
+              <li key={note}>{note}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function formatProfileValue(value: number | null | undefined): string {
   if (value === null || value === undefined || !Number.isFinite(value)) {
     return "n/a";
@@ -818,8 +880,10 @@ function SimulationControls({
   config,
   solvers,
   savedScenarios,
+  selectedReferenceCase,
   message,
   onConfigChange,
+  onSelectedReferenceCaseChange,
   onSaveScenario,
   onUpdateScenario,
   onLoadScenario,
@@ -828,16 +892,15 @@ function SimulationControls({
   config: SimulationConfig | null;
   solvers: SolverDescriptor[];
   savedScenarios: SavedScenario[];
+  selectedReferenceCase: string;
   message: string | null;
   onConfigChange: (config: SimulationConfig) => void;
+  onSelectedReferenceCaseChange: (scenarioSlug: string) => void;
   onSaveScenario: (name: string) => void;
   onUpdateScenario: (scenarioId: string) => void;
   onLoadScenario: (scenarioId: string) => void;
   onDeleteScenario: (scenarioId: string) => void;
 }) {
-  const [selectedReferenceCase, setSelectedReferenceCase] = useState(
-    "fair-weather-moderate-base",
-  );
   const [selectedModelSize, setSelectedModelSize] = useState("medium");
   const [selectedSavedScenario, setSelectedSavedScenario] = useState("");
   const [saveScenarioName, setSaveScenarioName] = useState("");
@@ -875,7 +938,7 @@ function SimulationControls({
       return;
     }
 
-    setSelectedReferenceCase(referenceSlug);
+    onSelectedReferenceCaseChange(referenceSlug);
     const referenceCase = BUILT_IN_SCENARIOS.find((candidate) => {
       return candidate.slug === referenceSlug;
     });
@@ -886,7 +949,7 @@ function SimulationControls({
 
   function loadSavedScenario(scenarioId: string) {
     setSelectedSavedScenario(scenarioId);
-    setSelectedReferenceCase("");
+    onSelectedReferenceCaseChange("");
     if (scenarioId) {
       onLoadScenario(scenarioId);
     }
