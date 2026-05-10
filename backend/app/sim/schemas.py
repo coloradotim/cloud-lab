@@ -225,6 +225,11 @@ class SimulationConfig(BaseModel):
             raise ValueError("boundary_layer_depth_m must not exceed domain height")
         if self.initial_atmosphere.moist_source_layer_depth_m > self.domain.height_m:
             raise ValueError("moist_source_layer_depth_m must not exceed domain height")
+        if (
+            self.initial_atmosphere.moist_source_layer_depth_m
+            > self.initial_atmosphere.boundary_layer_depth_m
+        ):
+            raise ValueError("moist_source_layer_depth_m must not exceed boundary_layer_depth_m")
         if self.surface_heating.patch_center_x_m > self.domain.width_m:
             raise ValueError("patch_center_x_m must fit inside the domain width")
         if self.surface_heating.patch_width_m > self.domain.width_m:

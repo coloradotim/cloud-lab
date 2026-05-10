@@ -24,6 +24,12 @@ should read like an experiment catalog rather than a test harness.
 - Limitation: qualitative Boussinesq prototype, simplified entrainment and
   turbulence.
 
+The backend `fair-weather-cumulus` preset follows the same science contract but
+uses paired warm patches so automated tests can verify delayed cloud formation
+and separated cloud regions by the configured runtime. A fair-weather cumulus
+scenario that produces no cloud by its configured runtime is considered
+mislabeled or misconfigured, not an acceptable zero-cloud outcome.
+
 ### Multi-thermal cumulus field
 
 - Solver: `boussinesq_2d`

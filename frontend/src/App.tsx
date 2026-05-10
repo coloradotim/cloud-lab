@@ -887,7 +887,7 @@ function SimulationControls({
     return candidate.slug === selectedModelSize;
   });
   const heatingPattern = config.surface_heating.pattern ?? "single_patch";
-  const humidityProfile = config.initial_atmosphere.humidity_profile ?? "uniform";
+  const humidityProfile = config.initial_atmosphere.humidity_profile ?? "surface_moisture";
   const showHeatingCenter = heatingPattern === "single_patch" || heatingPattern === "custom_patches";
   const showHeatingWidth = heatingPattern !== "weak_random";
 

@@ -12,7 +12,12 @@ Presets are reproducible starting points, not claims of operational weather real
 - stay within the documented `sim-config-v1` schema,
 - avoid hiding important assumptions from the user.
 
-The first preset is `fair-weather-cumulus`, shown in the UI as **Fair-weather cumulus over heated ground**. It uses a humid boundary layer, a localized warm surface patch, light background wind, and a short runtime so thermals and cloud liquid water appear quickly in local playback.
+The first backend preset is `fair-weather-cumulus`, shown in the API as
+**Fair-weather cumulus over heated ground**. It uses the public
+`boussinesq_2d` solver, a surface-moist source layer, paired warm surface
+patches, light background wind, and enough runtime for delayed cloud water to
+appear by the configured scenario end. This preset should not produce
+significant cloud at initialization.
 
 ## Adjustable Parameters
 
@@ -24,6 +29,8 @@ The current UI exposes the following controls:
 - Heating center, `patch_center_x_m`: moves the heated ground patch across the domain.
 - Lapse rate, `lapse_rate_k_per_m`: environmental cooling rate above the well-mixed boundary layer. The boundary layer itself initializes with a dry-adiabatic temperature decrease.
 - Boundary layer top, `boundary_layer_depth_m`: height of the dry-adiabatic mixed layer before the environmental lapse rate takes over.
+- Moist source layer depth, `moist_source_layer_depth_m`: near-surface layer that supplies vapor to heated thermals. It must not exceed the boundary-layer top.
+- Free-atmosphere RH, `free_atmosphere_relative_humidity`: drier air above the moist source layer for `surface_moisture` scenarios.
 - Relative humidity, `relative_humidity`: higher values reduce how much lifting/cooling is needed before cloud water appears.
 - Domain width and height: resize the 2-D slice while preserving the same schema.
 - Grid columns and rows: adjust spatial resolution. Higher values cost more browser and backend work.
@@ -35,8 +42,21 @@ The frontend clamps dependent values, including heating width/center against the
 
 ## Expected Effects
 
-With the fair-weather cumulus preset, pressing Start should produce a warm plume over the heated patch, upward vertical velocity, and non-zero cloud liquid water after the parcel reaches saturation in the simplified solver. Moving the heating center should move the plume source. Lowering humidity may suppress visible cloud water. Increasing background wind should tilt or displace the evolving structure.
+With the fair-weather cumulus preset, pressing Start should produce thermal
+circulation first and non-zero cloud liquid water only after lifted source-layer
+air reaches saturation. The scenario contract is delayed cloud onset by the
+configured runtime, no immediate surface-attached cloud, and cloud water that is
+not dominated by boundary artifacts. Moving the heating center should move the
+plume source for single-patch scenarios. Lowering humidity may suppress visible
+cloud water. Increasing background wind should tilt or displace the evolving
+structure.
 
 ## Limitations
 
-These controls drive the current minimal solver. The model uses simplified thermals, warm-cloud condensation heuristics, and Python-list numerics. It does not yet solve full compressible or anelastic fluid dynamics, entrainment, precipitation fallout, radiation, turbulence closure, or terrain forcing. The UI guardrails are practical local-playback guidance rather than a formal stability proof.
+These controls drive prototype solvers. The public 2-D cloud workflow now uses
+`boussinesq_2d`; `educational_2d` remains available only for explicit legacy
+configs and regression tests. The model still uses simplified warm-cloud
+condensation heuristics and Python-list numerics. It does not yet solve full
+compressible or anelastic fluid dynamics, entrainment, precipitation fallout,
+radiation, turbulence closure, or terrain forcing. The UI guardrails are
+practical local-playback guidance rather than a formal stability proof.

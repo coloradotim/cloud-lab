@@ -482,7 +482,7 @@ export function normalizeConfig(config: SimulationConfig): SimulationConfig {
   const nextConfig = cloneConfig(config);
   nextConfig.surface_heating.pattern ??= "single_patch";
   nextConfig.surface_heating.patches ??= [];
-  nextConfig.initial_atmosphere.humidity_profile ??= "uniform";
+  nextConfig.initial_atmosphere.humidity_profile ??= "surface_moisture";
   nextConfig.initial_atmosphere.humidity_layers ??= [];
   nextConfig.initial_atmosphere.humidity_patch ??= null;
   nextConfig.initial_atmosphere.moist_source_layer_depth_m ??= Math.min(

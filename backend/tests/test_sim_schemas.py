@@ -12,7 +12,9 @@ from app.sim import (
     SimulationConfig,
     SimulationFrame,
     SurfaceHeatingConfig,
+    TimeConfig,
     create_sample_frame,
+    run_simulation,
 )
 from app.sim.sample import build_grid_metadata
 from app.sim.structured_fields import (
@@ -36,11 +38,30 @@ def test_default_simulation_config_defines_vertical_slice_controls() -> None:
     assert config.initial_atmosphere.surface_temperature_k == 298.15
     assert config.initial_atmosphere.lapse_rate_k_per_m == 0.0065
     assert config.initial_atmosphere.relative_humidity == 0.78
-    assert config.initial_atmosphere.humidity_profile == "uniform"
+    assert config.initial_atmosphere.humidity_profile == "surface_moisture"
+    assert config.initial_atmosphere.moist_source_layer_depth_m > 0.0
+    assert 0.0 <= config.initial_atmosphere.free_atmosphere_relative_humidity <= 1.0
+    assert (
+        config.initial_atmosphere.free_atmosphere_relative_humidity
+        <= config.initial_atmosphere.relative_humidity
+    )
     assert config.surface_heating.max_warming_rate_k_per_s == 0.003
     assert config.surface_heating.pattern == "single_patch"
     assert config.background_wind.u_m_per_s == 1.5
     assert config.seed == 42
+
+
+def test_default_backend_run_emits_valid_boussinesq_frame_schema() -> None:
+    config = SimulationConfig(
+        grid=GridConfig(columns=8, rows=6),
+        time=TimeConfig(time_step_seconds=2.0, duration_seconds=2.0, frame_interval_seconds=2.0),
+    )
+
+    frames = run_simulation(config)
+
+    assert frames
+    assert frames[0].config.solver_type == "boussinesq_2d"
+    SimulationFrame.model_validate(frames[-1].to_transport_dict())
 
 
 @pytest.mark.parametrize(
@@ -50,6 +71,12 @@ def test_default_simulation_config_defines_vertical_slice_controls() -> None:
         {"grid": {"columns": 1}},
         {"time": {"time_step_seconds": 2.0, "frame_interval_seconds": 1.0}},
         {"surface_heating": {"patch_width_m": 0}},
+        {
+            "initial_atmosphere": {
+                "boundary_layer_depth_m": 500.0,
+                "moist_source_layer_depth_m": 700.0,
+            }
+        },
     ],
 )
 def test_simulation_config_rejects_invalid_values(payload: dict[str, object]) -> None:
@@ -141,6 +168,30 @@ def test_simulation_config_accepts_microphysics_lab_solver_type() -> None:
     config = SimulationConfig(solver_type="microphysics_lab")
 
     assert config.solver_type == "microphysics_lab"
+
+
+def test_simulation_config_accepts_explicit_educational_legacy_solver_type() -> None:
+    config = SimulationConfig(solver_type="educational_2d")
+
+    assert config.solver_type == "educational_2d"
+
+
+def test_surface_moisture_profile_is_valid_structured_humidity_option() -> None:
+    config = SimulationConfig(
+        initial_atmosphere=InitialAtmosphereConfig(
+            humidity_profile="surface_moisture",
+            boundary_layer_depth_m=1_200.0,
+            moist_source_layer_depth_m=700.0,
+            relative_humidity=0.82,
+            free_atmosphere_relative_humidity=0.45,
+        )
+    )
+
+    assert config.initial_atmosphere.humidity_profile == "surface_moisture"
+    assert (
+        config.initial_atmosphere.moist_source_layer_depth_m
+        <= config.initial_atmosphere.boundary_layer_depth_m
+    )
 
 
 def test_sample_frame_shape_matches_grid() -> None:

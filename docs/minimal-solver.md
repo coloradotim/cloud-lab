@@ -1,6 +1,9 @@
 # Educational 2-D Solver
 
-Cloud Lab's first intentionally simple 2-D vertical-slice atmosphere solver is now frozen as the `educational_2d` backend. It is designed for learning, UI validation, local demos, and regression testing, not for research-grade atmospheric prediction.
+Cloud Lab's first intentionally simple 2-D vertical-slice atmosphere solver is
+now frozen as the `educational_2d` backend. It is designed for explicit legacy
+configs and regression testing, not as a public cloud-physics model and not for
+research-grade atmospheric prediction.
 
 Future scientific credibility should come from new solver backends behind the shared solver interface, not from incrementally tuning this educational model.
 
@@ -17,7 +20,10 @@ The `educational_2d` solver evolves row-major `x-z` fields for:
 - horizontal velocity, `horizontal_velocity_m_per_s`, in m s-1
 - vertical velocity, `vertical_velocity_m_per_s`, in m s-1
 
-Frames are emitted as `SimulationFrame` values, so API and frontend consumers use the same schema as future solver versions. The backend registry in `backend/app/sim/solver.py` dispatches by `SimulationConfig.solver_type`.
+Frames are emitted as `SimulationFrame` values, so API and frontend consumers
+use the same schema as future solver versions. The backend registry in
+`backend/app/sim/solver.py` dispatches by `SimulationConfig.solver_type`, but
+`educational_2d` is intentionally hidden from the public solver catalog.
 
 ## Governing Assumptions
 
@@ -36,7 +42,11 @@ This educational solver uses a simplified warm-cloud slice:
 - Supersaturated vapor condenses into cloud liquid water.
 - Condensation applies latent heating with a named constant.
 
-In max-heating fair-weather runs, the first visible cloud liquid water values are small: roughly `1e-4 kg kg-1` after about 15 simulated minutes in the current toy solver. Lower initial humidity can delay visible condensation. Stronger liquid-water values can appear in longer runs, but those late-run values should still be treated as illustrative rather than validated cloud microphysics.
+Historical educational-solver max-heating runs produced small illustrative cloud
+liquid water values, but new fair-weather scenario contracts should be validated
+against the `boussinesq_2d` reference cases instead. The educational solver's
+late-run liquid-water values should still be treated as illustrative rather than
+validated cloud microphysics.
 
 ## Numerical Approach
 

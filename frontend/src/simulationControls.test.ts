@@ -53,7 +53,7 @@ describe("simulation controls", () => {
 
     expect(normalized.surface_heating.pattern).toBe("single_patch");
     expect(normalized.surface_heating.patches).toEqual([]);
-    expect(normalized.initial_atmosphere.humidity_profile).toBe("uniform");
+    expect(normalized.initial_atmosphere.humidity_profile).toBe("surface_moisture");
     expect(normalized.initial_atmosphere.humidity_layers).toEqual([]);
     expect(normalized.initial_atmosphere.humidity_patch).toBeNull();
   });
@@ -154,6 +154,7 @@ describe("simulation controls", () => {
       expect(scenario.expectedOutcome).not.toHaveLength(0);
       expect(scenario.diagnosticExpectations.length).toBeGreaterThan(0);
       expect(scenario.knownLimitations.length).toBeGreaterThan(0);
+      expect(["boussinesq_2d", "microphysics_lab"]).toContain(scenario.solverMode);
     }
     expect(BUILT_IN_SCENARIOS.map((scenario) => scenario.slug)).toEqual(
       expect.arrayContaining([

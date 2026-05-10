@@ -8,7 +8,7 @@ Cloud Lab uses explicit Pydantic models for simulation configuration and frame o
 
 | Section | Field | Unit | Notes |
 | --- | --- | --- | --- |
-| root | `solver_type` | identifier | Selects the simulation backend. `educational_2d` is the frozen learning backend; `boussinesq_2d` is the first advanced dynamics prototype; `microphysics_lab` is a controlled parcel/box microphysics mode. |
+| root | `solver_type` | identifier | Selects the simulation backend. The default and public 2-D cloud solver is `boussinesq_2d`; `microphysics_lab` is a controlled parcel/box microphysics mode; `educational_2d` remains available only for explicit legacy configs and regression tests. |
 | `domain` | `width_m` | m | Horizontal domain width. Must be positive. |
 | `domain` | `height_m` | m | Vertical domain height. Must be positive. |
 | `grid` | `columns` | count | Horizontal grid cell count. Must be greater than 1. |
@@ -20,7 +20,9 @@ Cloud Lab uses explicit Pydantic models for simulation configuration and frame o
 | `initial_atmosphere` | `lapse_rate_k_per_m` | K m-1 | Environmental temperature decrease with height above the mixed layer. |
 | `initial_atmosphere` | `relative_humidity` | fraction | Initial humidity from 0 to 1. |
 | `initial_atmosphere` | `boundary_layer_depth_m` | m | Must not exceed domain height. |
-| `initial_atmosphere` | `humidity_profile` | identifier | Structured humidity pattern. Current options are `uniform`, `moist_boundary_layer`, `dry_cap`, `moist_layer`, and `custom_layers`. |
+| `initial_atmosphere` | `moist_source_layer_depth_m` | m | Depth of the near-surface moist source layer. Must not exceed the boundary-layer depth or domain height. |
+| `initial_atmosphere` | `free_atmosphere_relative_humidity` | fraction | RH used above the moist source layer for source-layer-aware profiles. |
+| `initial_atmosphere` | `humidity_profile` | identifier | Structured humidity pattern. Current options are `surface_moisture`, `uniform`, `moist_boundary_layer`, `dry_cap`, `moist_layer`, and `custom_layers`. |
 | `initial_atmosphere` | `humidity_layers` | m, fraction | Optional vertical RH layers for custom structured scenarios and future painting compatibility. |
 | `initial_atmosphere` | `humidity_patch` | m, fraction | Optional horizontal RH patch. |
 | `surface_heating` | `max_warming_rate_k_per_s` | K s-1 | Lower-boundary warming rate. |
@@ -38,9 +40,13 @@ Solver backends must emit the shared `SimulationFrame` schema. The API and front
 
 Current solver descriptors are exposed by `GET /simulations/solvers`:
 
-- `educational_2d`: available. The frozen V1 educational solver for learning, UI validation, local demos, and regression tests.
 - `boussinesq_2d`: available. Prototype streamfunction/vorticity solver for more credible 2-D buoyant dynamics.
 - `microphysics_lab`: available. Controlled warm-cloud parcel/box experiments with prescribed lift and bulk vapor/cloud/rain outputs broadcast through the shared frame schema.
+
+`educational_2d` is still registered in the backend for explicit legacy configs,
+but it is intentionally hidden from the public solver catalog because the public
+Cloud Lab experience is now centered on physically meaningful Boussinesq and
+microphysics experiments.
 
 To add a backend, implement the solver interface, register a descriptor in the solver registry, ensure frames validate against `SimulationFrame`, and document any missing fields or approximations.
 
@@ -58,6 +64,9 @@ solvers reduce them to deterministic heating weights and relative-humidity field
 
 Humidity profiles work similarly:
 
+- `surface_moisture` is the default Boussinesq-oriented profile. It keeps a
+  moist source layer near the surface and a configurable drier free atmosphere
+  above it.
 - `uniform` preserves the scalar relative-humidity slider.
 - `moist_boundary_layer` moistens the mixed layer and slightly dries the air above.
 - `dry_cap` places a dry layer near the boundary-layer top.

@@ -25,6 +25,9 @@ The prototype uses a 2-D Boussinesq-style vertical slice with:
 - buoyancy from temperature perturbation: `b = g * theta_prime / theta_ref`
 - surface heating applied as a lower-layer temperature-perturbation tendency
 - environmental-stability cooling for lifted warm perturbations
+- Lagrangian-style parcel lift and parcel-temperature memory for condensation
+  decisions
+- surface-moist source-layer initialization for fair-weather scenarios
 - scalar advection for temperature perturbation, vapor, cloud water, and vorticity
 - simple diffusion for thermal, moisture, and vorticity fields
 - explicit thermal and vorticity damping to keep this prototype in a conservative regime
@@ -60,8 +63,11 @@ Each timestep applies:
 6. Buoyancy-gradient forcing of vorticity.
 7. Jacobi streamfunction solve.
 8. Velocity recovery from streamfunction.
-9. Warm-cloud saturation adjustment with latent heating in cells with active updrafts or existing cloud water.
-10. A shallow top sponge to reduce closed-lid artifacts.
+9. Parcel lift and parcel-temperature memory updates for air that is being
+   carried upward.
+10. Warm-cloud saturation adjustment with latent heating in cells with active
+   updrafts or existing cloud water.
+11. A shallow top sponge to reduce closed-lid artifacts.
 
 Constants are named in `backend/app/sim/boussinesq_2d.py`. They are intentionally visible because this is a prototype numerical core, not a tuned black box.
 
@@ -70,7 +76,9 @@ Constants are named in `backend/app/sim/boussinesq_2d.py`. They are intentionall
 - `educational_2d` directly accelerates vertical velocity from local temperature perturbation and applies an illustrative thermal circulation around the heater.
 - `boussinesq_2d` evolves vorticity and derives velocity from a streamfunction, which gives a more coherent circulation and a better path toward pressure-coupled dynamics.
 - Both solvers currently use simple warm-cloud saturation adjustment, not advanced microphysics.
-- Both solvers emit the same frame schema and can be selected by `SimulationConfig.solver_type`.
+- Both solvers emit the same frame schema and can be selected by explicit
+  `SimulationConfig.solver_type`, but only `boussinesq_2d` is public in the
+  browser solver catalog.
 
 ## Limitations
 
@@ -89,7 +97,10 @@ Automated tests check that the prototype:
 - remains finite over short fair-weather runs
 - is deterministic for seeded configurations
 - keeps moisture fields non-negative
-- produces buoyant motion and cloud water under humid heated conditions
+- produces buoyant motion and delayed cloud water under fair-weather heated
+  conditions
 - does not create cloud water, temperature perturbations, or vertical motion in a saturated no-heating run
+- keeps the legacy educational solver runnable through explicit configs while
+  hiding it from the public solver list
 
 These are stability and integration tests, not atmospheric validation.

@@ -124,5 +124,12 @@ export type SimulationPreset = {
   slug: string;
   name: string;
   description: string;
+  category: string;
+  intended_phenomenon: string;
+  thermodynamic_assumptions: string;
+  forcing_setup: string;
+  expected_outcome: string;
+  diagnostic_expectations: string[];
+  known_limitations: string[];
   config: SimulationConfig;
 };
