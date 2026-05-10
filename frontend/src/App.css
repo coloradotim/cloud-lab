@@ -202,7 +202,9 @@ h2 {
 .playback-panel,
 .scenario-diagnostics-panel,
 .dashboard-panel,
-.profile-panel {
+.profile-panel,
+.inspector-panel,
+.probe-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -254,15 +256,19 @@ h2 {
 .workbench-stage .dashboard-panel,
 .workbench-stage .playback-panel,
 .workbench-setup .controls-panel,
+.workbench-inspector .inspector-panel,
 .workbench-inspector .scenario-diagnostics-panel,
 .workbench-inspector .profile-panel,
+.workbench-inspector .probe-panel,
 .workbench-inspector .microphysics-panel {
   max-width: none;
 }
 
 .workbench-setup .controls-panel,
+.workbench-inspector .inspector-panel,
 .workbench-inspector .scenario-diagnostics-panel,
 .workbench-inspector .profile-panel,
+.workbench-inspector .probe-panel,
 .workbench-inspector .microphysics-panel {
   border-top: 0;
   padding-top: 0;
@@ -276,6 +282,52 @@ h2 {
 
 .workbench-inspector {
   gap: 18px;
+}
+
+.inspector-panel {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.inspector-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.inspector-tabs button {
+  min-height: 42px;
+  border: 1px solid #9fb2ac;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #153137;
+  background: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.inspector-tabs button[aria-selected="true"] {
+  border-color: #3f6f67;
+  background: #edf6f2;
+  box-shadow: inset 0 -3px 0 #3f8b75;
+}
+
+.inspector-tabs .tab-has-attention:not([aria-selected="true"]) {
+  border-color: #3f8b75;
+  background: #f6fbf8;
+}
+
+.inspector-tab-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
 }
 
 .developer-strip {
@@ -1165,6 +1217,11 @@ h2 {
   color: #583737;
   background: #f7e2df;
   border-color: #dcaaa1;
+}
+
+.probe-panel {
+  align-items: stretch;
+  flex-direction: column;
 }
 
 .probe-diagnostics {
