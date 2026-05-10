@@ -33,6 +33,7 @@ type ScientificDashboardProps = {
   replayStatus: ReplayStatus;
   eventTargets: ReplayEventTarget[];
   onScrub: (frameIndex: number) => void;
+  onProbeChange: (probe: ProbeResult | null, isPinned: boolean) => void;
   onPinnedColumnChange: (columnIndex: number | null) => void;
 };
 
@@ -51,6 +52,7 @@ export function ScientificDashboard({
   replayStatus,
   eventTargets,
   onScrub,
+  onProbeChange,
   onPinnedColumnChange,
 }: ScientificDashboardProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -77,6 +79,10 @@ export function ScientificDashboard({
 
     return buildProbeResult(frame, { ...activeProbeSelection, mode: probeMode });
   }, [activeProbeSelection, frame, probeMode]);
+
+  useEffect(() => {
+    onProbeChange(probe, pinnedProbe !== null);
+  }, [onProbeChange, pinnedProbe, probe]);
 
   useEffect(() => {
     if (!frame || !activeField) {
@@ -323,45 +329,6 @@ export function ScientificDashboard({
               ) : null}
             </dl>
           </section>
-
-          <section className="readout-group" aria-labelledby="probe-readout">
-            <h3 id="probe-readout">{pinnedProbe ? "Pinned probe" : "Probe point"}</h3>
-            <dl>
-              <div>
-                <dt>Probe point</dt>
-                <dd>
-                  {probe
-                    ? `${pinnedProbe ? "Pinned" : "Hover"} ${probe.mode === "point" ? "point" : "3x3 mean"} at x=${probe.xMeters.toFixed(0)} m, z=${probe.zMeters.toFixed(0)} m`
-                    : "Hover or click a cell"}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          <div className="probe-diagnostics" aria-label="Probe diagnostics">
-            {probe ? (
-              probe.diagnostics.map((diagnostic) => (
-                <div key={diagnostic.key}>
-                  <span>
-                    {diagnostic.label}
-                    <em
-                      className={`truth-badge truth-${diagnostic.truth.category}`}
-                      title={`${diagnostic.truth.explanation}${diagnostic.truth.limitations ? ` ${diagnostic.truth.limitations}` : ""}`}
-                    >
-                      {diagnostic.truth.label}
-                    </em>
-                  </span>
-                  <strong>
-                    {diagnostic.formattedValue}
-                    {diagnostic.unit ? ` ${diagnostic.unit}` : ""}
-                  </strong>
-                  {diagnostic.note ? <small>{diagnostic.note}</small> : null}
-                </div>
-              ))
-            ) : (
-              <p>Hover the field, or click to pin a probe while playback continues.</p>
-            )}
-          </div>
 
           <label className="scrubber-label">
             Timeline

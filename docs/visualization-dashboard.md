@@ -68,7 +68,7 @@ stacked page. The workbench has three regions:
 
 - setup: collapsible scenario/config controls
 - stage: the scientific canvas plus replay/playback controls
-- inspector: collapsible diagnostics, profile, and microphysics readouts
+- inspector: collapsible Profile, Probe, Diagnostics, and Microphysics tabs
 
 On wide screens setup and inspector can flank the canvas. On narrower screens
 they stack without changing the run, replay, probe, profile, or microphysics
@@ -141,20 +141,36 @@ transfer, and not a microphysics result. Droplet-aware optics can replace or
 improve this helper when future solvers emit effective radius or droplet-size
 distributions.
 
+## Tabbed Inspector
+
+The inspector groups analysis views into tabs so the canvas can stay centered
+while secondary diagnostics remain discoverable:
+
+- `Profile`: vertical sounding and thermodynamic markers for the pinned column
+  or domain average.
+- `Probe`: hovered or pinned point/neighborhood diagnostics from the canvas.
+- `Diagnostics`: scenario expectation and observed-behavior notes.
+- `Microphysics`: parcel/box and droplet summaries for microphysics frames.
+
+Pinning a probe opens the inspector and selects the `Probe` tab. This is a UI
+routing change only; the probe, profile, diagnostics, and microphysics panels
+still consume serialized frame data and do not change solver state.
+
 ## Probe Diagnostics
 
 Probe mode consumes only the shared `SimulationFrame` contract. Hovering the canvas updates an immediate probe, and clicking pins the current cell so values continue to update as playback advances. The probe can sample either the exact cell or a 3x3 neighborhood mean.
 
-The canvas is the stable inspection stage. Probe details live in a right-side readout
-panel with its own scroll area on wider screens, so pinning, clearing, or updating a
-probe does not resize the plot or create blank space beneath it. On narrow screens the
-readout stacks below the canvas.
+The canvas is the stable inspection stage. Probe details live in the inspector
+`Probe` tab with its own scroll area on wider screens, so pinning, clearing, or
+updating a probe does not resize the plot or create blank space beneath it. On
+narrow screens the inspector stacks below the canvas.
 
-The readout separates three concepts:
+The workbench separates four analysis concepts:
 
 - run/frame metadata, such as time, buffered frames, and displayed frame
 - field summaries, such as selected field and field max or min/max
 - probe values, such as point coordinates and point/neighborhood diagnostics
+- scenario/profile/microphysics analysis, each in its own inspector tab
 
 The probe readout currently displays:
 

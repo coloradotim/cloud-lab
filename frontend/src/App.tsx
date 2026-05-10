@@ -35,6 +35,7 @@ import type { SavedScenario } from "./savedScenarios";
 import { replayEventTargets, replayStatus } from "./replay";
 import { evaluateScenarioRun } from "./scenarioDiagnostics";
 import type { ScenarioDiagnostics } from "./scenarioDiagnostics";
+import type { ProbeResult } from "./probe";
 import { buildVerticalProfile } from "./sounding";
 import type { VerticalProfile } from "./sounding";
 import { displayUnit, truthMetadataForSolver } from "./visualization";
@@ -78,6 +79,8 @@ type PlaybackState = {
   maxUpdraft: number;
   message: string | null;
 };
+
+type InspectorTab = "profile" | "probe" | "diagnostics" | "microphysics";
 
 const DEFAULT_VISUAL_FIELD = "cloud_liquid_water_kg_per_kg";
 
@@ -187,6 +190,9 @@ export function App() {
   );
   const [isSetupOpen, setIsSetupOpen] = useState(true);
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("diagnostics");
+  const [activeProbe, setActiveProbe] = useState<ProbeResult | null>(null);
+  const [isProbePinned, setIsProbePinned] = useState(false);
   const [profileColumnIndex, setProfileColumnIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -337,6 +343,13 @@ export function App() {
 
     return () => window.clearInterval(interval);
   }, [frames.length, isPaused, playbackSpeed]);
+
+  useEffect(() => {
+    if (isProbePinned) {
+      setIsInspectorOpen(true);
+      setInspectorTab("probe");
+    }
+  }, [isProbePinned]);
 
   async function startPlayback() {
     if (!simulationConfig) {
@@ -570,7 +583,7 @@ export function App() {
         canStart={simulationConfig !== null}
         isSetupOpen={isSetupOpen}
         isInspectorOpen={isInspectorOpen}
-        hasPinnedInspectorContext={profileColumnIndex !== null}
+        hasPinnedInspectorContext={profileColumnIndex !== null || isProbePinned}
         onScenarioChange={applyBuiltInScenario}
         onSetupToggle={() => setIsSetupOpen((current) => !current)}
         onInspectorToggle={() => setIsInspectorOpen((current) => !current)}
@@ -620,6 +633,10 @@ export function App() {
             }
             replayStatus={currentReplayStatus}
             eventTargets={replayEvents}
+            onProbeChange={(probe, isPinned) => {
+              setActiveProbe(probe);
+              setIsProbePinned(isPinned);
+            }}
             onScrub={(frameIndex) => {
               setIsPaused(true);
               setDisplayedFrameIndex(frameIndex);
@@ -645,17 +662,17 @@ export function App() {
 
         {isInspectorOpen ? (
           <aside className="workbench-inspector" aria-label="Simulation inspector">
-            <ScenarioDiagnosticsPanel diagnostics={scenarioDiagnostics} />
-
-            <VerticalProfilePanel
+            <InspectorTabs
+              activeTab={inspectorTab}
+              onActiveTabChange={setInspectorTab}
+              probe={activeProbe}
+              isProbePinned={isProbePinned}
+              diagnostics={scenarioDiagnostics}
               profile={buildVerticalProfile(
                 frames[displayedFrameIndex] ?? null,
                 simulationConfig,
                 profileColumnIndex,
               )}
-            />
-
-            <MicrophysicsDiagnosticsPanel
               frames={frames}
               displayedFrame={frames[displayedFrameIndex] ?? null}
               config={simulationConfig}
@@ -693,6 +710,128 @@ export function App() {
         </section>
       </section>
     </main>
+  );
+}
+
+function InspectorTabs({
+  activeTab,
+  onActiveTabChange,
+  probe,
+  isProbePinned,
+  diagnostics,
+  profile,
+  frames,
+  displayedFrame,
+  config,
+}: {
+  activeTab: InspectorTab;
+  onActiveTabChange: (tab: InspectorTab) => void;
+  probe: ProbeResult | null;
+  isProbePinned: boolean;
+  diagnostics: ScenarioDiagnostics;
+  profile: VerticalProfile | null;
+  frames: SimulationFrame[];
+  displayedFrame: SimulationFrame | null;
+  config: SimulationConfig | null;
+}) {
+  const tabs: Array<{ key: InspectorTab; label: string; attention?: boolean }> = [
+    { key: "profile", label: "Profile" },
+    { key: "probe", label: "Probe", attention: isProbePinned },
+    { key: "diagnostics", label: "Diagnostics" },
+    { key: "microphysics", label: "Microphysics" },
+  ];
+
+  return (
+    <section className="inspector-panel" aria-labelledby="inspector-title">
+      <div className="inspector-header">
+        <div>
+          <p className="eyebrow">Inspector</p>
+          <h2 id="inspector-title">Analysis views</h2>
+        </div>
+      </div>
+      <div className="inspector-tabs" role="tablist" aria-label="Inspector views">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            className={tab.attention ? "tab-has-attention" : undefined}
+            onClick={() => onActiveTabChange(tab.key)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="inspector-tab-panel">
+        {activeTab === "profile" ? <VerticalProfilePanel profile={profile} /> : null}
+        {activeTab === "probe" ? (
+          <ProbeInspectorPanel probe={probe} isPinned={isProbePinned} />
+        ) : null}
+        {activeTab === "diagnostics" ? (
+          <ScenarioDiagnosticsPanel diagnostics={diagnostics} />
+        ) : null}
+        {activeTab === "microphysics" ? (
+          <MicrophysicsDiagnosticsPanel
+            frames={frames}
+            displayedFrame={displayedFrame}
+            config={config}
+          />
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function ProbeInspectorPanel({
+  probe,
+  isPinned,
+}: {
+  probe: ProbeResult | null;
+  isPinned: boolean;
+}) {
+  return (
+    <section className="probe-panel" aria-labelledby="probe-inspector-title">
+      <div className="profile-header">
+        <div>
+          <p className="eyebrow">Probe</p>
+          <h2 id="probe-inspector-title">{isPinned ? "Pinned probe" : "Hover probe"}</h2>
+        </div>
+        <p className="profile-location">
+          {probe ? `x=${probe.xMeters.toFixed(0)} m, z=${probe.zMeters.toFixed(0)} m` : "No probe"}
+        </p>
+      </div>
+      {!probe ? (
+        <p className="empty-profile">Hover the canvas, or click a cell to pin probe diagnostics here.</p>
+      ) : (
+        <>
+          <p className="control-note">
+            {isPinned ? "Pinned cell" : "Hovered cell"} using{" "}
+            {probe.mode === "point" ? "point sampling" : "3x3 neighborhood mean"}.
+          </p>
+          <div className="probe-diagnostics" aria-label="Probe diagnostics">
+            {probe.diagnostics.map((diagnostic) => (
+              <div key={diagnostic.key}>
+                <span>
+                  {diagnostic.label}
+                  <em
+                    className={`truth-badge truth-${diagnostic.truth.category}`}
+                    title={`${diagnostic.truth.explanation}${diagnostic.truth.limitations ? ` ${diagnostic.truth.limitations}` : ""}`}
+                  >
+                    {diagnostic.truth.label}
+                  </em>
+                </span>
+                <strong>
+                  {diagnostic.formattedValue}
+                  {diagnostic.unit ? ` ${diagnostic.unit}` : ""}
+                </strong>
+                {diagnostic.note ? <small>{diagnostic.note}</small> : null}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   );
 }
 
