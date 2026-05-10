@@ -58,10 +58,7 @@ def surface_heating_weight(config: SimulationConfig, grid: StructuredGrid, x_m: 
 
     if pattern == "weak_random":
         normalized_x = x_m / max(config.domain.width_m, 1.0)
-        bumps = [
-            _seeded_bump(config.seed, index, normalized_x)
-            for index in range(5)
-        ]
+        bumps = [_seeded_bump(config.seed, index, normalized_x) for index in range(5)]
         return _bounded(max(bumps, default=0.0), 0.0, 0.85)
 
     return _combined_patch_weight(config.surface_heating.patches, grid, x_m)
