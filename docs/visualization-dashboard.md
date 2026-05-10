@@ -60,7 +60,7 @@ noise or hide meaningful structure.
 | Temperature perturbation | Linear | Symmetric around zero | Signed | none | Shared scale by default |
 | Horizontal velocity | Linear | Symmetric around zero | Signed | none | Shared scale by default |
 | Vertical velocity | Linear | Symmetric around zero | Signed | none | Shared scale by default |
-| Bulk optical depth, future | Log | Adaptive/default | Non-negative | `1e-4` | Shared scale by default |
+| Bulk cloud appearance | Log/optical response | Adaptive/default | Non-negative | `1e-4 optical depth` | Shared scale by default |
 
 Non-negative condensate fields suppress tiny values below the display-noise
 threshold so values such as `1e-73 kg kg-1` are not presented as meaningful
@@ -83,6 +83,32 @@ Current scalar rendering:
 The cloud liquid water display scale is tuned for prototype solver condensate
 values, so delayed fair-weather condensation is visible before the model reaches
 unrealistically large liquid-water amounts.
+
+## Bulk Cloud Appearance Mode
+
+The dashboard includes a `Cloud appearance` visualization mode when frames emit
+`cloud_liquid_water_kg_per_kg`. This is a visual approximation, not a new solver
+field. It estimates optical depth from:
+
+- bulk cloud liquid water mixing ratio
+- approximate grid path length
+- assumed air density
+- assumed liquid-water density
+- assumed effective droplet radius, currently `12 um`
+
+The approximation uses the common bulk relationship:
+
+```text
+optical depth ~= 3 * liquid water content * path length / (2 * water density * effective radius)
+```
+
+Dense cloud regions become more opaque, optically thick lower/interior regions
+darken slightly, and cloud edges receive a simple brightness boost. This makes
+cloud structures easier to inspect than a raw scalar heatmap while keeping the
+label explicit: it is not droplet-resolved Mie scattering, not radiative
+transfer, and not a microphysics result. Droplet-aware optics can replace or
+improve this helper when future solvers emit effective radius or droplet-size
+distributions.
 
 ## Probe Diagnostics
 
@@ -192,16 +218,39 @@ can be physically meaningful in dry cases.
 
 ## Playback Controls
 
+The dashboard keeps the live simulation stream separate from buffered replay.
+Incoming frames are stored in browser memory for the current run. Scrubbing,
+stepping, or jumping through those buffered frames changes only the displayed
+frame; it does not restart the solver or request frames again.
+
 The dashboard adds:
 
 - field selection
 - pause/resume
 - playback speed
+- jump to first/final frame
+- step backward/forward one frame
+- restart replay from the first buffered frame
 - timeline scrubber
+- displayed time / final time
+- displayed frame index / total frames
+- live stream vs buffered/completed replay status
+- optional event jump targets for first cloud, max cloud water, first rain, and
+  max rain water when those fields are present
 - live progress from streamed frames
 - frame rate and field summary readouts
 
-Pausing affects displayed playback, not backend simulation execution. Frames may continue buffering while the displayed frame is paused.
+Pausing affects displayed playback, not backend simulation execution. Frames may
+continue buffering while the displayed frame is paused. Pinned probes, vertical
+profiles, and microphysics panels consume the currently displayed frame, so they
+update as the user scrubs through the buffered run.
+
+Current replay limitations:
+
+- replay frames are memory-only and disappear when the run/config is reset
+- there is no persistent replay file or export format yet
+- large runs are bounded by browser memory rather than a streaming archive
+- event jump targets are simple field-threshold scans over buffered frames
 
 ## Known Limitations
 

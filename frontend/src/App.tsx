@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import "./App.css";
@@ -30,6 +30,7 @@ import {
   updateSavedScenario,
 } from "./savedScenarios";
 import type { SavedScenario } from "./savedScenarios";
+import { replayEventTargets, replayStatus } from "./replay";
 import { buildVerticalProfile } from "./sounding";
 import type { VerticalProfile } from "./sounding";
 import { displayUnit, truthMetadataForSolver } from "./visualization";
@@ -197,6 +198,8 @@ export function App() {
   });
   const websocketRef = useRef<WebSocket | null>(null);
   const firstFrameAtRef = useRef<number | null>(null);
+  const replayEvents = useMemo(() => replayEventTargets(frames), [frames]);
+  const currentReplayStatus = replayStatus(playback.status, frames.length, displayedFrameIndex);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -394,6 +397,7 @@ export function App() {
     firstFrameAtRef.current = null;
     setFrames([]);
     setDisplayedFrameIndex(0);
+    setProfileColumnIndex(null);
     setIsPaused(false);
     setPlayback({
       status: "idle",
@@ -406,6 +410,12 @@ export function App() {
       maxUpdraft: 0,
       message: null,
     });
+  }
+
+  function applySimulationConfig(nextConfig: SimulationConfig) {
+    resetPlayback();
+    setSelectedField(DEFAULT_VISUAL_FIELD);
+    setSimulationConfig(nextConfig);
   }
 
   function saveScenario(name: string) {
@@ -434,7 +444,7 @@ export function App() {
       return;
     }
 
-    setSimulationConfig(scenario.config);
+    applySimulationConfig(scenario.config);
     setConfigMessage(`Loaded saved experiment: ${scenario.name}`);
   }
 
@@ -551,7 +561,7 @@ export function App() {
         solvers={solvers}
         savedScenarios={savedScenarios}
         message={configMessage}
-        onConfigChange={setSimulationConfig}
+        onConfigChange={applySimulationConfig}
         onSaveScenario={saveScenario}
         onUpdateScenario={updateScenario}
         onLoadScenario={loadScenario}
@@ -584,6 +594,11 @@ export function App() {
         onPlaybackSpeedChange={setPlaybackSpeed}
         displayedFrameIndex={displayedFrameIndex}
         frameCount={frames.length}
+        finalTimeSeconds={
+          playback.durationSeconds || (frames.length > 0 ? frames[frames.length - 1].time_seconds : 0)
+        }
+        replayStatus={currentReplayStatus}
+        eventTargets={replayEvents}
         onScrub={(frameIndex) => {
           setIsPaused(true);
           setDisplayedFrameIndex(frameIndex);

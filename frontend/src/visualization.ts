@@ -9,6 +9,9 @@ export const DEFAULT_FIELD_ORDER = [
   "horizontal_velocity_m_per_s",
 ];
 
+export const CLOUD_APPEARANCE_MODE = "bulk_cloud_appearance";
+export const DEFAULT_EFFECTIVE_RADIUS_UM = 12;
+
 export type FieldOption = {
   key: string;
   label: string;
@@ -104,12 +107,15 @@ const FIELD_TRUTH_CATEGORIES: Record<string, TruthCategory> = {
   buoyancy_m_per_s2: "derived_diagnostic",
   optical_depth: "visual_approximation",
   rain_indicator: "bulk_approximation",
+  [CLOUD_APPEARANCE_MODE]: "visual_approximation",
 };
 
 const FIELD_TRUTH_LIMITATIONS: Record<string, string> = {
   relative_humidity: "Uses the V1 saturation approximation and local pressure assumption.",
   buoyancy_m_per_s2: "Approximate thermal buoyancy diagnostic, not full pressure-coupled acceleration.",
   optical_depth: "Future bulk optics view will depend on assumed droplet properties.",
+  [CLOUD_APPEARANCE_MODE]:
+    "Estimated from bulk cloud liquid water and assumed effective radius; not droplet-resolved Mie scattering.",
   rain_indicator: "Bulk rain indicator, not droplet-resolved precipitation.",
 };
 
@@ -207,6 +213,28 @@ export type VectorScale = {
   pixelsPerMeterPerSecond: number;
 };
 
+export type CloudOpticalAssumptions = {
+  effectiveRadiusUm: number;
+  airDensityKgPerM3: number;
+  liquidWaterDensityKgPerM3: number;
+  pathLengthM: number;
+  sunDirection: { x: number; z: number };
+};
+
+export type CloudOpticalCell = {
+  opticalDepth: number;
+  opacity: number;
+  brightness: number;
+};
+
+export const DEFAULT_CLOUD_OPTICAL_ASSUMPTIONS: CloudOpticalAssumptions = {
+  effectiveRadiusUm: DEFAULT_EFFECTIVE_RADIUS_UM,
+  airDensityKgPerM3: 1.1,
+  liquidWaterDensityKgPerM3: 1000,
+  pathLengthM: 120,
+  sunDirection: { x: -0.7, z: 0.7 },
+};
+
 export function fieldOptionsFromFrame(frame: SimulationFrame | null): FieldOption[] {
   if (!frame) {
     return [];
@@ -238,6 +266,24 @@ export function fieldOptionsFromFrame(frame: SimulationFrame | null): FieldOptio
       categoryLabel: truthMetadataForField(key, field, frame.config?.solver_type).label,
     };
   });
+}
+
+export function visualizationOptionsFromFrame(frame: SimulationFrame | null): FieldOption[] {
+  const fieldOptions = fieldOptionsFromFrame(frame);
+  if (!frame?.fields.cloud_liquid_water_kg_per_kg) {
+    return fieldOptions;
+  }
+
+  return [
+    {
+      key: CLOUD_APPEARANCE_MODE,
+      label: "Cloud appearance",
+      unit: "optical",
+      description: "Bulk optical-depth approximation from cloud liquid water.",
+      categoryLabel: TRUTH_CATEGORY_DETAILS.visual_approximation.label,
+    },
+    ...fieldOptions,
+  ];
 }
 
 export function getFieldStats(field: ScalarField): FieldStats {
@@ -436,6 +482,33 @@ export function truthMetadataForField(
   };
 }
 
+export function cloudOpticalCell(
+  cloudWaterKgPerKg: number,
+  assumptions: CloudOpticalAssumptions = DEFAULT_CLOUD_OPTICAL_ASSUMPTIONS,
+  edgeLighting = 0,
+): CloudOpticalCell {
+  const effectiveRadiusM = Math.max(1e-6, assumptions.effectiveRadiusUm * 1e-6);
+  const liquidWaterContentKgPerM3 = Math.max(0, cloudWaterKgPerKg) * assumptions.airDensityKgPerM3;
+  const opticalDepth =
+    (3 * liquidWaterContentKgPerM3 * assumptions.pathLengthM) /
+    (2 * assumptions.liquidWaterDensityKgPerM3 * effectiveRadiusM);
+  const opacity = opticalDepth <= 0 ? 0 : 1 - Math.exp(-Math.min(12, opticalDepth));
+  const brightness = Math.min(1, Math.max(0, 0.72 + edgeLighting * 0.22 - opacity * 0.18));
+
+  return { opticalDepth, opacity, brightness };
+}
+
+export function cloudOpticalGrid(
+  cloudWater: ScalarField,
+  assumptions: CloudOpticalAssumptions = DEFAULT_CLOUD_OPTICAL_ASSUMPTIONS,
+): CloudOpticalCell[][] {
+  return cloudWater.values.map((row, rowIndex) =>
+    row.map((value, columnIndex) =>
+      cloudOpticalCell(value, assumptions, cloudEdgeLighting(cloudWater, rowIndex, columnIndex)),
+    ),
+  );
+}
+
 export function truthMetadataForSolver(solverType: string): TruthMetadata {
   if (solverType === "microphysics_lab") {
     return {
@@ -612,7 +685,7 @@ function isKnownNonNegativeField(fieldKey: string, field: ScalarField): boolean 
 }
 
 function inferTruthCategory(fieldKey: string, field?: ScalarField): TruthCategory {
-  if (/optical|render/.test(fieldKey)) {
+  if (fieldKey === CLOUD_APPEARANCE_MODE || /optical|render/.test(fieldKey)) {
     return "visual_approximation";
   }
 
@@ -625,6 +698,20 @@ function inferTruthCategory(fieldKey: string, field?: ScalarField): TruthCategor
   }
 
   return "solver_output";
+}
+
+function cloudEdgeLighting(field: ScalarField, rowIndex: number, columnIndex: number): number {
+  const center = field.values[rowIndex][columnIndex];
+  if (center <= 0) {
+    return 0;
+  }
+
+  const left = field.values[rowIndex][Math.max(0, columnIndex - 1)] ?? center;
+  const right = field.values[rowIndex][Math.min(field.values[rowIndex].length - 1, columnIndex + 1)] ?? center;
+  const down = field.values[Math.max(0, rowIndex - 1)]?.[columnIndex] ?? center;
+  const up = field.values[Math.min(field.values.length - 1, rowIndex + 1)]?.[columnIndex] ?? center;
+  const gradient = Math.hypot(right - left, up - down);
+  return Math.min(1, gradient / Math.max(center, 1e-8));
 }
 
 function inferFieldKeyFromMetadata(field?: ScalarField): string {
