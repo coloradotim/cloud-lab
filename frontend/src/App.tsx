@@ -11,11 +11,13 @@ import {
   HUMIDITY_PROFILES,
   SURFACE_HEATING_PATTERNS,
   celsiusToKelvin,
+  controlPresentationsFor,
   configWarnings,
   kelvinToCelsius,
   updateConfigNumber,
   updateConfigValue,
 } from "./simulationControls";
+import type { ControlKey, ControlPresentation } from "./simulationControls";
 import type {
   SimulationConfig,
   SimulationFrame,
@@ -975,10 +977,23 @@ function SimulationControls({
   const activeModelSize = BOUSSINESQ_MODEL_SIZES.find((candidate) => {
     return candidate.slug === selectedModelSize;
   });
+  const controlPresentations = controlPresentationsFor(config, activeReferenceCase);
+  const controlFor = (key: ControlKey) => {
+    return controlPresentations.find((control) => control.key === key);
+  };
+  const hasVisibleControls = (keys: ControlKey[]) => {
+    return keys.some((key) => {
+      const control = controlFor(key);
+      return control && control.state !== "hidden" && control.state !== "legacy";
+    });
+  };
+  const basicControl = (key: ControlKey) => controlFor(key);
+  const advancedControl = (key: ControlKey) => controlFor(key);
   const heatingPattern = config.surface_heating.pattern ?? "single_patch";
   const humidityProfile = config.initial_atmosphere.humidity_profile ?? "surface_moisture";
-  const showHeatingCenter = heatingPattern === "single_patch" || heatingPattern === "custom_patches";
-  const showHeatingWidth = heatingPattern !== "weak_random";
+  const hasAdvancedControls = controlPresentations.some((control) => {
+    return control.state === "advanced" || control.state === "disabled";
+  });
 
   return (
     <section className="controls-panel" aria-labelledby="controls-title">
@@ -990,10 +1005,11 @@ function SimulationControls({
 
         <div className="setup-selects">
           <label className="preset-select">
-            Scenario
+            {basicControl("scenario")?.label ?? "Scenario"}
             <select
               value={selectedReferenceCase}
               onChange={(event) => applyReferenceCase(event.target.value)}
+              title={basicControl("scenario")?.shortHelp}
             >
               <option value="">Custom controls</option>
               {BUILT_IN_SCENARIOS.map((referenceCase) => (
@@ -1004,18 +1020,33 @@ function SimulationControls({
             </select>
           </label>
 
-          <label className="preset-select">
-            Model size
-            <select value={selectedModelSize} onChange={(event) => applyModelSize(event.target.value)}>
-              {BOUSSINESQ_MODEL_SIZES.map((modelSize) => (
-                <option key={modelSize.slug} value={modelSize.slug}>
-                  {modelSize.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          {basicControl("model_size")?.state !== "hidden" ? (
+            <label className="preset-select">
+              {basicControl("model_size")?.label ?? "Model size"}
+              <select
+                value={selectedModelSize}
+                disabled={basicControl("model_size")?.state === "disabled"}
+                onChange={(event) => applyModelSize(event.target.value)}
+                title={
+                  basicControl("model_size")?.disabledReason ??
+                  basicControl("model_size")?.shortHelp
+                }
+              >
+                {BOUSSINESQ_MODEL_SIZES.map((modelSize) => (
+                  <option key={modelSize.slug} value={modelSize.slug}>
+                    {modelSize.name}
+                  </option>
+                ))}
+              </select>
+              {basicControl("model_size")?.disabledReason ? (
+                <small>{basicControl("model_size")?.disabledReason}</small>
+              ) : null}
+            </label>
+          ) : null}
         </div>
       </div>
+
+      <p className="control-note changes-note">Changes reset playback and apply to the next run.</p>
 
       <div className="controls-grid">
         <ControlGroup title="Scenario">
@@ -1064,255 +1095,243 @@ function SimulationControls({
           ) : null}
         </ControlGroup>
 
-        <ControlGroup title="Saved experiments">
-          <label className="select-control">
-            <span>Saved scenario</span>
-            <select
-              value={selectedSavedScenario}
-              onChange={(event) => loadSavedScenario(event.target.value)}
-            >
-              <option value="">No saved experiment selected</option>
-              {savedScenarios.map((scenario) => (
-                <option key={scenario.id} value={scenario.id}>
-                  {scenario.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-control">
-            <span>Experiment name</span>
-            <input
-              type="text"
-              value={saveScenarioName}
-              placeholder="e.g. two patches, higher cap"
-              onChange={(event) => setSaveScenarioName(event.target.value)}
-            />
-          </label>
-          <div className="button-row compact">
-            <button
-              type="button"
-              onClick={() => {
-                onSaveScenario(saveScenarioName);
-                setSaveScenarioName("");
-              }}
-            >
-              Save copy
-            </button>
-            <button
-              type="button"
-              disabled={!selectedSavedScenario}
-              onClick={() => onUpdateScenario(selectedSavedScenario)}
-            >
-              Update
-            </button>
-            <button
-              type="button"
-              disabled={!selectedSavedScenario}
-              onClick={() => {
-                onDeleteScenario(selectedSavedScenario);
-                setSelectedSavedScenario("");
-              }}
-            >
-              Delete
-            </button>
-          </div>
-          <p className="control-note">
-            Built-in scenarios stay read-only; saved experiments live in this browser.
-          </p>
-        </ControlGroup>
-
         <ControlGroup title="Thermodynamics">
-          <NumberControl
-            label="Surface temperature"
-            unit="deg C"
-            value={kelvinToCelsius(config.initial_atmosphere.surface_temperature_k)}
-            limits={CONTROL_LIMITS.surfaceTemperatureC}
-            onChange={(value) =>
-              update("initial_atmosphere.surface_temperature_k", celsiusToKelvin(value))
-            }
-          />
-          <NumberControl
-            label="Lapse rate"
-            unit="K/m"
-            value={config.initial_atmosphere.lapse_rate_k_per_m}
-            limits={CONTROL_LIMITS.lapseRate}
-            onChange={(value) => update("initial_atmosphere.lapse_rate_k_per_m", value)}
-          />
-          <NumberControl
-            label="BL / inversion top"
-            unit="m"
-            value={config.initial_atmosphere.boundary_layer_depth_m}
-            limits={{
+          {renderNumberControl(basicControl("surface_temperature"), {
+            value: kelvinToCelsius(config.initial_atmosphere.surface_temperature_k),
+            limits: CONTROL_LIMITS.surfaceTemperatureC,
+            onChange: (value) =>
+              update("initial_atmosphere.surface_temperature_k", celsiusToKelvin(value)),
+          })}
+          {renderNumberControl(basicControl("lapse_rate"), {
+            value: config.initial_atmosphere.lapse_rate_k_per_m,
+            limits: CONTROL_LIMITS.lapseRate,
+            onChange: (value) => update("initial_atmosphere.lapse_rate_k_per_m", value),
+          })}
+          {renderNumberControl(basicControl("boundary_layer_depth"), {
+            value: config.initial_atmosphere.boundary_layer_depth_m,
+            limits: {
               ...CONTROL_LIMITS.boundaryLayerDepth,
               max: config.domain.height_m,
-            }}
-            onChange={(value) => update("initial_atmosphere.boundary_layer_depth_m", value)}
-          />
-          <NumberControl
-            label="Surface RH"
-            unit="fraction"
-            value={config.initial_atmosphere.relative_humidity}
-            limits={CONTROL_LIMITS.relativeHumidity}
-            onChange={(value) => update("initial_atmosphere.relative_humidity", value)}
-          />
+            },
+            onChange: (value) => update("initial_atmosphere.boundary_layer_depth_m", value),
+          })}
+          {renderNumberControl(basicControl("source_layer_relative_humidity"), {
+            value: config.initial_atmosphere.relative_humidity,
+            limits: CONTROL_LIMITS.relativeHumidity,
+            onChange: (value) => update("initial_atmosphere.relative_humidity", value),
+          })}
         </ControlGroup>
 
-        <ControlGroup title="Moisture structure">
-          <SelectControl
-            label="Humidity pattern"
-            value={humidityProfile}
-            options={HUMIDITY_PROFILES}
-            onChange={(value) => updateValue("initial_atmosphere.humidity_profile", value)}
-          />
-          <p className="control-note">
-            {HUMIDITY_PROFILES.find((profile) => profile.value === humidityProfile)?.description}
-          </p>
-          <NumberControl
-            label="Moist source depth"
-            unit="m"
-            value={config.initial_atmosphere.moist_source_layer_depth_m ?? 500}
-            limits={{
-              ...CONTROL_LIMITS.moistSourceLayerDepth,
-              max: Math.min(
-                config.initial_atmosphere.boundary_layer_depth_m,
-                config.domain.height_m,
-              ),
-            }}
-            onChange={(value) => update("initial_atmosphere.moist_source_layer_depth_m", value)}
-          />
-          <NumberControl
-            label="Free-air RH"
-            unit="fraction"
-            value={config.initial_atmosphere.free_atmosphere_relative_humidity ?? 0.55}
-            limits={CONTROL_LIMITS.relativeHumidity}
-            onChange={(value) =>
-              update("initial_atmosphere.free_atmosphere_relative_humidity", value)
-            }
-          />
-        </ControlGroup>
+        {hasVisibleControls([
+          "humidity_profile",
+          "moist_source_layer_depth",
+          "free_atmosphere_relative_humidity",
+        ]) ? (
+          <ControlGroup title="Moisture structure">
+            {renderSelectControl(advancedControl("humidity_profile"), {
+              value: humidityProfile,
+              options: HUMIDITY_PROFILES,
+              onChange: (value) => updateValue("initial_atmosphere.humidity_profile", value),
+            })}
+            {advancedControl("humidity_profile")?.state !== "hidden" ? (
+              <p className="control-note">
+                {HUMIDITY_PROFILES.find((profile) => profile.value === humidityProfile)?.description}
+              </p>
+            ) : null}
+            {renderNumberControl(basicControl("moist_source_layer_depth"), {
+              value: config.initial_atmosphere.moist_source_layer_depth_m ?? 500,
+              limits: {
+                ...CONTROL_LIMITS.moistSourceLayerDepth,
+                max: Math.min(
+                  config.initial_atmosphere.boundary_layer_depth_m,
+                  config.domain.height_m,
+                ),
+              },
+              onChange: (value) => update("initial_atmosphere.moist_source_layer_depth_m", value),
+            })}
+            {renderNumberControl(basicControl("free_atmosphere_relative_humidity"), {
+              value: config.initial_atmosphere.free_atmosphere_relative_humidity ?? 0.55,
+              limits: CONTROL_LIMITS.relativeHumidity,
+              onChange: (value) =>
+                update("initial_atmosphere.free_atmosphere_relative_humidity", value),
+            })}
+          </ControlGroup>
+        ) : null}
 
-        <ControlGroup title="Surface forcing">
-          <SelectControl
-            label="Heating pattern"
-            value={heatingPattern}
-            options={SURFACE_HEATING_PATTERNS}
-            onChange={(value) => updateValue("surface_heating.pattern", value)}
-          />
-          <p className="control-note">
-            {SURFACE_HEATING_PATTERNS.find((pattern) => pattern.value === heatingPattern)?.description}
-          </p>
-          <NumberControl
-            label="Heating rate"
-            unit="K/s"
-            value={config.surface_heating.max_warming_rate_k_per_s}
-            limits={CONTROL_LIMITS.surfaceHeatingRate}
-            onChange={(value) => update("surface_heating.max_warming_rate_k_per_s", value)}
-          />
-          {showHeatingWidth ? (
-            <NumberControl
-              label="Patch width"
-              unit="m"
-              value={config.surface_heating.patch_width_m}
-              limits={{
+        {hasVisibleControls([
+          "heating_pattern",
+          "surface_heating_rate",
+          "heating_patch_width",
+          "heating_patch_center",
+        ]) ? (
+          <ControlGroup title="Surface forcing">
+            {renderSelectControl(basicControl("heating_pattern"), {
+              value: heatingPattern,
+              options: SURFACE_HEATING_PATTERNS,
+              onChange: (value) => updateValue("surface_heating.pattern", value),
+            })}
+            {basicControl("heating_pattern")?.state !== "hidden" ? (
+              <p className="control-note">
+                {SURFACE_HEATING_PATTERNS.find((pattern) => pattern.value === heatingPattern)?.description}
+              </p>
+            ) : null}
+            {renderNumberControl(basicControl("surface_heating_rate"), {
+              value: config.surface_heating.max_warming_rate_k_per_s,
+              limits: CONTROL_LIMITS.surfaceHeatingRate,
+              onChange: (value) => update("surface_heating.max_warming_rate_k_per_s", value),
+            })}
+            {renderNumberControl(basicControl("heating_patch_width"), {
+              value: config.surface_heating.patch_width_m,
+              limits: {
                 ...CONTROL_LIMITS.heatingWidth,
                 max: config.domain.width_m,
-              }}
-              onChange={(value) => update("surface_heating.patch_width_m", value)}
-            />
-          ) : null}
-          {showHeatingCenter ? (
-            <NumberControl
-              label="Patch center"
-              unit="m"
-              value={config.surface_heating.patch_center_x_m}
-              limits={{
+              },
+              onChange: (value) => update("surface_heating.patch_width_m", value),
+            })}
+            {renderNumberControl(advancedControl("heating_patch_center"), {
+              value: config.surface_heating.patch_center_x_m,
+              limits: {
                 ...CONTROL_LIMITS.heatingCenter,
                 max: config.domain.width_m,
-              }}
-              onChange={(value) => update("surface_heating.patch_center_x_m", value)}
-            />
-          ) : null}
-        </ControlGroup>
-
-        <ControlGroup title="Domain and grid">
-          <NumberControl
-            label="Domain width"
-            unit="m"
-            value={config.domain.width_m}
-            limits={CONTROL_LIMITS.domainWidth}
-            onChange={(value) => update("domain.width_m", value)}
-          />
-          <NumberControl
-            label="Domain height"
-            unit="m"
-            value={config.domain.height_m}
-            limits={CONTROL_LIMITS.domainHeight}
-            onChange={(value) => update("domain.height_m", value)}
-          />
-          <NumberControl
-            label="Grid columns"
-            unit="cells"
-            value={config.grid.columns}
-            limits={CONTROL_LIMITS.gridColumns}
-            onChange={(value) => update("grid.columns", value)}
-          />
-          <NumberControl
-            label="Grid rows"
-            unit="cells"
-            value={config.grid.rows}
-            limits={CONTROL_LIMITS.gridRows}
-            onChange={(value) => update("grid.rows", value)}
-          />
-        </ControlGroup>
+              },
+              onChange: (value) => update("surface_heating.patch_center_x_m", value),
+            })}
+          </ControlGroup>
+        ) : null}
 
         <ControlGroup title="Time and output">
-          <NumberControl
-            label="Runtime"
-            unit="s"
-            value={config.time.duration_seconds}
-            limits={CONTROL_LIMITS.duration}
-            onChange={(value) => update("time.duration_seconds", value)}
-          />
-          <NumberControl
-            label="Timestep"
-            unit="s"
-            value={config.time.time_step_seconds}
-            limits={CONTROL_LIMITS.timeStep}
-            onChange={(value) => update("time.time_step_seconds", value)}
-          />
-          <NumberControl
-            label="Frame cadence"
-            unit="s"
-            value={config.time.frame_interval_seconds}
-            limits={CONTROL_LIMITS.frameInterval}
-            onChange={(value) => update("time.frame_interval_seconds", value)}
-          />
-        </ControlGroup>
-
-        <ControlGroup title="Wind and reproducibility">
-          <NumberControl
-            label="Background wind"
-            unit="m/s"
-            value={config.background_wind.u_m_per_s}
-            limits={CONTROL_LIMITS.wind}
-            onChange={(value) => update("background_wind.u_m_per_s", value)}
-          />
-          <NumberControl
-            label="Vertical wind / lift"
-            unit="m/s"
-            value={config.background_wind.w_m_per_s}
-            limits={CONTROL_LIMITS.wind}
-            onChange={(value) => update("background_wind.w_m_per_s", value)}
-          />
-          <NumberControl
-            label="Random seed"
-            unit="seed"
-            value={config.seed}
-            limits={CONTROL_LIMITS.seed}
-            onChange={(value) => update("seed", value)}
-          />
+          {renderNumberControl(basicControl("runtime"), {
+            value: config.time.duration_seconds,
+            limits: CONTROL_LIMITS.duration,
+            onChange: (value) => update("time.duration_seconds", value),
+          })}
+          {config.solver_type === "microphysics_lab"
+            ? renderNumberControl(basicControl("prescribed_lift"), {
+                value: config.background_wind.w_m_per_s,
+                limits: CONTROL_LIMITS.wind,
+                onChange: (value) => update("background_wind.w_m_per_s", value),
+              })
+            : null}
         </ControlGroup>
       </div>
+
+      {hasAdvancedControls ? (
+        <details className="advanced-controls">
+          <summary>Advanced settings</summary>
+          <div className="controls-grid">
+            <ControlGroup title="Saved experiments">
+              <p className="control-note">{advancedControl("saved_scenarios")?.shortHelp}</p>
+              <label className="select-control">
+                <span>Saved scenario</span>
+                <select
+                  value={selectedSavedScenario}
+                  onChange={(event) => loadSavedScenario(event.target.value)}
+                >
+                  <option value="">No saved experiment selected</option>
+                  {savedScenarios.map((scenario) => (
+                    <option key={scenario.id} value={scenario.id}>
+                      {scenario.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-control">
+                <span>Experiment name</span>
+                <input
+                  type="text"
+                  value={saveScenarioName}
+                  placeholder="e.g. two patches, higher cap"
+                  onChange={(event) => setSaveScenarioName(event.target.value)}
+                />
+              </label>
+              <div className="button-row compact">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSaveScenario(saveScenarioName);
+                    setSaveScenarioName("");
+                  }}
+                >
+                  Save copy
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedSavedScenario}
+                  onClick={() => onUpdateScenario(selectedSavedScenario)}
+                >
+                  Update
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedSavedScenario}
+                  onClick={() => {
+                    onDeleteScenario(selectedSavedScenario);
+                    setSelectedSavedScenario("");
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+              <p className="control-note">
+                Built-in scenarios stay read-only; saved experiments live in this browser.
+              </p>
+            </ControlGroup>
+
+            {hasVisibleControls(["domain_width", "domain_height", "grid_columns", "grid_rows"]) ? (
+              <ControlGroup title="Domain and grid">
+                {renderNumberControl(advancedControl("domain_width"), {
+                  value: config.domain.width_m,
+                  limits: CONTROL_LIMITS.domainWidth,
+                  onChange: (value) => update("domain.width_m", value),
+                })}
+                {renderNumberControl(advancedControl("domain_height"), {
+                  value: config.domain.height_m,
+                  limits: CONTROL_LIMITS.domainHeight,
+                  onChange: (value) => update("domain.height_m", value),
+                })}
+                {renderNumberControl(advancedControl("grid_columns"), {
+                  value: config.grid.columns,
+                  limits: CONTROL_LIMITS.gridColumns,
+                  onChange: (value) => update("grid.columns", value),
+                })}
+                {renderNumberControl(advancedControl("grid_rows"), {
+                  value: config.grid.rows,
+                  limits: CONTROL_LIMITS.gridRows,
+                  onChange: (value) => update("grid.rows", value),
+                })}
+              </ControlGroup>
+            ) : null}
+
+            <ControlGroup title="Time, wind, reproducibility">
+              {renderNumberControl(advancedControl("time_step"), {
+                value: config.time.time_step_seconds,
+                limits: CONTROL_LIMITS.timeStep,
+                onChange: (value) => update("time.time_step_seconds", value),
+              })}
+              {renderNumberControl(advancedControl("frame_cadence"), {
+                value: config.time.frame_interval_seconds,
+                limits: CONTROL_LIMITS.frameInterval,
+                onChange: (value) => update("time.frame_interval_seconds", value),
+              })}
+              {renderNumberControl(advancedControl("background_wind"), {
+                value: config.background_wind.u_m_per_s,
+                limits: CONTROL_LIMITS.wind,
+                onChange: (value) => update("background_wind.u_m_per_s", value),
+              })}
+              {renderNumberControl(advancedControl("prescribed_lift"), {
+                value: config.background_wind.w_m_per_s,
+                limits: CONTROL_LIMITS.wind,
+                onChange: (value) => update("background_wind.w_m_per_s", value),
+              })}
+              {renderNumberControl(advancedControl("seed"), {
+                value: config.seed,
+                limits: CONTROL_LIMITS.seed,
+                onChange: (value) => update("seed", value),
+              })}
+            </ControlGroup>
+          </div>
+        </details>
+      ) : null}
 
       <div className="control-guidance" aria-live="polite">
         {message ? <p>{message}</p> : null}
@@ -1351,33 +1370,91 @@ function ControlGroup({ title, children }: { title: string; children: ReactNode 
   );
 }
 
+function renderNumberControl(
+  control: ControlPresentation | undefined,
+  props: {
+    value: number;
+    limits: ControlLimits;
+    onChange: (value: number) => void;
+  },
+) {
+  if (!control || control.state === "hidden" || control.state === "legacy") {
+    return null;
+  }
+  return (
+    <NumberControl
+      label={control.label}
+      unit={control.units ?? ""}
+      value={props.value}
+      limits={props.limits}
+      help={control.shortHelp}
+      disabled={control.state === "disabled"}
+      disabledReason={control.disabledReason}
+      onChange={props.onChange}
+    />
+  );
+}
+
+function renderSelectControl(
+  control: ControlPresentation | undefined,
+  props: {
+    value: string;
+    options: readonly SelectOption[];
+    onChange: (value: string) => void;
+  },
+) {
+  if (!control || control.state === "hidden" || control.state === "legacy") {
+    return null;
+  }
+  return (
+    <SelectControl
+      label={control.label}
+      value={props.value}
+      options={props.options}
+      help={control.shortHelp}
+      disabled={control.state === "disabled"}
+      disabledReason={control.disabledReason}
+      onChange={props.onChange}
+    />
+  );
+}
+
 function NumberControl({
   label,
   unit,
   value,
   limits,
+  help,
+  disabled,
+  disabledReason,
   onChange,
 }: {
   label: string;
   unit: string;
   value: number;
   limits: ControlLimits;
+  help: string;
+  disabled?: boolean;
+  disabledReason?: string | null;
   onChange: (value: number) => void;
 }) {
   const displayValue = limits.step < 0.01 ? value.toFixed(4) : value.toString();
 
   return (
-    <label className="number-control">
+    <label className={`number-control${disabled ? " disabled-control" : ""}`}>
       <span>
         {label}
         <strong>{unit}</strong>
       </span>
+      <small>{disabledReason ?? help}</small>
       <input
         type="range"
         min={limits.min}
         max={limits.max}
         step={limits.step}
         value={value}
+        disabled={disabled}
+        title={disabledReason ?? help}
         onChange={(event) => onChange(Number(event.target.value))}
       />
       <input
@@ -1386,6 +1463,8 @@ function NumberControl({
         max={limits.max}
         step={limits.step}
         value={displayValue}
+        disabled={disabled}
+        title={disabledReason ?? help}
         onChange={(event) => onChange(Number(event.target.value))}
       />
     </label>
@@ -1396,17 +1475,29 @@ function SelectControl({
   label,
   value,
   options,
+  help,
+  disabled,
+  disabledReason,
   onChange,
 }: {
   label: string;
   value: string;
   options: readonly SelectOption[];
+  help: string;
+  disabled?: boolean;
+  disabledReason?: string | null;
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="select-control">
+    <label className={`select-control${disabled ? " disabled-control" : ""}`}>
       <span>{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)}>
+      <small>{disabledReason ?? help}</small>
+      <select
+        value={value}
+        disabled={disabled}
+        title={disabledReason ?? help}
+        onChange={(event) => onChange(event.target.value)}
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}

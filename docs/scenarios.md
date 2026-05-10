@@ -29,6 +29,29 @@ This panel is not an AI summary and not a quality score. It is a deterministic
 run interpretation layer meant to make scenario contracts visible while keeping
 the solver and renderer unchanged.
 
+## Scenario-Aware Controls
+
+Scenario selection also drives control relevance. Built-in scenarios declare the
+solver they use, and the setup UI uses a central control metadata model to decide
+whether each control is basic, advanced, disabled, hidden, or legacy.
+
+Examples:
+
+- Fair-weather and dry-failed Boussinesq scenarios emphasize heating strength,
+  heating pattern, source-layer RH, free-atmosphere RH, lapse rate, source-layer
+  depth, boundary-layer depth, runtime, and model size.
+- `microphysics_lab` scenarios emphasize parcel/source RH, prescribed lift, and
+  runtime while hiding Boussinesq surface-heating geometry.
+- Weak-random heating hides direct patch center/width controls because the seed
+  and pattern own the placement.
+- Direct grid, timestep, frame cadence, wind, seed, and saved-experiment
+  controls live in Advanced settings.
+
+The UI should not expose a generic pile of sliders for every solver. If a
+control would imply a capability that the selected solver does not have, hide it.
+If a user may reasonably wonder why a meaningful setting is unavailable, disable
+it with an explanation.
+
 ## Built-In Scenario Catalog
 
 ### Fair-weather cumulus — moderate cloud base

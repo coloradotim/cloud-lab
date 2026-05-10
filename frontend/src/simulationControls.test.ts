@@ -4,7 +4,10 @@ import type { SimulationConfig } from "./simulationTypes";
 import {
   BOUSSINESQ_MODEL_SIZES,
   BUILT_IN_SCENARIOS,
+  CONTROL_METADATA,
   celsiusToKelvin,
+  controlPresentationFor,
+  controlPresentationsFor,
   configWarnings,
   kelvinToCelsius,
   normalizeConfig,
@@ -182,5 +185,68 @@ describe("simulation controls", () => {
     expect(large?.apply(config).time.duration_seconds).toBeGreaterThan(
       medium?.apply(config).time.duration_seconds ?? 0,
     );
+  });
+
+  it("defines help metadata for every public control", () => {
+    const presentations = controlPresentationsFor(config);
+
+    expect(presentations).toHaveLength(Object.keys(CONTROL_METADATA).length);
+    for (const presentation of presentations) {
+      expect(presentation.label).not.toHaveLength(0);
+      expect(presentation.shortHelp).not.toHaveLength(0);
+      expect(["basic", "advanced", "developer"]).toContain(presentation.importance);
+      expect(["active", "advanced", "disabled", "hidden", "legacy"]).toContain(
+        presentation.state,
+      );
+      expect(presentation.appliesToSolvers.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("hides Boussinesq surface-heating controls for microphysics lab", () => {
+    const microphysicsConfig: SimulationConfig = {
+      ...config,
+      solver_type: "microphysics_lab",
+      background_wind: { u_m_per_s: 0, w_m_per_s: 2 },
+    };
+
+    expect(controlPresentationFor("heating_pattern", microphysicsConfig).state).toBe("hidden");
+    expect(controlPresentationFor("surface_heating_rate", microphysicsConfig).state).toBe("hidden");
+    expect(controlPresentationFor("heating_patch_width", microphysicsConfig).state).toBe("hidden");
+    expect(controlPresentationFor("prescribed_lift", microphysicsConfig).state).toBe("active");
+  });
+
+  it("does not expose Boussinesq prescribed lift as a primary active control", () => {
+    const presentation = controlPresentationFor("prescribed_lift", config);
+
+    expect(presentation.state).toBe("disabled");
+    expect(presentation.disabledReason).toContain("Boussinesq vertical motion is predicted");
+  });
+
+  it("hides heating patch center and width when weak random heating controls placement", () => {
+    const weakRandomConfig = normalizeConfig({
+      ...config,
+      surface_heating: { ...config.surface_heating, pattern: "weak_random" },
+    });
+
+    expect(controlPresentationFor("heating_patch_center", weakRandomConfig).state).toBe("hidden");
+    expect(controlPresentationFor("heating_patch_width", weakRandomConfig).state).toBe("hidden");
+  });
+
+  it("keeps patch width but hides patch center for paired thermal forcing", () => {
+    const twoPatchConfig = normalizeConfig({
+      ...config,
+      surface_heating: { ...config.surface_heating, pattern: "two_patches" },
+    });
+
+    expect(controlPresentationFor("heating_patch_width", twoPatchConfig).state).toBe("active");
+    expect(controlPresentationFor("heating_patch_center", twoPatchConfig).state).toBe("hidden");
+  });
+
+  it("groups grid cadence and seed controls as advanced or developer settings", () => {
+    expect(controlPresentationFor("domain_width", config).state).toBe("advanced");
+    expect(controlPresentationFor("grid_columns", config).state).toBe("advanced");
+    expect(controlPresentationFor("time_step", config).state).toBe("advanced");
+    expect(controlPresentationFor("frame_cadence", config).state).toBe("advanced");
+    expect(controlPresentationFor("seed", config).state).toBe("advanced");
   });
 });
