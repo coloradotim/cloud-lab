@@ -579,106 +579,119 @@ export function App() {
         onReset={resetPlayback}
       />
 
-      <section className="status-panel" aria-labelledby="status-title">
-        <div>
-          <p className="eyebrow">Backend</p>
-          <h2 id="status-title">Connection status</h2>
-        </div>
+      <section
+        className={`workbench-shell${isSetupOpen ? " setup-open" : ""}${
+          isInspectorOpen ? " inspector-open" : ""
+        }`}
+        aria-label="Cloud Lab workbench"
+      >
+        {isSetupOpen ? (
+          <aside className="workbench-setup" aria-label="Simulation setup">
+            <SimulationControls
+              config={simulationConfig}
+              solvers={solvers}
+              savedScenarios={savedScenarios}
+              selectedReferenceCase={selectedScenarioSlug}
+              message={configMessage}
+              onConfigChange={applySimulationConfig}
+              onSelectedReferenceCaseChange={applyBuiltInScenario}
+              onSaveScenario={saveScenario}
+              onUpdateScenario={updateScenario}
+              onLoadScenario={loadScenario}
+              onDeleteScenario={deleteScenario}
+            />
+          </aside>
+        ) : null}
 
-        <StatusBadge health={health} />
-      </section>
-
-      <section className="schema-panel" aria-labelledby="schema-title">
-        <div>
-          <p className="eyebrow">Frame schema</p>
-          <h2 id="schema-title">Sample output</h2>
-        </div>
-
-        <SampleFrameSummary sampleFrame={sampleFrame} />
-      </section>
-
-      <section className="schema-panel" aria-labelledby="run-title">
-        <div>
-          <p className="eyebrow">Solver</p>
-          <h2 id="run-title">Sample run</h2>
-        </div>
-
-        <SampleRunSummary sampleRun={sampleRun} />
-      </section>
-
-      {isSetupOpen ? (
-        <SimulationControls
-          config={simulationConfig}
-          solvers={solvers}
-          savedScenarios={savedScenarios}
-          selectedReferenceCase={selectedScenarioSlug}
-          message={configMessage}
-          onConfigChange={applySimulationConfig}
-          onSelectedReferenceCaseChange={applyBuiltInScenario}
-          onSaveScenario={saveScenario}
-          onUpdateScenario={updateScenario}
-          onLoadScenario={loadScenario}
-          onDeleteScenario={deleteScenario}
-        />
-      ) : null}
-
-      <section className="playback-panel" aria-labelledby="playback-title">
-        <div>
-          <p className="eyebrow">Live playback</p>
-          <h2 id="playback-title">Simulation stream</h2>
-        </div>
-
-        <PlaybackControls
-          playback={playback}
-          canStart={simulationConfig !== null}
-          onStart={startPlayback}
-          onStop={stopPlayback}
-          onReset={resetPlayback}
-        />
-      </section>
-
-      <ScientificDashboard
-        frame={frames[displayedFrameIndex] ?? null}
-        framesReceived={frames.length}
-        selectedField={selectedField}
-        onSelectedFieldChange={setSelectedField}
-        isPaused={isPaused}
-        onPausedChange={setIsPaused}
-        playbackSpeed={playbackSpeed}
-        onPlaybackSpeedChange={setPlaybackSpeed}
-        displayedFrameIndex={displayedFrameIndex}
-        frameCount={frames.length}
-        finalTimeSeconds={
-          playback.durationSeconds || (frames.length > 0 ? frames[frames.length - 1].time_seconds : 0)
-        }
-        replayStatus={currentReplayStatus}
-        eventTargets={replayEvents}
-        onScrub={(frameIndex) => {
-          setIsPaused(true);
-          setDisplayedFrameIndex(frameIndex);
-        }}
-        onPinnedColumnChange={setProfileColumnIndex}
-      />
-
-      {isInspectorOpen ? (
-        <>
-          <ScenarioDiagnosticsPanel diagnostics={scenarioDiagnostics} />
-
-          <VerticalProfilePanel
-            profile={buildVerticalProfile(
-              frames[displayedFrameIndex] ?? null,
-              simulationConfig,
-              profileColumnIndex,
-            )}
+        <section className="workbench-stage" aria-label="Visualization workbench">
+          <ScientificDashboard
+            frame={frames[displayedFrameIndex] ?? null}
+            framesReceived={frames.length}
+            selectedField={selectedField}
+            onSelectedFieldChange={setSelectedField}
+            isPaused={isPaused}
+            onPausedChange={setIsPaused}
+            playbackSpeed={playbackSpeed}
+            onPlaybackSpeedChange={setPlaybackSpeed}
+            displayedFrameIndex={displayedFrameIndex}
+            frameCount={frames.length}
+            finalTimeSeconds={
+              playback.durationSeconds || (frames.length > 0 ? frames[frames.length - 1].time_seconds : 0)
+            }
+            replayStatus={currentReplayStatus}
+            eventTargets={replayEvents}
+            onScrub={(frameIndex) => {
+              setIsPaused(true);
+              setDisplayedFrameIndex(frameIndex);
+            }}
+            onPinnedColumnChange={setProfileColumnIndex}
           />
 
-          <MicrophysicsDiagnosticsPanel
-            frames={frames}
-            displayedFrame={frames[displayedFrameIndex] ?? null}
-            config={simulationConfig}
-          />
-        </>
-      ) : null}
+          <section className="playback-panel" aria-labelledby="playback-title">
+            <div>
+              <p className="eyebrow">Live playback</p>
+              <h2 id="playback-title">Simulation stream</h2>
+            </div>
+
+            <PlaybackControls
+              playback={playback}
+              canStart={simulationConfig !== null}
+              onStart={startPlayback}
+              onStop={stopPlayback}
+              onReset={resetPlayback}
+            />
+          </section>
+        </section>
+
+        {isInspectorOpen ? (
+          <aside className="workbench-inspector" aria-label="Simulation inspector">
+            <ScenarioDiagnosticsPanel diagnostics={scenarioDiagnostics} />
+
+            <VerticalProfilePanel
+              profile={buildVerticalProfile(
+                frames[displayedFrameIndex] ?? null,
+                simulationConfig,
+                profileColumnIndex,
+              )}
+            />
+
+            <MicrophysicsDiagnosticsPanel
+              frames={frames}
+              displayedFrame={frames[displayedFrameIndex] ?? null}
+              config={simulationConfig}
+            />
+          </aside>
+        ) : null}
+      </section>
+
+      <section className="developer-strip" aria-label="Developer status">
+        <section className="status-panel" aria-labelledby="status-title">
+          <div>
+            <p className="eyebrow">Backend</p>
+            <h2 id="status-title">Connection status</h2>
+          </div>
+
+          <StatusBadge health={health} />
+        </section>
+
+        <section className="schema-panel" aria-labelledby="schema-title">
+          <div>
+            <p className="eyebrow">Frame schema</p>
+            <h2 id="schema-title">Sample output</h2>
+          </div>
+
+          <SampleFrameSummary sampleFrame={sampleFrame} />
+        </section>
+
+        <section className="schema-panel" aria-labelledby="run-title">
+          <div>
+            <p className="eyebrow">Solver</p>
+            <h2 id="run-title">Sample run</h2>
+          </div>
+
+          <SampleRunSummary sampleRun={sampleRun} />
+        </section>
+      </section>
     </main>
   );
 }

@@ -61,6 +61,20 @@ inspector panels. Later workbench layout changes can move panels around, but the
 primary action bar remains the discoverable path for choosing an experiment,
 starting or stopping a run, and finding analysis views.
 
+## Canvas-First Workbench Shell
+
+The main app layout is organized around the visualization rather than a long
+stacked page. The workbench has three regions:
+
+- setup: collapsible scenario/config controls
+- stage: the scientific canvas plus replay/playback controls
+- inspector: collapsible diagnostics, profile, and microphysics readouts
+
+On wide screens setup and inspector can flank the canvas. On narrower screens
+they stack without changing the run, replay, probe, profile, or microphysics
+data flow. Backend/schema/sample-run details still exist as a secondary
+developer strip until the dedicated developer drawer work lands.
+
 ## Field Visualization Approach
 
 The dashboard supports field switching for any scalar field present in a frame. Known fields are ordered so cloud water, water vapor, temperature, and velocity fields are easy to reach first, while future fields can still appear without hardcoded rendering branches.
