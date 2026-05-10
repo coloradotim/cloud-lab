@@ -40,6 +40,8 @@ The V1 experience should include:
 - Adjustable heating, humidity, lapse rate, wind, runtime, resolution, and seed
 - Real-time visualization of vapor, cloud liquid water, temperature perturbation, and velocity
 - A field probe for inspecting local atmospheric values
+- A vertical sounding/profile view for inspecting cloud-base, LCL, humidity, and cap structure
+- Meteorologically grounded built-in scenarios plus local saved experiment configurations
 - Reproducible runs through seeded configurations
 - Documented units and assumptions
 - Tests, CI, and a sustainable development workflow

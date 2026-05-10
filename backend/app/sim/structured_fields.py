@@ -58,14 +58,8 @@ def surface_heating_weight(config: SimulationConfig, grid: StructuredGrid, x_m: 
 
     if pattern == "weak_random":
         normalized_x = x_m / max(config.domain.width_m, 1.0)
-        seeded_phase = (config.seed % 997) / 997.0
-        return _bounded(
-            0.25
-            + 0.35 * (0.5 + 0.5 * sin(31.0 * normalized_x + seeded_phase * 11.0))
-            + 0.25 * (0.5 + 0.5 * sin(73.0 * normalized_x + seeded_phase * 17.0)),
-            0.0,
-            0.85,
-        )
+        bumps = [_seeded_bump(config.seed, index, normalized_x) for index in range(5)]
+        return _bounded(max(bumps, default=0.0), 0.0, 0.85)
 
     return _combined_patch_weight(config.surface_heating.patches, grid, x_m)
 
@@ -81,7 +75,23 @@ def initial_relative_humidity(config: SimulationConfig, x_m: float, z_m: float) 
     base_rh = config.initial_atmosphere.relative_humidity
     profile = config.initial_atmosphere.humidity_profile
 
-    if profile == "moist_boundary_layer":
+    if profile == "surface_moisture":
+        source_top = min(
+            config.initial_atmosphere.moist_source_layer_depth_m,
+            config.initial_atmosphere.boundary_layer_depth_m,
+        )
+        transition_depth = max(config.domain.height_m * 0.08, 200.0)
+        if z_m <= source_top:
+            base_rh = config.initial_atmosphere.relative_humidity
+        elif z_m >= source_top + transition_depth:
+            base_rh = config.initial_atmosphere.free_atmosphere_relative_humidity
+        else:
+            weight = (z_m - source_top) / transition_depth
+            base_rh = (
+                config.initial_atmosphere.relative_humidity * (1.0 - weight)
+                + config.initial_atmosphere.free_atmosphere_relative_humidity * weight
+            )
+    elif profile == "moist_boundary_layer":
         if z_m <= config.initial_atmosphere.boundary_layer_depth_m:
             base_rh = max(base_rh, min(1.0, base_rh + 0.12))
         else:
@@ -142,6 +152,22 @@ def _patch_weight(patch: HeatingPatchConfig, grid: StructuredGrid, x_m: float) -
         return 0.0
 
     return patch.intensity_fraction * (1.0 - distance_from_edge_m / taper_width_m)
+
+
+def _seeded_bump(seed: int, index: int, normalized_x: float) -> float:
+    even_center = (index + 1) / 6.0
+    center = even_center + 0.06 * (_seeded_unit(seed, index, 0) - 0.5)
+    half_width = 0.018 + 0.022 * _seeded_unit(seed, index, 1)
+    intensity = 0.35 + 0.45 * _seeded_unit(seed, index, 2)
+    distance = abs(normalized_x - center)
+    if distance >= half_width:
+        return 0.0
+    return intensity * (1.0 - distance / half_width)
+
+
+def _seeded_unit(seed: int, index: int, salt: int) -> float:
+    raw = sin(seed * 12.9898 + index * 78.233 + salt * 37.719) * 43_758.5453
+    return raw % 1.0
 
 
 def _bounded(value: float, minimum: float, maximum: float) -> float:

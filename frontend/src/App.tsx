@@ -5,8 +5,8 @@ import "./App.css";
 import { MicrophysicsDiagnosticsPanel } from "./MicrophysicsDiagnosticsPanel";
 import { ScientificDashboard } from "./ScientificDashboard";
 import {
+  BUILT_IN_SCENARIOS,
   BOUSSINESQ_MODEL_SIZES,
-  BOUSSINESQ_REFERENCE_CASES,
   CONTROL_LIMITS,
   HUMIDITY_PROFILES,
   SURFACE_HEATING_PATTERNS,
@@ -22,6 +22,16 @@ import type {
   SimulationPreset,
   SolverDescriptor,
 } from "./simulationTypes";
+import {
+  deleteSavedScenario,
+  loadSavedScenarios,
+  persistSavedScenarios,
+  saveNewScenario,
+  updateSavedScenario,
+} from "./savedScenarios";
+import type { SavedScenario } from "./savedScenarios";
+import { buildVerticalProfile } from "./sounding";
+import type { VerticalProfile } from "./sounding";
 import { displayUnit } from "./visualization";
 
 type HealthState =
@@ -167,12 +177,12 @@ export function App() {
   const [frames, setFrames] = useState<SimulationFrame[]>([]);
   const [displayedFrameIndex, setDisplayedFrameIndex] = useState(0);
   const [selectedField, setSelectedField] = useState(DEFAULT_VISUAL_FIELD);
+  const [profileColumnIndex, setProfileColumnIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [presets, setPresets] = useState<SimulationPreset[]>([]);
   const [solvers, setSolvers] = useState<SolverDescriptor[]>([]);
-  const [selectedPreset, setSelectedPreset] = useState("fair-weather-cumulus");
   const [simulationConfig, setSimulationConfig] = useState<SimulationConfig | null>(null);
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
   const [configMessage, setConfigMessage] = useState<string | null>(null);
   const [playback, setPlayback] = useState<PlaybackState>({
     status: "idle",
@@ -264,20 +274,24 @@ export function App() {
   }, []);
 
   useEffect(() => {
+    setSavedScenarios(loadSavedScenarios());
+  }, []);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     fetchPresets(controller.signal)
       .then((loadedPresets) => {
-        setPresets(loadedPresets);
         const defaultPreset = loadedPresets[0];
         if (defaultPreset) {
-          setSelectedPreset(defaultPreset.slug);
           setSimulationConfig(defaultPreset.config);
           setConfigMessage(null);
         }
       })
       .catch((error: unknown) => {
-        setConfigMessage(error instanceof Error ? error.message : "Unable to load presets.");
+        setConfigMessage(
+          error instanceof Error ? error.message : "Unable to load scenario defaults.",
+        );
       });
 
     return () => controller.abort();
@@ -394,6 +408,42 @@ export function App() {
     });
   }
 
+  function saveScenario(name: string) {
+    if (!simulationConfig) {
+      return;
+    }
+
+    const nextScenarios = saveNewScenario(savedScenarios, name, simulationConfig);
+    setSavedScenarios(nextScenarios);
+    persistSavedScenarios(nextScenarios);
+  }
+
+  function updateScenario(scenarioId: string) {
+    if (!simulationConfig) {
+      return;
+    }
+
+    const nextScenarios = updateSavedScenario(savedScenarios, scenarioId, simulationConfig);
+    setSavedScenarios(nextScenarios);
+    persistSavedScenarios(nextScenarios);
+  }
+
+  function loadScenario(scenarioId: string) {
+    const scenario = savedScenarios.find((candidate) => candidate.id === scenarioId);
+    if (!scenario) {
+      return;
+    }
+
+    setSimulationConfig(scenario.config);
+    setConfigMessage(`Loaded saved experiment: ${scenario.name}`);
+  }
+
+  function deleteScenario(scenarioId: string) {
+    const nextScenarios = deleteSavedScenario(savedScenarios, scenarioId);
+    setSavedScenarios(nextScenarios);
+    persistSavedScenarios(nextScenarios);
+  }
+
   function handleStreamMessage(message: StreamMessage) {
     if (message.type === "metadata") {
       setPlayback((current) => ({
@@ -498,19 +548,14 @@ export function App() {
 
       <SimulationControls
         config={simulationConfig}
-        presets={presets}
         solvers={solvers}
-        selectedPreset={selectedPreset}
+        savedScenarios={savedScenarios}
         message={configMessage}
-        onPresetChange={(presetSlug) => {
-          const preset = presets.find((candidate) => candidate.slug === presetSlug);
-          setSelectedPreset(presetSlug);
-          if (preset) {
-            setSimulationConfig(preset.config);
-            setConfigMessage(`Loaded ${preset.name}.`);
-          }
-        }}
         onConfigChange={setSimulationConfig}
+        onSaveScenario={saveScenario}
+        onUpdateScenario={updateScenario}
+        onLoadScenario={loadScenario}
+        onDeleteScenario={deleteScenario}
       />
 
       <section className="playback-panel" aria-labelledby="playback-title">
@@ -543,6 +588,15 @@ export function App() {
           setIsPaused(true);
           setDisplayedFrameIndex(frameIndex);
         }}
+        onPinnedColumnChange={setProfileColumnIndex}
+      />
+
+      <VerticalProfilePanel
+        profile={buildVerticalProfile(
+          frames[displayedFrameIndex] ?? null,
+          simulationConfig,
+          profileColumnIndex,
+        )}
       />
 
       <MicrophysicsDiagnosticsPanel
@@ -645,25 +699,123 @@ function maxGridValue(values: number[][]): number {
   );
 }
 
+function VerticalProfilePanel({ profile }: { profile: VerticalProfile | null }) {
+  const selectedFields = [
+    "temperature_k",
+    "relative_humidity",
+    "water_vapor_kg_per_kg",
+    "cloud_liquid_water_kg_per_kg",
+    "vertical_velocity_m_per_s",
+  ];
+
+  return (
+    <section className="profile-panel" aria-labelledby="profile-title">
+      <div className="profile-header">
+        <div>
+          <p className="eyebrow">Vertical structure</p>
+          <h2 id="profile-title">Sounding / profile</h2>
+        </div>
+        <p className="profile-location">
+          {profile
+            ? profile.mode === "column"
+              ? `Pinned x=${profile.xMeters?.toFixed(0)} m`
+              : "Domain average"
+            : "No frame"}
+        </p>
+      </div>
+
+      {!profile ? (
+        <p className="empty-profile">Start a run to inspect temperature, humidity, condensate, and vertical motion by height.</p>
+      ) : (
+        <>
+          {profile.note ? <p className="control-note">{profile.note}</p> : null}
+          <div className="profile-markers">
+            {profile.markers.map((marker) => (
+              <span key={marker.key}>
+                {marker.label}: {marker.height_m.toFixed(0)} m
+              </span>
+            ))}
+          </div>
+          <div className="profile-table-wrap">
+            <table className="profile-table">
+              <thead>
+                <tr>
+                  <th>Height</th>
+                  {selectedFields.map((fieldKey) => {
+                    const field = profile.fields.find((candidate) => candidate.key === fieldKey);
+                    return field ? (
+                      <th key={field.key}>
+                        {field.label} ({field.unit})
+                      </th>
+                    ) : null;
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {profile.points
+                  .slice()
+                  .reverse()
+                  .map((point) => (
+                    <tr key={point.height_m}>
+                      <td>{point.height_m.toFixed(0)} m</td>
+                      {selectedFields.map((fieldKey) => {
+                        const field = profile.fields.find((candidate) => candidate.key === fieldKey);
+                        if (!field) {
+                          return null;
+                        }
+                        return <td key={field.key}>{formatProfileValue(point.values[field.key])}</td>;
+                      })}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function formatProfileValue(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) {
+    return "n/a";
+  }
+  if (Math.abs(value) >= 100) {
+    return value.toFixed(0);
+  }
+  if (Math.abs(value) >= 1) {
+    return value.toFixed(2);
+  }
+  return value.toExponential(2);
+}
+
 function SimulationControls({
   config,
-  presets,
   solvers,
-  selectedPreset,
+  savedScenarios,
   message,
-  onPresetChange,
   onConfigChange,
+  onSaveScenario,
+  onUpdateScenario,
+  onLoadScenario,
+  onDeleteScenario,
 }: {
   config: SimulationConfig | null;
-  presets: SimulationPreset[];
   solvers: SolverDescriptor[];
-  selectedPreset: string;
+  savedScenarios: SavedScenario[];
   message: string | null;
-  onPresetChange: (presetSlug: string) => void;
   onConfigChange: (config: SimulationConfig) => void;
+  onSaveScenario: (name: string) => void;
+  onUpdateScenario: (scenarioId: string) => void;
+  onLoadScenario: (scenarioId: string) => void;
+  onDeleteScenario: (scenarioId: string) => void;
 }) {
-  const [selectedReferenceCase, setSelectedReferenceCase] = useState("");
+  const [selectedReferenceCase, setSelectedReferenceCase] = useState(
+    "fair-weather-moderate-base",
+  );
   const [selectedModelSize, setSelectedModelSize] = useState("medium");
+  const [selectedSavedScenario, setSelectedSavedScenario] = useState("");
+  const [saveScenarioName, setSaveScenarioName] = useState("");
 
   if (!config) {
     return (
@@ -672,7 +824,7 @@ function SimulationControls({
           <p className="eyebrow">Simulation setup</p>
           <h2 id="controls-title">Controls</h2>
         </div>
-        <p className="status checking">Loading presets...</p>
+        <p className="status checking">Loading scenario defaults...</p>
       </section>
     );
   }
@@ -693,25 +845,25 @@ function SimulationControls({
     onConfigChange(updateConfigValue(config, path, value));
   }
 
-  function updateSolverType(solverType: SimulationConfig["solver_type"]) {
-    if (!config) {
-      return;
-    }
-
-    onConfigChange({ ...config, solver_type: solverType });
-  }
-
   function applyReferenceCase(referenceSlug: string) {
     if (!config) {
       return;
     }
 
     setSelectedReferenceCase(referenceSlug);
-    const referenceCase = BOUSSINESQ_REFERENCE_CASES.find((candidate) => {
+    const referenceCase = BUILT_IN_SCENARIOS.find((candidate) => {
       return candidate.slug === referenceSlug;
     });
     if (referenceCase) {
       onConfigChange(referenceCase.apply(config));
+    }
+  }
+
+  function loadSavedScenario(scenarioId: string) {
+    setSelectedSavedScenario(scenarioId);
+    setSelectedReferenceCase("");
+    if (scenarioId) {
+      onLoadScenario(scenarioId);
     }
   }
 
@@ -728,14 +880,14 @@ function SimulationControls({
   }
 
   const activeSolver = solvers.find((solver) => solver.solver_type === config.solver_type);
-  const activeReferenceCase = BOUSSINESQ_REFERENCE_CASES.find((candidate) => {
+  const activeReferenceCase = BUILT_IN_SCENARIOS.find((candidate) => {
     return candidate.slug === selectedReferenceCase;
   });
   const activeModelSize = BOUSSINESQ_MODEL_SIZES.find((candidate) => {
     return candidate.slug === selectedModelSize;
   });
   const heatingPattern = config.surface_heating.pattern ?? "single_patch";
-  const humidityProfile = config.initial_atmosphere.humidity_profile ?? "uniform";
+  const humidityProfile = config.initial_atmosphere.humidity_profile ?? "surface_moisture";
   const showHeatingCenter = heatingPattern === "single_patch" || heatingPattern === "custom_patches";
   const showHeatingWidth = heatingPattern !== "weak_random";
 
@@ -749,48 +901,13 @@ function SimulationControls({
 
         <div className="setup-selects">
           <label className="preset-select">
-            Preset
-            <select value={selectedPreset} onChange={(event) => onPresetChange(event.target.value)}>
-              {presets.map((preset) => (
-                <option key={preset.slug} value={preset.slug}>
-                  {preset.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="preset-select">
-            Solver
-            <select
-              value={config.solver_type}
-              onChange={(event) =>
-                updateSolverType(event.target.value as SimulationConfig["solver_type"])
-              }
-            >
-              {solvers.length === 0 ? (
-                <option value={config.solver_type}>Educational 2-D</option>
-              ) : (
-                solvers.map((solver) => (
-                  <option
-                    key={solver.solver_type}
-                    value={solver.solver_type}
-                    disabled={solver.status !== "available"}
-                  >
-                    {solver.name} {solver.status !== "available" ? `(${solver.status})` : ""}
-                  </option>
-                ))
-              )}
-            </select>
-          </label>
-
-          <label className="preset-select">
-            Reference case
+            Scenario
             <select
               value={selectedReferenceCase}
               onChange={(event) => applyReferenceCase(event.target.value)}
             >
               <option value="">Custom controls</option>
-              {BOUSSINESQ_REFERENCE_CASES.map((referenceCase) => (
+              {BUILT_IN_SCENARIOS.map((referenceCase) => (
                 <option key={referenceCase.slug} value={referenceCase.slug}>
                   {referenceCase.name}
                 </option>
@@ -812,15 +929,37 @@ function SimulationControls({
       </div>
 
       <div className="controls-grid">
-        <ControlGroup title="Solver mode">
+        <ControlGroup title="Scenario">
           <p className="control-note">
-            {activeSolver?.description ??
-              "Educational 2-D solver for local fair-weather cumulus experiments."}
+            {activeReferenceCase?.description ?? "Custom editable Boussinesq scenario."}
           </p>
           {activeReferenceCase ? (
-            <p className="control-note">{activeReferenceCase.description}</p>
+            <>
+              <p className="control-note">{activeReferenceCase.intendedPhenomenon}</p>
+              <dl className="scenario-metadata">
+                <div>
+                  <dt>Category</dt>
+                  <dd>{activeReferenceCase.category}</dd>
+                </div>
+                <div>
+                  <dt>Thermodynamics</dt>
+                  <dd>{activeReferenceCase.thermodynamicAssumptions}</dd>
+                </div>
+                <div>
+                  <dt>Forcing</dt>
+                  <dd>{activeReferenceCase.forcingSetup}</dd>
+                </div>
+                <div>
+                  <dt>Expected</dt>
+                  <dd>{activeReferenceCase.expectedOutcome}</dd>
+                </div>
+              </dl>
+            </>
           ) : null}
           {activeModelSize ? <p className="control-note">{activeModelSize.description}</p> : null}
+          <p className="control-note">
+            Solver: {activeSolver?.name ?? "Boussinesq 2-D"}
+          </p>
           {activeSolver?.limitations.length ? (
             <ul className="control-note-list">
               {activeSolver.limitations.map((limitation) => (
@@ -828,6 +967,63 @@ function SimulationControls({
               ))}
             </ul>
           ) : null}
+        </ControlGroup>
+
+        <ControlGroup title="Saved experiments">
+          <label className="select-control">
+            <span>Saved scenario</span>
+            <select
+              value={selectedSavedScenario}
+              onChange={(event) => loadSavedScenario(event.target.value)}
+            >
+              <option value="">No saved experiment selected</option>
+              {savedScenarios.map((scenario) => (
+                <option key={scenario.id} value={scenario.id}>
+                  {scenario.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-control">
+            <span>Experiment name</span>
+            <input
+              type="text"
+              value={saveScenarioName}
+              placeholder="e.g. two patches, higher cap"
+              onChange={(event) => setSaveScenarioName(event.target.value)}
+            />
+          </label>
+          <div className="button-row compact">
+            <button
+              type="button"
+              onClick={() => {
+                onSaveScenario(saveScenarioName);
+                setSaveScenarioName("");
+              }}
+            >
+              Save copy
+            </button>
+            <button
+              type="button"
+              disabled={!selectedSavedScenario}
+              onClick={() => onUpdateScenario(selectedSavedScenario)}
+            >
+              Update
+            </button>
+            <button
+              type="button"
+              disabled={!selectedSavedScenario}
+              onClick={() => {
+                onDeleteScenario(selectedSavedScenario);
+                setSelectedSavedScenario("");
+              }}
+            >
+              Delete
+            </button>
+          </div>
+          <p className="control-note">
+            Built-in scenarios stay read-only; saved experiments live in this browser.
+          </p>
         </ControlGroup>
 
         <ControlGroup title="Thermodynamics">
@@ -848,7 +1044,7 @@ function SimulationControls({
             onChange={(value) => update("initial_atmosphere.lapse_rate_k_per_m", value)}
           />
           <NumberControl
-            label="Boundary layer top"
+            label="BL / inversion top"
             unit="m"
             value={config.initial_atmosphere.boundary_layer_depth_m}
             limits={{
@@ -858,7 +1054,7 @@ function SimulationControls({
             onChange={(value) => update("initial_atmosphere.boundary_layer_depth_m", value)}
           />
           <NumberControl
-            label="Relative humidity"
+            label="Surface RH"
             unit="fraction"
             value={config.initial_atmosphere.relative_humidity}
             limits={CONTROL_LIMITS.relativeHumidity}
@@ -876,6 +1072,28 @@ function SimulationControls({
           <p className="control-note">
             {HUMIDITY_PROFILES.find((profile) => profile.value === humidityProfile)?.description}
           </p>
+          <NumberControl
+            label="Moist source depth"
+            unit="m"
+            value={config.initial_atmosphere.moist_source_layer_depth_m ?? 500}
+            limits={{
+              ...CONTROL_LIMITS.moistSourceLayerDepth,
+              max: Math.min(
+                config.initial_atmosphere.boundary_layer_depth_m,
+                config.domain.height_m,
+              ),
+            }}
+            onChange={(value) => update("initial_atmosphere.moist_source_layer_depth_m", value)}
+          />
+          <NumberControl
+            label="Free-air RH"
+            unit="fraction"
+            value={config.initial_atmosphere.free_atmosphere_relative_humidity ?? 0.55}
+            limits={CONTROL_LIMITS.relativeHumidity}
+            onChange={(value) =>
+              update("initial_atmosphere.free_atmosphere_relative_humidity", value)
+            }
+          />
         </ControlGroup>
 
         <ControlGroup title="Surface forcing">

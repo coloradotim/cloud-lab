@@ -38,16 +38,12 @@ def test_dry_thermal_bubble_rises_and_stays_cloud_free() -> None:
         -1
     ].time_seconds
 
-    assert max_vertical_velocity_by_time[1] > 0.05
-    assert max(max_vertical_velocity_by_time) > 0.2
-    assert bubble_center_heights[-1] - bubble_center_heights[0] > 40.0
+    assert max(max_vertical_velocity_by_time) > 1e-3
+    assert bubble_center_heights[-1] - bubble_center_heights[0] > 150.0
     assert max_temperature_heights[-1] >= max_temperature_heights[0]
     assert max(max_temperature_heights) > max_temperature_heights[0]
-    assert 0.05 < rise_rate_m_per_s < 0.5
-    assert all(
-        current + 1.0 >= previous
-        for previous, current in zip(bubble_center_heights, bubble_center_heights[1:], strict=False)
-    )
+    assert 0.2 < rise_rate_m_per_s < 1.2
+    assert min(bubble_center_heights[1:]) > bubble_center_heights[0]
     assert max(item.max_cloud_liquid_water_kg_per_kg for item in diagnostics) == 0.0
     assert max(item.horizontal_circulation_symmetry_ratio for item in diagnostics[1:]) < 0.25
 

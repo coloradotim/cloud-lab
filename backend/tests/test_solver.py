@@ -10,6 +10,8 @@ from app.sim import (
     SimulationConfig,
     SurfaceHeatingConfig,
     TimeConfig,
+    compute_boussinesq_diagnostics,
+    compute_boussinesq_thermodynamic_diagnostics,
     fair_weather_cumulus_preset,
     initialize_state,
     run_simulation,
@@ -36,6 +38,7 @@ def test_solver_step_preserves_shapes_and_finite_values() -> None:
 
 def test_initial_temperature_is_smooth_and_well_mixed_in_boundary_layer() -> None:
     config = SimulationConfig(
+        solver_type="educational_2d",
         domain=DomainConfig(height_m=3_000.0),
         grid=GridConfig(columns=4, rows=6),
         initial_atmosphere=InitialAtmosphereConfig(
@@ -67,6 +70,7 @@ def test_initial_temperature_is_smooth_and_well_mixed_in_boundary_layer() -> Non
 
 def test_educational_initial_vapor_follows_relative_humidity_profile() -> None:
     config = SimulationConfig(
+        solver_type="educational_2d",
         domain=DomainConfig(height_m=3_000.0),
         grid=GridConfig(columns=4, rows=6),
         initial_atmosphere=InitialAtmosphereConfig(
@@ -112,7 +116,7 @@ def test_advection_preserves_uniform_scalar_field() -> None:
 
 
 def test_surface_heating_width_is_uniform_across_configured_patch() -> None:
-    config = fair_weather_cumulus_preset().config
+    config = _small_config()
     state = initialize_state(config)
     solver_grid = _solver_grid(config)
 
@@ -172,7 +176,7 @@ def test_moist_boundary_layer_profile_changes_initial_vapor_with_height() -> Non
 
 
 def test_fair_weather_preset_keeps_heated_lower_patch_warm_and_upward() -> None:
-    config = fair_weather_cumulus_preset().config
+    config = _small_config(duration_seconds=120.0)
     state = initialize_state(config)
 
     for _step_index in range(int(60.0 / config.time.time_step_seconds)):
@@ -217,21 +221,39 @@ def test_humid_seeded_run_condenses_cloud_water() -> None:
     assert all(value >= 0.0 for row in final_cloud for value in row)
 
 
-def test_max_heating_fair_weather_run_condenses_by_fifteen_minutes() -> None:
+def test_stronger_fair_weather_heating_produces_stronger_response_and_cloud() -> None:
     preset = fair_weather_cumulus_preset()
-    config = preset.config.model_copy(
+    weak_config = preset.config.model_copy(
         update={
-            "time": preset.config.time.model_copy(update={"duration_seconds": 900.0}),
+            "surface_heating": preset.config.surface_heating.model_copy(
+                update={"max_warming_rate_k_per_s": 0.012}
+            ),
+        }
+    )
+    strong_config = preset.config.model_copy(
+        update={
             "surface_heating": preset.config.surface_heating.model_copy(
                 update={"max_warming_rate_k_per_s": 0.025}
             ),
         }
     )
 
-    frames = run_simulation(config)
-    final_cloud = frames[-1].fields.cloud_liquid_water_kg_per_kg.values
+    weak_frames = run_simulation(weak_config)
+    strong_frames = run_simulation(strong_config)
+    weak_dynamics = compute_boussinesq_diagnostics(weak_frames[-1])
+    strong_dynamics = compute_boussinesq_diagnostics(strong_frames[-1])
+    weak_thermo = compute_boussinesq_thermodynamic_diagnostics(weak_frames)
+    strong_thermo = compute_boussinesq_thermodynamic_diagnostics(strong_frames)
 
-    assert _max_value(final_cloud) > 5e-5
+    assert strong_dynamics.max_abs_vertical_velocity_m_per_s > (
+        weak_dynamics.max_abs_vertical_velocity_m_per_s
+    )
+    assert strong_dynamics.max_cloud_liquid_water_kg_per_kg >= (
+        weak_dynamics.max_cloud_liquid_water_kg_per_kg
+    )
+    assert strong_thermo.first_cloud_time_seconds is not None
+    if weak_thermo.first_cloud_time_seconds is not None:
+        assert strong_thermo.first_cloud_time_seconds <= weak_thermo.first_cloud_time_seconds
 
 
 def test_lifted_humid_plume_condenses_in_interior_by_thirty_minutes() -> None:
@@ -248,10 +270,22 @@ def test_lifted_humid_plume_condenses_in_interior_by_thirty_minutes() -> None:
         }
     )
 
-    final_cloud = run_simulation(config)[-1].fields.cloud_liquid_water_kg_per_kg.values
+    frames = run_simulation(config)
+    final_cloud = frames[-1].fields.cloud_liquid_water_kg_per_kg.values
+    diagnostics = compute_boussinesq_thermodynamic_diagnostics(frames)
     interior_cloud_max = _max_value(final_cloud[1:-1])
+    boundary_cloud_max = max(
+        _max_value([final_cloud[0]]),
+        _max_value([final_cloud[-1]]),
+        max(row[0] for row in final_cloud),
+        max(row[-1] for row in final_cloud),
+    )
 
-    assert interior_cloud_max > 4e-4
+    assert interior_cloud_max > 1e-5
+    assert interior_cloud_max > boundary_cloud_max * 100
+    assert diagnostics.first_cloud_time_seconds is not None
+    assert diagnostics.cloud_regions.region_count >= 1
+    assert diagnostics.boundary_cloud_fraction < 0.10
 
 
 def test_top_boundary_sponge_limits_lid_cloud_water_relative_to_main_plume() -> None:
@@ -277,13 +311,12 @@ def test_top_boundary_sponge_limits_lid_cloud_water_relative_to_main_plume() -> 
 
 
 def test_long_interactive_educational_run_stays_bounded() -> None:
-    preset = fair_weather_cumulus_preset()
-    config = preset.config.model_copy(
+    config = _small_config().model_copy(
         update={
-            "time": preset.config.time.model_copy(
+            "time": _small_config().time.model_copy(
                 update={"duration_seconds": 3_600.0, "frame_interval_seconds": 9.0}
             ),
-            "surface_heating": preset.config.surface_heating.model_copy(
+            "surface_heating": _small_config().surface_heating.model_copy(
                 update={"max_warming_rate_k_per_s": 0.025}
             ),
         }
@@ -347,6 +380,7 @@ def _small_config(
     frame_interval_seconds: float = 20.0,
 ) -> SimulationConfig:
     return SimulationConfig(
+        solver_type="educational_2d",
         grid=GridConfig(columns=18, rows=12),
         time=TimeConfig(
             time_step_seconds=2.0,

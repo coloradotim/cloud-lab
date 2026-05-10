@@ -12,6 +12,7 @@ SurfaceHeatingPattern = Literal[
     "custom_patches",
 ]
 HumidityProfilePattern = Literal[
+    "surface_moisture",
     "uniform",
     "moist_boundary_layer",
     "dry_cap",
@@ -87,10 +88,24 @@ class InitialAtmosphereConfig(BaseModel):
     boundary_layer_depth_m: float = Field(
         default=1_000.0,
         gt=0,
-        description="Initial mixed-layer depth in meters.",
+        description="Boundary-layer or inversion top height in meters.",
+    )
+    moist_source_layer_depth_m: float = Field(
+        default=500.0,
+        gt=0,
+        description=(
+            "Depth of the initially moist source layer that feeds thermals; this is "
+            "separate from the boundary-layer/inversion top."
+        ),
+    )
+    free_atmosphere_relative_humidity: float = Field(
+        default=0.55,
+        ge=0,
+        le=1,
+        description="Relative humidity used above the moist source layer.",
     )
     humidity_profile: HumidityProfilePattern = Field(
-        default="uniform",
+        default="surface_moisture",
         description="Structured relative-humidity profile used to initialize 2-D solvers.",
     )
     humidity_layers: list["HumidityLayerConfig"] = Field(
@@ -189,7 +204,7 @@ class SimulationConfig(BaseModel):
         description="Version marker for saved simulation configuration compatibility.",
     )
     solver_type: SolverType = Field(
-        default="educational_2d",
+        default="boussinesq_2d",
         description=(
             "Simulation backend identifier. Educational and Boussinesq solvers emit 2-D "
             "vertical-slice fields; microphysics_lab emits controlled parcel/box "
@@ -208,6 +223,13 @@ class SimulationConfig(BaseModel):
     def validate_spatial_settings(self) -> "SimulationConfig":
         if self.initial_atmosphere.boundary_layer_depth_m > self.domain.height_m:
             raise ValueError("boundary_layer_depth_m must not exceed domain height")
+        if self.initial_atmosphere.moist_source_layer_depth_m > self.domain.height_m:
+            raise ValueError("moist_source_layer_depth_m must not exceed domain height")
+        if (
+            self.initial_atmosphere.moist_source_layer_depth_m
+            > self.initial_atmosphere.boundary_layer_depth_m
+        ):
+            raise ValueError("moist_source_layer_depth_m must not exceed boundary_layer_depth_m")
         if self.surface_heating.patch_center_x_m > self.domain.width_m:
             raise ValueError("patch_center_x_m must fit inside the domain width")
         if self.surface_heating.patch_width_m > self.domain.width_m:

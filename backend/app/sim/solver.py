@@ -102,11 +102,12 @@ _BACKENDS: dict[SolverType, SolverBackend] = {
 }
 
 SUPPORTED_SOLVER_TYPES = tuple(_BACKENDS.keys())
+PUBLIC_SOLVER_TYPES: tuple[SolverType, ...] = ("boussinesq_2d", "microphysics_lab")
 
 
 def run_simulation(config: SimulationConfig | None = None) -> list[SimulationFrame]:
     """Run a simulation through the configured solver backend."""
-    resolved_config = config or SimulationConfig()
+    resolved_config = config or SimulationConfig(solver_type="boussinesq_2d")
     return _available_backend(resolved_config.solver_type).run(resolved_config)
 
 
@@ -116,7 +117,7 @@ def stream_simulation_frames(config: SimulationConfig) -> Iterator[SimulationFra
 
 
 def solver_descriptors() -> list[SolverDescriptor]:
-    return [backend.descriptor for backend in _BACKENDS.values()]
+    return [_BACKENDS[solver_type].descriptor for solver_type in PUBLIC_SOLVER_TYPES]
 
 
 def initialize_state(config: SimulationConfig) -> educational_2d.AtmosphereState:

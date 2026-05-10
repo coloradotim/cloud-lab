@@ -18,7 +18,9 @@ GRAVITY_M_PER_S2 = 9.81
 REFERENCE_TEMPERATURE_K = 300.0
 LATENT_HEATING_K_PER_KG_PER_KG = 1_200.0
 CONDENSATION_FRACTION_PER_STEP = 0.28
+EVAPORATION_FRACTION_PER_STEP = 0.35
 CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S = 0.002
+CONDENSATION_CONTINUATION_CLOUD_THRESHOLD_KG_PER_KG = 1e-5
 THERMAL_DIFFUSIVITY_M2_PER_S = 22.0
 MOISTURE_DIFFUSIVITY_M2_PER_S = 10.0
 KINEMATIC_VISCOSITY_M2_PER_S = 90.0
@@ -29,12 +31,19 @@ POISSON_ITERATIONS = 80
 VELOCITY_DAMPING_PER_SECOND = 0.004
 TOP_SPONGE_DEPTH_CELLS = 2
 TOP_SPONGE_RELAXATION_PER_SECOND = 0.05
+PARCEL_LIFT_DECAY_PER_SECOND = 0.001
+PARCEL_LIFT_COOLING_FRACTION = 1.0
+MAX_PARCEL_COOLING_LIFT_M = 1_000.0
+MIN_PARCEL_TEMPERATURE_K = 180.0
+MAX_PARCEL_TEMPERATURE_K = 330.0
 MAX_ABS_VELOCITY_M_PER_S = 10.0
 MAX_ABS_THETA_PERTURBATION_K = 10.0
 MAX_ABS_VORTICITY_PER_SECOND = 0.08
 MAX_WATER_VAPOR_KG_PER_KG = 0.04
 MAX_CLOUD_LIQUID_WATER_KG_PER_KG = 0.01
 MIXED_LAYER_HUMIDITY_PROFILES = {"uniform", "moist_boundary_layer"}
+SURFACE_MOISTURE_HUMIDITY_PROFILE = "surface_moisture"
+INITIAL_SATURATION_CAP_FRACTION = 0.98
 
 
 @dataclass(frozen=True)
@@ -53,6 +62,8 @@ class BoussinesqState:
     water_vapor_kg_per_kg: Grid
     cloud_liquid_water_kg_per_kg: Grid
     rain_water_kg_per_kg: Grid
+    parcel_temperature_k: Grid
+    parcel_lift_m: Grid
     vorticity_per_second: Grid
     horizontal_velocity_m_per_s: Grid
     vertical_velocity_m_per_s: Grid
@@ -91,6 +102,8 @@ def initialize_state(config: SimulationConfig) -> BoussinesqState:
         water_vapor_kg_per_kg=water_vapor,
         cloud_liquid_water_kg_per_kg=_constant_grid(rows, columns, 0.0),
         rain_water_kg_per_kg=_constant_grid(rows, columns, 0.0),
+        parcel_temperature_k=_copy_grid(environmental_temperature),
+        parcel_lift_m=_constant_grid(rows, columns, 0.0),
         vorticity_per_second=_constant_grid(rows, columns, 0.0),
         horizontal_velocity_m_per_s=_constant_grid(rows, columns, config.background_wind.u_m_per_s),
         vertical_velocity_m_per_s=_constant_grid(rows, columns, config.background_wind.w_m_per_s),
@@ -141,8 +154,22 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
 
     streamfunction = _solve_streamfunction(vorticity, grid)
     u, w = _velocity_from_streamfunction(config, streamfunction, grid)
+    parcel_lift = _update_parcel_lift(state.parcel_lift_m, state, grid, w, dt, config)
     temperature = _temperature_from_perturbation(theta, state.environmental_temperature_k)
-    condensation = _condense(temperature, vapor, cloud, w)
+    previous_temperature = _temperature_from_perturbation(
+        state.theta_perturbation_k,
+        state.environmental_temperature_k,
+    )
+    parcel_temperature = _update_parcel_temperature(
+        state.parcel_temperature_k,
+        previous_temperature,
+        temperature,
+        state,
+        grid,
+        w,
+        dt,
+    )
+    condensation = _condense(parcel_temperature, vapor, cloud, w)
     theta = _clip_grid(
         _theta_from_temperature(condensation.temperature_k, state.environmental_temperature_k),
         -MAX_ABS_THETA_PERTURBATION_K,
@@ -162,6 +189,7 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
         config,
         dt,
     )
+    parcel_temperature = _temperature_from_perturbation(theta, state.environmental_temperature_k)
 
     return BoussinesqState(
         step=state.step + 1,
@@ -170,6 +198,8 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
         water_vapor_kg_per_kg=vapor,
         cloud_liquid_water_kg_per_kg=cloud,
         rain_water_kg_per_kg=state.rain_water_kg_per_kg,
+        parcel_temperature_k=parcel_temperature,
+        parcel_lift_m=parcel_lift,
         vorticity_per_second=vorticity,
         horizontal_velocity_m_per_s=u,
         vertical_velocity_m_per_s=w,
@@ -245,14 +275,36 @@ def _initial_water_vapor_specific_humidity_kg_per_kg(
     z_m: float,
     temperature_k: float,
 ) -> float:
+    if config.initial_atmosphere.humidity_profile == SURFACE_MOISTURE_HUMIDITY_PROFILE:
+        local_saturation = _saturation_specific_humidity_kg_per_kg(temperature_k)
+        source_vapor = _saturation_specific_humidity_kg_per_kg(
+            _initial_temperature_k(config, 0.0)
+        ) * initial_relative_humidity(config, x_m, 0.0)
+        environmental_vapor = local_saturation * initial_relative_humidity(config, x_m, z_m)
+        source_top = min(
+            config.initial_atmosphere.moist_source_layer_depth_m,
+            config.initial_atmosphere.boundary_layer_depth_m,
+        )
+        transition_depth = max(config.domain.height_m * 0.08, 200.0)
+        if z_m <= source_top:
+            vapor = source_vapor
+        elif z_m >= source_top + transition_depth:
+            vapor = environmental_vapor
+        else:
+            weight = (z_m - source_top) / transition_depth
+            vapor = source_vapor * (1.0 - weight) + environmental_vapor * weight
+        return min(vapor, local_saturation * INITIAL_SATURATION_CAP_FRACTION)
+
     if (
         z_m <= config.initial_atmosphere.boundary_layer_depth_m
         and config.initial_atmosphere.humidity_profile in MIXED_LAYER_HUMIDITY_PROFILES
     ):
         surface_temperature_k = _initial_temperature_k(config, 0.0)
-        return _saturation_specific_humidity_kg_per_kg(
+        mixed_layer_vapor = _saturation_specific_humidity_kg_per_kg(
             surface_temperature_k
         ) * initial_relative_humidity(config, x_m, 0.0)
+        local_saturation = _saturation_specific_humidity_kg_per_kg(temperature_k)
+        return min(mixed_layer_vapor, local_saturation * INITIAL_SATURATION_CAP_FRACTION)
 
     return _saturation_specific_humidity_kg_per_kg(temperature_k) * initial_relative_humidity(
         config,
@@ -390,6 +442,7 @@ def _condense(
     water_vapor: Grid,
     cloud_liquid_water: Grid,
     vertical_velocity: Grid,
+    parcel_lift_m: Grid | None = None,
 ) -> _CondensationResult:
     updated_temperature = _copy_grid(temperature)
     updated_vapor = _copy_grid(water_vapor)
@@ -397,22 +450,35 @@ def _condense(
 
     for row_index, row in enumerate(updated_temperature):
         for column_index, temperature_k in enumerate(row):
-            if (
-                vertical_velocity[row_index][column_index] <= CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S
-                and updated_cloud[row_index][column_index] == 0.0
-            ):
-                continue
-
-            qsat = _saturation_specific_humidity_kg_per_kg(temperature_k)
+            lifted_temperature_k = temperature_k
+            if parcel_lift_m is not None:
+                lifted_temperature_k -= DRY_ADIABATIC_LAPSE_RATE_K_PER_M * max(
+                    0.0,
+                    min(
+                        MAX_PARCEL_COOLING_LIFT_M,
+                        parcel_lift_m[row_index][column_index] * PARCEL_LIFT_COOLING_FRACTION,
+                    ),
+                )
+            qsat = _saturation_specific_humidity_kg_per_kg(lifted_temperature_k)
             excess = max(0.0, updated_vapor[row_index][column_index] - qsat)
-            condensed = excess * CONDENSATION_FRACTION_PER_STEP
+            deficit = max(0.0, qsat - updated_vapor[row_index][column_index])
+            existing_cloud = updated_cloud[row_index][column_index]
+            can_condense = (
+                vertical_velocity[row_index][column_index] > CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S
+                or existing_cloud >= CONDENSATION_CONTINUATION_CLOUD_THRESHOLD_KG_PER_KG
+            )
+            condensed = excess * CONDENSATION_FRACTION_PER_STEP if can_condense else 0.0
+            evaporated = min(
+                existing_cloud,
+                deficit * EVAPORATION_FRACTION_PER_STEP,
+            )
             updated_vapor[row_index][column_index] = max(
                 0.0,
-                updated_vapor[row_index][column_index] - condensed,
+                updated_vapor[row_index][column_index] - condensed + evaporated,
             )
-            updated_cloud[row_index][column_index] += condensed
-            updated_temperature[row_index][column_index] += (
-                LATENT_HEATING_K_PER_KG_PER_KG * condensed
+            updated_cloud[row_index][column_index] += condensed - evaporated
+            updated_temperature[row_index][column_index] = (
+                lifted_temperature_k + LATENT_HEATING_K_PER_KG_PER_KG * (condensed - evaporated)
             )
 
     return _CondensationResult(
@@ -420,6 +486,61 @@ def _condense(
         water_vapor_kg_per_kg=updated_vapor,
         cloud_liquid_water_kg_per_kg=updated_cloud,
     )
+
+
+def _update_parcel_lift(
+    parcel_lift_m: Grid,
+    state: BoussinesqState,
+    grid: SolverGrid,
+    vertical_velocity: Grid,
+    dt: float,
+    config: SimulationConfig,
+) -> Grid:
+    lifted = _advect(parcel_lift_m, state, grid, dt)
+    decay = max(0.0, 1.0 - PARCEL_LIFT_DECAY_PER_SECOND * dt)
+    max_lift_m = config.domain.height_m
+    return [
+        [
+            min(
+                max_lift_m,
+                max(
+                    0.0,
+                    lifted[row_index][column_index] * decay
+                    + vertical_velocity[row_index][column_index] * dt,
+                ),
+            )
+            for column_index in range(len(row))
+        ]
+        for row_index, row in enumerate(lifted)
+    ]
+
+
+def _update_parcel_temperature(
+    parcel_temperature_k: Grid,
+    previous_temperature_k: Grid,
+    current_temperature_k: Grid,
+    state: BoussinesqState,
+    grid: SolverGrid,
+    vertical_velocity: Grid,
+    dt: float,
+) -> Grid:
+    advected = _advect(parcel_temperature_k, state, grid, dt)
+    return [
+        [
+            _clamp(
+                advected[row_index][column_index]
+                + current_temperature_k[row_index][column_index]
+                - previous_temperature_k[row_index][column_index]
+                - DRY_ADIABATIC_LAPSE_RATE_K_PER_M
+                * vertical_velocity[row_index][column_index]
+                * dt,
+                MIN_PARCEL_TEMPERATURE_K,
+                MAX_PARCEL_TEMPERATURE_K,
+            )
+            for column_index in range(len(row))
+        ]
+        for row_index, row in enumerate(advected)
+    ]
 
 
 def _apply_top_sponge(

@@ -10,6 +10,7 @@ The frontend keeps rendering separate from solver and API concerns:
 - `simulationTypes.ts` defines the frontend view of the shared frame schema.
 - `visualization.ts` contains pure helper logic for field option mapping, ranges, color mapping, and cursor-to-grid conversion.
 - `probe.ts` maps frame fields into solver-neutral point and neighborhood diagnostics.
+- `sounding.ts` derives vertical profiles and LCL/boundary-layer markers from the displayed frame.
 - `microphysicsDiagnostics.ts` derives parcel/box water-budget and timing summaries from buffered frames.
 - `ScientificDashboard.tsx` renders scalar fields and velocity vectors onto a canvas.
 - `MicrophysicsDiagnosticsPanel.tsx` renders the `microphysics_lab` summary and optional droplet histogram.
@@ -31,7 +32,9 @@ Current scalar rendering:
 - converts absolute temperature from Kelvin transport values to Celsius for browser display
 - overlays sampled velocity vectors from horizontal and vertical velocity fields
 
-The cloud liquid water display scale is tuned for the current toy solver's small condensate values, so early fair-weather condensation is visible before the model reaches unrealistically large liquid-water amounts.
+The cloud liquid water display scale is tuned for prototype solver condensate
+values, so delayed fair-weather condensation is visible before the model reaches
+unrealistically large liquid-water amounts.
 
 ## Probe Diagnostics
 
@@ -61,6 +64,29 @@ The probe readout currently displays:
 Missing fields are shown as "Not emitted" instead of failing the dashboard. This keeps probe behavior compatible with future solver backends that may emit different diagnostics.
 
 Relative humidity and buoyancy are derived diagnostics. They are useful for inspecting the current educational model, but they should not be treated as full physical diagnostics from a pressure-coupled or validated cloud model.
+
+## Sounding / Profile View
+
+The vertical profile panel displays the current frame as a compact column sounding.
+When a probe is pinned in the 2-D field view, the profile uses that x-column. When
+no probe is pinned, it falls back to a domain-average profile.
+
+Initial profile fields include:
+
+- absolute temperature, displayed in deg C
+- derived relative humidity
+- water vapor
+- cloud liquid water
+- rain water when emitted
+- vertical and horizontal velocity when emitted
+
+The panel also shows markers for estimated LCL, boundary-layer top, and moist-source
+top when the config is available. These markers are diagnostics for interpretation;
+they do not modify the solver state.
+
+For `microphysics_lab`, the profile panel explains that the solver is a 0-D
+parcel/box mode broadcast over the shared grid. This keeps the view useful without
+implying resolved horizontal structure.
 
 ## Microphysics Lab Diagnostics
 

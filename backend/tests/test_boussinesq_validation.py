@@ -8,11 +8,13 @@ from app.sim import (
     boussinesq_thermodynamic_validation_cases,
     compute_boussinesq_diagnostics,
     compute_boussinesq_thermodynamic_diagnostics,
+    compute_cloud_region_diagnostics,
     compute_divergence_field,
+    run_boussinesq_scenario_validation,
     run_boussinesq_thermodynamic_validation,
     run_simulation,
 )
-from app.sim.schemas import SimulationConfig
+from app.sim.schemas import SimulationConfig, SimulationFrame
 
 pytestmark = [
     pytest.mark.boussinesq,
@@ -28,6 +30,9 @@ RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE = 1e-2
 QUIET_MAX_DIVERGENCE_PER_SECOND = 1e-6
 QUIET_MAX_VELOCITY_M_PER_S = 1e-3
 MAX_REFERENCE_CLOUD_WATER_KG_PER_KG = 0.008
+MAX_DEEP_REFERENCE_VELOCITY_M_PER_S = 6.0
+MAX_DEEP_REFERENCE_CLOUD_WATER_KG_PER_KG = 0.011
+BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG = 1e-5
 
 
 def test_boussinesq_reference_cases_map_to_valid_configs() -> None:
@@ -36,9 +41,9 @@ def test_boussinesq_reference_cases_map_to_valid_configs() -> None:
     assert {case.slug for case in cases} == {
         "quiet-atmosphere",
         "dry-thermal-bubble",
-        "humid-lifted-thermal",
-        "stable-suppression",
-        "fair-weather-boussinesq",
+        "isolated-fair-weather-cumulus",
+        "humid-cloud-deck",
+        "deep-convection-candidate",
     }
     for case in cases:
         assert isinstance(case.config, SimulationConfig)
@@ -67,9 +72,22 @@ def test_boussinesq_reference_cases_remain_finite_and_moisture_safe() -> None:
 
         assert diagnostics.non_finite_value_count == 0
         assert diagnostics.min_moisture_kg_per_kg >= 0.0
-        assert diagnostics.max_abs_horizontal_velocity_m_per_s < 1.0
-        assert diagnostics.max_abs_vertical_velocity_m_per_s < 1.0
-        assert diagnostics.max_cloud_liquid_water_kg_per_kg < MAX_REFERENCE_CLOUD_WATER_KG_PER_KG
+        if case.expected_regime == "deep_candidate":
+            assert diagnostics.max_abs_horizontal_velocity_m_per_s < (
+                MAX_DEEP_REFERENCE_VELOCITY_M_PER_S
+            )
+            assert (
+                diagnostics.max_abs_vertical_velocity_m_per_s < MAX_DEEP_REFERENCE_VELOCITY_M_PER_S
+            )
+            assert diagnostics.max_cloud_liquid_water_kg_per_kg <= (
+                MAX_DEEP_REFERENCE_CLOUD_WATER_KG_PER_KG
+            )
+        else:
+            assert diagnostics.max_abs_horizontal_velocity_m_per_s < 1.0
+            assert diagnostics.max_abs_vertical_velocity_m_per_s < 1.0
+            assert diagnostics.max_cloud_liquid_water_kg_per_kg < (
+                MAX_REFERENCE_CLOUD_WATER_KG_PER_KG
+            )
         assert diagnostics.max_abs_divergence_per_second < MAX_REFERENCE_DIVERGENCE_PER_SECOND
         assert diagnostics.mean_abs_divergence_per_second < MEAN_REFERENCE_DIVERGENCE_PER_SECOND
         assert diagnostics.rms_divergence_per_second >= diagnostics.mean_abs_divergence_per_second
@@ -144,7 +162,7 @@ def test_quiet_boussinesq_reference_case_remains_quiet() -> None:
 
 @pytest.mark.parametrize(
     "case_slug",
-    ["dry-thermal-bubble", "humid-lifted-thermal", "stable-suppression"],
+    ["dry-thermal-bubble", "isolated-fair-weather-cumulus", "humid-cloud-deck"],
 )
 def test_active_boussinesq_reference_cases_meet_dimensionless_divergence_gates(
     case_slug: str,
@@ -159,7 +177,7 @@ def test_active_boussinesq_reference_cases_meet_dimensionless_divergence_gates(
 
 @pytest.mark.parametrize(
     "case_slug",
-    ["dry-thermal-bubble", "humid-lifted-thermal", "stable-suppression"],
+    ["dry-thermal-bubble", "isolated-fair-weather-cumulus", "humid-cloud-deck"],
 )
 def test_active_boussinesq_interior_divergence_still_meets_gates(case_slug: str) -> None:
     case = _case(case_slug)
@@ -195,8 +213,8 @@ def test_dry_boussinesq_reference_case_lifts_without_cloud_water() -> None:
     assert diagnostics.max_cloud_liquid_water_kg_per_kg == 0.0
 
 
-def test_humid_boussinesq_reference_case_creates_bounded_cloud_water() -> None:
-    humid = _case("humid-lifted-thermal")
+def test_isolated_boussinesq_reference_case_creates_bounded_cloud_water() -> None:
+    humid = _case("isolated-fair-weather-cumulus")
 
     diagnostics = compute_boussinesq_diagnostics(run_simulation(humid.config)[-1])
 
@@ -207,9 +225,27 @@ def test_humid_boussinesq_reference_case_creates_bounded_cloud_water() -> None:
     assert diagnostics.max_cloud_liquid_water_height_m is not None
 
 
+def test_two_hot_patch_case_keeps_separate_cloud_cells_before_merger() -> None:
+    case = _case("isolated-fair-weather-cumulus")
+    frames = run_simulation(case.config)
+    early = _frame_at(frames, 120.0)
+    developing = _frame_at(frames, 480.0)
+    two_cell_frame = _frame_at(frames, 1080.0)
+
+    assert _cloud_coverage(early, BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG) == 0.0
+    assert _cloud_coverage(developing, BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG) == 0.0
+    regions = compute_cloud_region_diagnostics(
+        two_cell_frame,
+        threshold_kg_per_kg=BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG,
+    )
+
+    assert regions.region_count == 2
+    assert _cloud_coverage(two_cell_frame, BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG) < 0.08
+
+
 @pytest.mark.xfail(reason="Current prototype places peak cloud water below the BL top.")
 def test_humid_boussinesq_reference_cloud_maximum_is_aloft() -> None:
-    humid = _case("humid-lifted-thermal")
+    humid = _case("isolated-fair-weather-cumulus")
 
     diagnostics = compute_boussinesq_diagnostics(run_simulation(humid.config)[-1])
 
@@ -221,37 +257,23 @@ def test_humid_boussinesq_reference_cloud_maximum_is_aloft() -> None:
     assert diagnostics.cloud_top_height_m < humid.config.domain.height_m * 0.75
 
 
-def test_stable_reference_case_suppresses_vertical_growth() -> None:
-    dry = _case("dry-thermal-bubble")
-    stable = _case("stable-suppression")
+def test_humid_deck_has_more_cloud_coverage_than_isolated_cumulus() -> None:
+    isolated = _case("isolated-fair-weather-cumulus")
+    deck = _case("humid-cloud-deck")
 
-    dry_diagnostics = compute_boussinesq_diagnostics(run_simulation(dry.config)[-1])
-    stable_diagnostics = compute_boussinesq_diagnostics(run_simulation(stable.config)[-1])
-
-    assert stable_diagnostics.max_abs_vertical_velocity_m_per_s < (
-        dry_diagnostics.max_abs_vertical_velocity_m_per_s
+    isolated_diagnostics = compute_boussinesq_thermodynamic_diagnostics(
+        run_simulation(isolated.config)
     )
-    assert stable_diagnostics.total_cloud_liquid_water_kg_per_kg <= (
-        dry_diagnostics.total_cloud_liquid_water_kg_per_kg
+    deck_diagnostics = compute_boussinesq_thermodynamic_diagnostics(run_simulation(deck.config))
+
+    assert deck_diagnostics.total_cloud_water_kg_per_kg > (
+        isolated_diagnostics.total_cloud_water_kg_per_kg
     )
-
-
-def test_stable_reference_case_divergence_does_not_systematically_grow() -> None:
-    stable = _case("stable-suppression")
-
-    diagnostics_by_frame = [
-        compute_boussinesq_diagnostics(frame) for frame in run_simulation(stable.config)
-    ]
-    rms_by_frame = [
-        diagnostics.rms_dimensionless_divergence for diagnostics in diagnostics_by_frame
-    ]
-
-    assert max(rms_by_frame) < RMS_ACTIVE_DIMENSIONLESS_DIVERGENCE
-    assert rms_by_frame[-1] <= max(rms_by_frame)
+    assert deck_diagnostics.expected_lcl_m < isolated_diagnostics.expected_lcl_m
 
 
 def test_small_and_medium_model_sizes_have_similar_qualitative_behavior() -> None:
-    humid = _case("humid-lifted-thermal")
+    humid = _case("isolated-fair-weather-cumulus")
     sizes = {
         size.slug: size for size in boussinesq_model_sizes() if size.slug in {"small", "medium"}
     }
@@ -274,7 +296,7 @@ def test_small_and_medium_model_sizes_have_similar_qualitative_behavior() -> Non
 
 
 def test_reference_case_seeded_runs_are_reproducible() -> None:
-    humid = _case("humid-lifted-thermal")
+    humid = _case("isolated-fair-weather-cumulus")
 
     first = [frame.to_transport_dict() for frame in run_simulation(humid.config)]
     second = [frame.to_transport_dict() for frame in run_simulation(humid.config)]
@@ -295,6 +317,31 @@ def test_boussinesq_thermodynamic_validation_cases_report_statuses() -> None:
         "layered-moisture-fair-weather",
     }
     assert all(case["status"] in {"pass", "warn", "fail"} for case in cases.values())
+
+
+def test_boussinesq_scenario_validation_cases_report_expected_regimes() -> None:
+    report = run_boussinesq_scenario_validation()
+
+    statuses = {case["slug"]: case["status"] for case in report["cases"]}
+    assert statuses["quiet-atmosphere"] == "pass"
+    assert statuses["dry-thermal-bubble"] == "pass"
+    assert statuses["isolated-fair-weather-cumulus"] in {"pass", "warn"}
+    assert statuses["humid-cloud-deck"] in {"pass", "warn"}
+    assert statuses["deep-convection-candidate"] in {"pass", "warn"}
+
+    isolated = next(
+        case for case in report["cases"] if case["slug"] == "isolated-fair-weather-cumulus"
+    )["diagnostics"]
+    deck = next(case for case in report["cases"] if case["slug"] == "humid-cloud-deck")[
+        "diagnostics"
+    ]
+    deep = next(case for case in report["cases"] if case["slug"] == "deep-convection-candidate")[
+        "diagnostics"
+    ]
+
+    assert 0.002 <= isolated["cloud_coverage_fraction"] <= 0.20
+    assert deck["cloud_coverage_fraction"] > isolated["cloud_coverage_fraction"]
+    assert (deep["cloud_top_height_m"] or 0.0) > (isolated["cloud_top_height_m"] or 0.0)
 
 
 def test_boussinesq_thermodynamic_validation_cases_have_numeric_lcl_and_distribution() -> None:
@@ -342,3 +389,14 @@ def test_layered_moisture_case_reports_non_mixed_source_layer_context() -> None:
 
 def _case(slug: str) -> BoussinesqReferenceCase:
     return next(case for case in boussinesq_reference_cases() if case.slug == slug)
+
+
+def _frame_at(frames: list[SimulationFrame], time_seconds: float) -> SimulationFrame:
+    return next(frame for frame in frames if frame.time_seconds == time_seconds)
+
+
+def _cloud_coverage(frame: SimulationFrame, threshold_kg_per_kg: float) -> float:
+    cloud = frame.fields.cloud_liquid_water_kg_per_kg.values
+    return sum(1 for row in cloud for value in row if value > threshold_kg_per_kg) / (
+        frame.grid.rows * frame.grid.columns
+    )
