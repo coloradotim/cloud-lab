@@ -30,18 +30,23 @@ The solver should produce physical fields. The renderer should consume those fie
 
 This project will generate many good ideas. Capture them in docs and roadmap issues, but keep V1 focused. Avoid idea sprawl by turning future ideas into focused implementation issues only when the foundation is ready.
 
-## V1 target experience
+## Target experience
 
-A user opens a local browser app, selects a fair-weather cumulus preset, adjusts simple parameters, runs a 2-D vertical slice simulation, and watches cloud-relevant fields evolve in real time.
+A user opens a local browser app, selects a meteorologically grounded scenario, adjusts relevant initial conditions, runs a 2-D vertical slice simulation, watches cloud-relevant fields evolve, inspects why the cloud behaved as it did, saves the run, compares it with another run, and deliberately varies key controls.
 
-The V1 experience should include:
+The near-term target experience should include:
 
 - Fair-weather cumulus over localized surface heating
 - Adjustable heating, humidity, lapse rate, wind, runtime, resolution, and seed
+- Scenario-aware controls that show only relevant settings by default
 - Real-time visualization of vapor, cloud liquid water, temperature perturbation, and velocity
+- Bulk cloud appearance rendering that is clearly labeled as an optical approximation
 - A field probe for inspecting local atmospheric values
 - A vertical sounding/profile view for inspecting cloud-base, LCL, humidity, and cap structure
+- Expected / observed / status diagnostics for built-in scenarios
 - Meteorologically grounded built-in scenarios plus local saved experiment configurations
+- Saved run artifacts with config, diagnostics, replay metadata, and notes
+- Side-by-side scenario or run comparison
 - Reproducible runs through seeded configurations
 - Documented units and assumptions
 - Tests, CI, and a sustainable development workflow
@@ -50,16 +55,28 @@ The V1 experience should include:
 
 Cloud Lab should now move on two parallel tracks.
 
-The interactive cloud-experiment track should make the sandbox more playful and
-useful now: structured and eventually painted surface-heating maps, structured
-moisture fields, lifting controls, simple terrain/orographic forcing, scenario
-presets, replay and scrubbing, and physically informed bulk visualization.
+The interactive cloud-experiment track should make the sandbox more playful and useful now: structured and eventually painted surface-heating maps, structured moisture fields, lifting controls, simple terrain/orographic forcing, scenario presets, replay and scrubbing, saved run artifacts, scenario comparison, and physically informed bulk visualization.
 
-The physics-credibility track should keep the science honest: automated sanity
-checks, `microphysics_lab` validation, PySDM evaluation in isolation, and clear
-labels for every approximation. These tracks support each other, but PySDM or a
-final CFD core is not required before building better scenario controls and bulk
-field rendering.
+The physics-credibility track should keep the science honest: automated sanity checks, scenario expected/observed/status diagnostics, `microphysics_lab` validation, PySDM evaluation in isolation, and clear labels for every approximation. These tracks support each other, but PySDM or a final computational fluid dynamics core is not required before building better scenario controls and bulk field rendering.
+
+## Post-workbench product loop
+
+After the canvas-first workbench UI lands, the next milestone is the full experiment loop:
+
+```text
+Create condition → run → inspect → save → compare → vary → learn
+```
+
+This requires more than isolated features. The product needs:
+
+- saved run artifacts, not just saved configs
+- painted surface-heating and moisture initial-condition editors
+- optical appearance controls for bulk cloud rendering
+- lightweight parameter sweeps for key controls
+- rain visualization and later bulk rain behavior
+- terrain/orographic validation cases alongside terrain experiments
+
+This loop is the practical path to the original product goal: letting users mess with initial states and forcing, see the clouds that form, and understand what happened.
 
 ## First scientific scope
 
@@ -71,7 +88,7 @@ Start with a 2-D vertical slice. The early model should be simple but extensible
 - Simple saturation and condensation
 - Latent heating from condensation
 - Cloud liquid water field
-- Rain water placeholder
+- Rain water placeholder and later bulk rain behavior
 - No ice phase initially
 - No full mesoscale dynamics
 - No advanced turbulence model initially
@@ -144,11 +161,9 @@ A reasonable staged path:
 - simple shadowing
 - camera controls
 - sun angle controls
+- optical appearance controls such as assumed effective radius, extinction strength, edge brightening, and cloud-base darkening
 
-This phase may use bulk cloud liquid water plus an assumed effective radius as a
-bulk optical approximation. It should be labeled that way. Droplet-aware optics wait
-for droplet-size or effective-radius outputs, but PySDM is not a prerequisite for
-first cloud opacity, lighting, or shadow improvements.
+This phase may use bulk cloud liquid water plus an assumed effective radius as a bulk optical approximation. It should be labeled that way. Droplet-aware optics wait for droplet-size or effective-radius outputs, but PySDM is not a prerequisite for first cloud opacity, lighting, or shadow improvements.
 
 ### Phase 2 — Physically informed
 
@@ -164,11 +179,7 @@ first cloud opacity, lighting, or shadow improvements.
 - rain shafts become visible through attenuation and fall streaks
 - aerosol/haze interactions become possible
 
-Near-term rain visualization may use bulk rain-water fields and simple
-autoconversion or sedimentation indicators. That is useful for scenario feedback and
-rain-shaft visualization, but it must not be described as droplet-resolved
-precipitation formation. PySDM collision/coalescence remains the later path for more
-credible rain initiation.
+Near-term rain visualization may use bulk rain-water fields and simple autoconversion or sedimentation indicators. That is useful for scenario feedback and rain-shaft visualization, but it must not be described as droplet-resolved precipitation formation. PySDM collision/coalescence remains the later path for more credible rain initiation.
 
 ### Phase 4 — Advanced rendering
 
@@ -184,6 +195,7 @@ Cloud Lab should eventually help users understand why a cloud behaved the way it
 Useful diagnostics include:
 
 - local field probe
+- expected / observed / status summaries for built-in scenarios
 - time-history plots
 - parcel/pathline visualization
 - entrainment indicators
@@ -197,7 +209,7 @@ A future post-run summary might say something like:
 
 > Cloud initiated over the heated patch, but dry-air entrainment near 1.7 km evaporated cloud water before collision/coalescence could produce precipitation.
 
-This kind of explanation would make Cloud Lab feel like a scientific assistant, not just an animation.
+This kind of explanation would make Cloud Lab feel like a scientific assistant, not just an animation. Deterministic diagnostics should come before AI-generated summaries.
 
 ## Roadmap buckets
 
@@ -215,22 +227,29 @@ This kind of explanation would make Cloud Lab feel like a scientific assistant, 
 
 ### V1.5 / near-future
 
+- Canvas-first workbench UI
+- Scenario expected / observed / status diagnostics
+- Scenario-aware setup controls with tooltips and relevance rules
+- Saved scenarios and replay
+- Saved run artifacts
+- Time scrubbing
 - Painted surface heating maps
 - Painted moisture fields
-- Saved scenarios and replay
-- Time scrubbing
+- Initial pretty cloud rendering mode and optical controls
+- Side-by-side scenario/run comparison
 - Microphysics lab solver mode
 - Droplet-size distribution visualization
 - Condensation/evaporation overlays
+- Bulk rain indicator and rain-shaft visualization
 - Terrain/orographic lift prototype
+- Terrain/orographic validation cases
 - Boulder foothills upslope preset
-- Initial pretty cloud rendering mode
 
 ### Later science upgrades
 
 - PySDM integration if evaluation supports it
 - Collision/coalescence
-- Rain sedimentation
+- Bulk rain sedimentation and evaporation
 - Aerosol/CCN controls
 - Better fluid dynamics options
 - Turbulence parameterization exploration
