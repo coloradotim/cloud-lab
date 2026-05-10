@@ -16,9 +16,11 @@ def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
     assert preset["slug"] == "fair-weather-cumulus"
     assert preset["name"] == "Fair-weather cumulus over heated ground"
     assert preset["config"]["schema_version"] == "sim-config-v1"
-    assert preset["config"]["solver_type"] == "educational_2d"
-    assert preset["config"]["initial_atmosphere"]["relative_humidity"] == 1.0
-    assert preset["config"]["surface_heating"]["max_warming_rate_k_per_s"] == 0.012
+    assert preset["config"]["solver_type"] == "boussinesq_2d"
+    assert preset["config"]["initial_atmosphere"]["relative_humidity"] == 0.85
+    assert preset["config"]["initial_atmosphere"]["boundary_layer_depth_m"] == 500.0
+    assert preset["config"]["surface_heating"]["max_warming_rate_k_per_s"] == 0.018
+    assert preset["config"]["surface_heating"]["pattern"] == "two_patches"
     assert preset["config"]["seed"] == 3
 
 
@@ -59,7 +61,7 @@ def test_solver_catalog_exposes_available_solver_backends() -> None:
 
     assert response.status_code == 200
     solvers = response.json()["solvers"]
-    assert solvers[0]["solver_type"] == "educational_2d"
+    assert [solver["solver_type"] for solver in solvers] == ["boussinesq_2d", "microphysics_lab"]
     assert solvers[0]["status"] == "available"
     boussinesq = next(solver for solver in solvers if solver["solver_type"] == "boussinesq_2d")
     microphysics = next(solver for solver in solvers if solver["solver_type"] == "microphysics_lab")

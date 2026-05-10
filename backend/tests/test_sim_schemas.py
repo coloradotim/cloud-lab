@@ -26,7 +26,7 @@ def test_default_simulation_config_defines_vertical_slice_controls() -> None:
     config = SimulationConfig(seed=42)
 
     assert config.domain.width_m == 10_000.0
-    assert config.solver_type == "educational_2d"
+    assert config.solver_type == "boussinesq_2d"
     assert config.domain.height_m == 3_000.0
     assert config.grid.columns == 100
     assert config.grid.rows == 60

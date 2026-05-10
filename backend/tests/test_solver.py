@@ -36,6 +36,7 @@ def test_solver_step_preserves_shapes_and_finite_values() -> None:
 
 def test_initial_temperature_is_smooth_and_well_mixed_in_boundary_layer() -> None:
     config = SimulationConfig(
+        solver_type="educational_2d",
         domain=DomainConfig(height_m=3_000.0),
         grid=GridConfig(columns=4, rows=6),
         initial_atmosphere=InitialAtmosphereConfig(
@@ -67,6 +68,7 @@ def test_initial_temperature_is_smooth_and_well_mixed_in_boundary_layer() -> Non
 
 def test_educational_initial_vapor_follows_relative_humidity_profile() -> None:
     config = SimulationConfig(
+        solver_type="educational_2d",
         domain=DomainConfig(height_m=3_000.0),
         grid=GridConfig(columns=4, rows=6),
         initial_atmosphere=InitialAtmosphereConfig(
@@ -112,7 +114,7 @@ def test_advection_preserves_uniform_scalar_field() -> None:
 
 
 def test_surface_heating_width_is_uniform_across_configured_patch() -> None:
-    config = fair_weather_cumulus_preset().config
+    config = _small_config()
     state = initialize_state(config)
     solver_grid = _solver_grid(config)
 
@@ -172,7 +174,7 @@ def test_moist_boundary_layer_profile_changes_initial_vapor_with_height() -> Non
 
 
 def test_fair_weather_preset_keeps_heated_lower_patch_warm_and_upward() -> None:
-    config = fair_weather_cumulus_preset().config
+    config = _small_config(duration_seconds=120.0)
     state = initialize_state(config)
 
     for _step_index in range(int(60.0 / config.time.time_step_seconds)):
@@ -277,13 +279,12 @@ def test_top_boundary_sponge_limits_lid_cloud_water_relative_to_main_plume() -> 
 
 
 def test_long_interactive_educational_run_stays_bounded() -> None:
-    preset = fair_weather_cumulus_preset()
-    config = preset.config.model_copy(
+    config = _small_config().model_copy(
         update={
-            "time": preset.config.time.model_copy(
+            "time": _small_config().time.model_copy(
                 update={"duration_seconds": 3_600.0, "frame_interval_seconds": 9.0}
             ),
-            "surface_heating": preset.config.surface_heating.model_copy(
+            "surface_heating": _small_config().surface_heating.model_copy(
                 update={"max_warming_rate_k_per_s": 0.025}
             ),
         }
@@ -347,6 +348,7 @@ def _small_config(
     frame_interval_seconds: float = 20.0,
 ) -> SimulationConfig:
     return SimulationConfig(
+        solver_type="educational_2d",
         grid=GridConfig(columns=18, rows=12),
         time=TimeConfig(
             time_step_seconds=2.0,

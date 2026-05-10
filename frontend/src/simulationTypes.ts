@@ -14,7 +14,7 @@ export type ScalarField = {
 
 export type SimulationConfig = {
   schema_version: "sim-config-v1";
-  solver_type: "educational_2d" | "boussinesq_2d" | "microphysics_lab";
+  solver_type: "boussinesq_2d" | "microphysics_lab";
   domain: {
     width_m: number;
     height_m: number;
@@ -33,7 +33,10 @@ export type SimulationConfig = {
     lapse_rate_k_per_m: number;
     relative_humidity: number;
     boundary_layer_depth_m: number;
+    moist_source_layer_depth_m?: number;
+    free_atmosphere_relative_humidity?: number;
     humidity_profile?:
+      | "surface_moisture"
       | "uniform"
       | "moist_boundary_layer"
       | "dry_cap"

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { SimulationConfig } from "./simulationTypes";
 import {
   BOUSSINESQ_MODEL_SIZES,
-  BOUSSINESQ_REFERENCE_CASES,
+  BUILT_IN_SCENARIOS,
   celsiusToKelvin,
   configWarnings,
   kelvinToCelsius,
@@ -14,7 +14,7 @@ import {
 
 const config: SimulationConfig = {
   schema_version: "sim-config-v1",
-  solver_type: "educational_2d",
+  solver_type: "boussinesq_2d",
   domain: { width_m: 10_000, height_m: 3_000 },
   grid: { columns: 36, rows: 24 },
   time: { time_step_seconds: 2, duration_seconds: 120, frame_interval_seconds: 6 },
@@ -112,22 +112,60 @@ describe("simulation controls", () => {
     );
   });
 
+  it("warns when a mixed boussinesq boundary layer starts above LCL", () => {
+    expect(
+      configWarnings({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          ...config.initial_atmosphere,
+          relative_humidity: 0.98,
+          boundary_layer_depth_m: 1_000,
+          humidity_profile: "uniform",
+        },
+      }),
+    ).toContain("Boundary-layer top is above the estimated LCL; broad cloud decks are likely.");
+  });
+
   it("maps boussinesq reference cases to editable valid configs", () => {
-    const quiet = BOUSSINESQ_REFERENCE_CASES.find(
-      (referenceCase) => referenceCase.slug === "quiet-atmosphere",
+    const fairWeather = BUILT_IN_SCENARIOS.find(
+      (referenceCase) => referenceCase.slug === "fair-weather-moderate-base",
     );
-    const humid = BOUSSINESQ_REFERENCE_CASES.find(
-      (referenceCase) => referenceCase.slug === "humid-lifted-thermal",
+    const multiThermal = BUILT_IN_SCENARIOS.find(
+      (referenceCase) => referenceCase.slug === "multi-thermal-cumulus-field",
     );
 
-    expect(BOUSSINESQ_REFERENCE_CASES).toHaveLength(5);
-    expect(quiet?.apply(config)).toMatchObject({
+    expect(BUILT_IN_SCENARIOS).toHaveLength(7);
+    expect(fairWeather?.apply(config)).toMatchObject({
       solver_type: "boussinesq_2d",
-      surface_heating: { max_warming_rate_k_per_s: 0 },
-      background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
+      surface_heating: { max_warming_rate_k_per_s: 0.024, pattern: "single_patch" },
     });
-    expect(humid?.apply(config).surface_heating.max_warming_rate_k_per_s).toBeGreaterThan(0);
-    expect(humid?.apply(config).initial_atmosphere.relative_humidity).toBe(0.98);
+    expect(multiThermal?.apply(config).surface_heating.pattern).toBe("two_patches");
+    expect(multiThermal?.apply(config).initial_atmosphere.relative_humidity).toBe(0.85);
+  });
+
+  it("requires built-in scenarios to carry physical intent metadata", () => {
+    const names = new Set(BUILT_IN_SCENARIOS.map((scenario) => scenario.name));
+
+    expect(names.size).toBe(BUILT_IN_SCENARIOS.length);
+    for (const scenario of BUILT_IN_SCENARIOS) {
+      expect(scenario.intendedPhenomenon).not.toHaveLength(0);
+      expect(scenario.thermodynamicAssumptions).not.toHaveLength(0);
+      expect(scenario.expectedOutcome).not.toHaveLength(0);
+      expect(scenario.diagnosticExpectations.length).toBeGreaterThan(0);
+      expect(scenario.knownLimitations.length).toBeGreaterThan(0);
+    }
+    expect(BUILT_IN_SCENARIOS.map((scenario) => scenario.slug)).toEqual(
+      expect.arrayContaining([
+        "fair-weather-moderate-base",
+        "multi-thermal-cumulus-field",
+        "dry-failed-cumulus",
+        "humid-low-cloud-boundary-layer",
+        "dry-cap-suppressed-cumulus",
+        "microphysics-lifted-humid-parcel",
+        "microphysics-no-lift-control",
+      ]),
+    );
   });
 
   it("maps boussinesq model sizes to consistent domain grid and runtime configs", () => {

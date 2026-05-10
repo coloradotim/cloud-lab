@@ -24,6 +24,7 @@ type ScientificDashboardProps = {
   displayedFrameIndex: number;
   frameCount: number;
   onScrub: (frameIndex: number) => void;
+  onPinnedColumnChange: (columnIndex: number | null) => void;
 };
 
 export function ScientificDashboard({
@@ -38,6 +39,7 @@ export function ScientificDashboard({
   displayedFrameIndex,
   frameCount,
   onScrub,
+  onPinnedColumnChange,
 }: ScientificDashboardProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [hoveredProbe, setHoveredProbe] = useState<ProbeSelection | null>(null);
@@ -102,6 +104,7 @@ export function ScientificDashboard({
     }
 
     setPinnedProbe({ ...hoveredProbe, mode: probeMode });
+    onPinnedColumnChange(hoveredProbe.column);
   }
 
   return (
@@ -140,7 +143,14 @@ export function ScientificDashboard({
             </select>
           </label>
 
-          <button type="button" onClick={() => setPinnedProbe(null)} disabled={!pinnedProbe}>
+          <button
+            type="button"
+            onClick={() => {
+              setPinnedProbe(null);
+              onPinnedColumnChange(null);
+            }}
+            disabled={!pinnedProbe}
+          >
             Clear probe
           </button>
 

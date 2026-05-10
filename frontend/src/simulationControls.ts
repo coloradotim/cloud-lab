@@ -9,6 +9,7 @@ export const CONTROL_LIMITS = {
   heatingCenter: { min: 0, max: 10_000, step: 100 },
   lapseRate: { min: 0.003, max: 0.01, step: 0.0001 },
   boundaryLayerDepth: { min: 250, max: 3_000, step: 50 },
+  moistSourceLayerDepth: { min: 100, max: 2_000, step: 50 },
   relativeHumidity: { min: 0.3, max: 1, step: 0.01 },
   domainWidth: { min: 4_000, max: 20_000, step: 500 },
   domainHeight: { min: 1_500, max: 6_000, step: 250 },
@@ -21,10 +22,18 @@ export const CONTROL_LIMITS = {
   seed: { min: 1, max: 9999, step: 1 },
 };
 
-export type BoussinesqReferenceCase = {
+export type BuiltInScenario = {
   slug: string;
   name: string;
   description: string;
+  intendedPhenomenon: string;
+  solverMode: SimulationConfig["solver_type"];
+  thermodynamicAssumptions: string;
+  forcingSetup: string;
+  expectedOutcome: string;
+  diagnosticExpectations: string[];
+  knownLimitations: string[];
+  category: "exploratory" | "diagnostic" | "visualization";
   apply: (config: SimulationConfig) => SimulationConfig;
 };
 
@@ -60,6 +69,11 @@ export const SURFACE_HEATING_PATTERNS = [
 
 export const HUMIDITY_PROFILES = [
   {
+    value: "surface_moisture",
+    label: "Surface-moist profile",
+    description: "Moist source air near the ground with drier air aloft.",
+  },
+  {
     value: "uniform",
     label: "Uniform RH",
     description: "Uses the base relative-humidity slider everywhere.",
@@ -83,11 +97,28 @@ export const HUMIDITY_PROFILES = [
 
 type ConfigPathValue = string | number | null | Record<string, unknown> | Array<unknown>;
 
-export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
+export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
   {
-    slug: "quiet-atmosphere",
-    name: "Quiet atmosphere / no forcing",
-    description: "Unsaturated, unforced slice for checking that motion and cloud water stay zero.",
+    slug: "fair-weather-moderate-base",
+    name: "Fair-weather cumulus — moderate cloud base",
+    description: "Localized surface heating in moderately humid air; cloud should start above the surface.",
+    intendedPhenomenon: "Classic shallow fair-weather cumulus from thermals over heated ground.",
+    solverMode: "boussinesq_2d",
+    thermodynamicAssumptions:
+      "Surface-moist source layer, finite LCL hundreds of meters above ground, drier free air aloft.",
+    forcingSetup: "Single warm patch centered in the domain.",
+    expectedOutcome:
+      "A thermal plume develops first; cloud water appears later near a finite cloud base instead of immediately at the ground.",
+    diagnosticExpectations: [
+      "Estimated LCL is finite and above the first model levels.",
+      "Below-LCL cloud fraction remains small.",
+      "Cloud top is less horizontally uniform than cloud base.",
+    ],
+    knownLimitations: [
+      "This is a compact Boussinesq prototype, not quantitative LES.",
+      "Entrainment and turbulence are simplified.",
+    ],
+    category: "exploratory",
     apply: (config) =>
       normalizeConfig({
         ...config,
@@ -95,22 +126,82 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
         initial_atmosphere: {
           surface_temperature_k: celsiusToKelvin(25),
           lapse_rate_k_per_m: 0.0065,
-          relative_humidity: 0.65,
-          boundary_layer_depth_m: 1_000,
+          relative_humidity: 0.85,
+          boundary_layer_depth_m: 1_500,
+          moist_source_layer_depth_m: 800,
+          free_atmosphere_relative_humidity: 0.55,
+          humidity_profile: "surface_moisture",
         },
         surface_heating: {
-          max_warming_rate_k_per_s: 0,
+          max_warming_rate_k_per_s: 0.024,
           patch_center_x_m: config.domain.width_m / 2,
           patch_width_m: 2_000,
+          pattern: "single_patch",
         },
-        background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
-        seed: 11,
+        background_wind: { u_m_per_s: 0.15, w_m_per_s: 0 },
+        seed: 17,
       }),
   },
   {
-    slug: "dry-thermal-bubble",
-    name: "Dry thermal bubble",
-    description: "Dry heated patch for buoyant circulation without cloud formation.",
+    slug: "multi-thermal-cumulus-field",
+    name: "Multi-thermal cumulus field",
+    description: "Two heated regions in a shared source layer for separated shallow cloud cells.",
+    intendedPhenomenon: "Multiple thermals and cloud cells from structured surface heating.",
+    solverMode: "boussinesq_2d",
+    thermodynamicAssumptions:
+      "Moderately humid source layer with drier free air; source-layer vapor is intended to feed multiple thermals.",
+    forcingSetup: "Two hot patches of similar width and strength.",
+    expectedOutcome:
+      "Two thermal responses develop and should remain distinguishable for a useful part of the run.",
+    diagnosticExpectations: [
+      "No broad cloud sheet during early development.",
+      "Cloud-region count is greater than one after delayed onset.",
+      "Cloud bases are more clustered than cloud tops when the source layer is well mixed.",
+    ],
+    knownLimitations: [
+      "Cell merger depends on grid resolution, wind, and diffusion.",
+      "Not every random seed should be interpreted as a meteorological forecast.",
+    ],
+    category: "visualization",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(25),
+          lapse_rate_k_per_m: 0.0065,
+          relative_humidity: 0.85,
+          boundary_layer_depth_m: 1_500,
+          moist_source_layer_depth_m: 800,
+          free_atmosphere_relative_humidity: 0.55,
+          humidity_profile: "surface_moisture",
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0.024,
+          patch_center_x_m: config.domain.width_m / 2,
+          patch_width_m: 2_000,
+          pattern: "two_patches",
+        },
+        background_wind: { u_m_per_s: 0.15, w_m_per_s: 0 },
+        seed: 17,
+      }),
+  },
+  {
+    slug: "dry-failed-cumulus",
+    name: "Dry failed cumulus",
+    description: "A heated dry boundary layer that lifts but should not make appreciable cloud water.",
+    intendedPhenomenon: "Buoyant motion without condensation.",
+    solverMode: "boussinesq_2d",
+    thermodynamicAssumptions: "Lower RH keeps the LCL above the modeled thermal reach.",
+    forcingSetup: "Single heated patch similar to the fair-weather case.",
+    expectedOutcome: "A thermal/updraft pattern appears while cloud liquid water stays zero or negligible.",
+    diagnosticExpectations: [
+      "Maximum vertical velocity is nonzero.",
+      "Cloud liquid water remains negligible.",
+      "Estimated LCL is higher than the cloud-forming layer.",
+    ],
+    knownLimitations: ["Dry suppression is qualitative; entrainment and turbulence are simplified."],
+    category: "diagnostic",
     apply: (config) =>
       normalizeConfig({
         ...config,
@@ -120,20 +211,40 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
           lapse_rate_k_per_m: 0.0075,
           relative_humidity: 0.45,
           boundary_layer_depth_m: 1_000,
+          moist_source_layer_depth_m: 500,
+          free_atmosphere_relative_humidity: 0.35,
+          humidity_profile: "surface_moisture",
         },
         surface_heating: {
           max_warming_rate_k_per_s: 0.016,
           patch_center_x_m: config.domain.width_m / 2,
           patch_width_m: 2_000,
+          pattern: "single_patch",
         },
         background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
         seed: 13,
       }),
   },
   {
-    slug: "humid-lifted-thermal",
-    name: "Humid lifted thermal",
-    description: "Humid heated patch for checking uplift, cooling, and cloud water coupling.",
+    slug: "humid-low-cloud-boundary-layer",
+    name: "Humid low-cloud boundary layer",
+    description: "Near-saturated air with a very low LCL; this is intentionally not classic fair-weather cumulus.",
+    intendedPhenomenon: "Low-cloud or foggy boundary-layer behavior.",
+    solverMode: "boussinesq_2d",
+    thermodynamicAssumptions: "Very high RH places the expected LCL near the surface.",
+    forcingSetup: "Weak uneven heating in an almost saturated mixed layer.",
+    expectedOutcome:
+      "Cloud may form very low and can look broad; that is the purpose of this non-classic scenario.",
+    diagnosticExpectations: [
+      "Estimated LCL is very low.",
+      "Low cloud is expected rather than treated as a fair-weather failure.",
+      "Cloud coverage may exceed isolated cumulus coverage.",
+    ],
+    knownLimitations: [
+      "Fog/stratus microphysics is parameterized crudely.",
+      "This scenario is a contrast case, not the default fair-weather setup.",
+    ],
+    category: "diagnostic",
     apply: (config) =>
       normalizeConfig({
         ...config,
@@ -143,63 +254,146 @@ export const BOUSSINESQ_REFERENCE_CASES: BoussinesqReferenceCase[] = [
           lapse_rate_k_per_m: 0.0065,
           relative_humidity: 0.98,
           boundary_layer_depth_m: 1_000,
+          moist_source_layer_depth_m: 1_000,
+          free_atmosphere_relative_humidity: 0.98,
+          humidity_profile: "uniform",
         },
         surface_heating: {
-          max_warming_rate_k_per_s: 0.022,
+          max_warming_rate_k_per_s: 0.05,
           patch_center_x_m: config.domain.width_m / 2,
           patch_width_m: 2_000,
-        },
-        background_wind: { u_m_per_s: 0.15, w_m_per_s: 0 },
-        seed: 17,
-      }),
-  },
-  {
-    slug: "stable-suppression",
-    name: "Stable stratification suppression",
-    description: "Stable profile for checking weaker vertical growth under stronger stability.",
-    apply: (config) =>
-      normalizeConfig({
-        ...config,
-        solver_type: "boussinesq_2d",
-        initial_atmosphere: {
-          surface_temperature_k: celsiusToKelvin(25),
-          lapse_rate_k_per_m: 0.0035,
-          relative_humidity: 0.45,
-          boundary_layer_depth_m: 1_000,
-        },
-        surface_heating: {
-          max_warming_rate_k_per_s: 0.016,
-          patch_center_x_m: config.domain.width_m / 2,
-          patch_width_m: 2_000,
-        },
-        background_wind: { u_m_per_s: 0.15, w_m_per_s: 0 },
-        seed: 19,
-      }),
-  },
-  {
-    slug: "fair-weather-boussinesq",
-    name: "Fair-weather Boussinesq baseline",
-    description: "Baseline humid heated Boussinesq run for manual comparison.",
-    apply: (config) =>
-      normalizeConfig({
-        ...config,
-        solver_type: "boussinesq_2d",
-        initial_atmosphere: {
-          surface_temperature_k: celsiusToKelvin(25),
-          lapse_rate_k_per_m: 0.0065,
-          relative_humidity: 0.98,
-          boundary_layer_depth_m: 1_000,
-        },
-        surface_heating: {
-          max_warming_rate_k_per_s: 0.018,
-          patch_center_x_m: config.domain.width_m / 2,
-          patch_width_m: 2_000,
+          pattern: "weak_random",
         },
         background_wind: { u_m_per_s: 0.25, w_m_per_s: 0 },
         seed: 23,
       }),
   },
+  {
+    slug: "dry-cap-suppressed-cumulus",
+    name: "Dry cap / suppressed cumulus",
+    description: "Moisture below with a drier cap aloft to show why heating does not always make clouds.",
+    intendedPhenomenon: "Environmental inhibition of cumulus growth.",
+    solverMode: "boussinesq_2d",
+    thermodynamicAssumptions: "Moist lower layer and dry cap near the boundary-layer top.",
+    forcingSetup: "Moderate localized heating below the cap.",
+    expectedOutcome: "Thermals lift, but cloud growth is limited, delayed, or suppressed.",
+    diagnosticExpectations: [
+      "Dry cap appears in the RH sounding.",
+      "Cloud water is reduced relative to similar no-cap setups.",
+      "Vertical development is capped or delayed.",
+    ],
+    knownLimitations: ["Dry-cap structure is idealized and grid-smoothed."],
+    category: "exploratory",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "boussinesq_2d",
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(27),
+          lapse_rate_k_per_m: 0.0045,
+          relative_humidity: 0.82,
+          boundary_layer_depth_m: 1_200,
+          moist_source_layer_depth_m: 700,
+          free_atmosphere_relative_humidity: 0.35,
+          humidity_profile: "dry_cap",
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0.018,
+          patch_center_x_m: config.domain.width_m / 2,
+          patch_width_m: 2_000,
+          pattern: "single_patch",
+        },
+        background_wind: { u_m_per_s: 0.1, w_m_per_s: 0 },
+        seed: 31,
+      }),
+  },
+  {
+    slug: "microphysics-lifted-humid-parcel",
+    name: "Microphysics lab — lifted humid parcel",
+    description: "Controlled parcel lift for condensation, vapor depletion, and possible rain indicators.",
+    intendedPhenomenon: "Warm-cloud bulk microphysics under prescribed lift.",
+    solverMode: "microphysics_lab",
+    thermodynamicAssumptions: "Spatially uniform parcel state broadcast through the frame grid.",
+    forcingSetup: "Positive prescribed vertical velocity with no Boussinesq coupling.",
+    expectedOutcome: "Parcel cools as it rises; vapor decreases once cloud water forms.",
+    diagnosticExpectations: [
+      "First cloud time is finite.",
+      "Water vapor decreases after condensation.",
+      "Total water budget remains sane.",
+    ],
+    knownLimitations: ["No resolved 2-D dynamics; fields are broadcast for visualization compatibility."],
+    category: "diagnostic",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "microphysics_lab",
+        domain: { width_m: 4_000, height_m: 3_000 },
+        grid: { columns: 18, rows: 12 },
+        time: { time_step_seconds: 5, duration_seconds: 1_200, frame_interval_seconds: 30 },
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(24),
+          lapse_rate_k_per_m: 0.0065,
+          relative_humidity: 0.88,
+          boundary_layer_depth_m: 1_500,
+          moist_source_layer_depth_m: 500,
+          free_atmosphere_relative_humidity: 0.55,
+          humidity_profile: "uniform",
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0,
+          patch_center_x_m: 2_000,
+          patch_width_m: 1_000,
+          pattern: "single_patch",
+        },
+        background_wind: { u_m_per_s: 0, w_m_per_s: 2.0 },
+        seed: 41,
+      }),
+  },
+  {
+    slug: "microphysics-no-lift-control",
+    name: "Microphysics lab — no-lift control",
+    description: "Sub-saturated parcel baseline with no lift, cloud, or rain expected.",
+    intendedPhenomenon: "Microphysics sanity control.",
+    solverMode: "microphysics_lab",
+    thermodynamicAssumptions: "Uniform sub-saturated parcel/box state.",
+    forcingSetup: "Zero prescribed vertical velocity and no heating.",
+    expectedOutcome: "Air remains cloud-free and water budget stays stable.",
+    diagnosticExpectations: [
+      "Cloud liquid water remains zero.",
+      "Rain water remains zero.",
+      "Temperature changes little without lift or heating.",
+    ],
+    knownLimitations: ["This is intentionally uninteresting visually; it is a control experiment."],
+    category: "diagnostic",
+    apply: (config) =>
+      normalizeConfig({
+        ...config,
+        solver_type: "microphysics_lab",
+        domain: { width_m: 4_000, height_m: 3_000 },
+        grid: { columns: 18, rows: 12 },
+        time: { time_step_seconds: 5, duration_seconds: 600, frame_interval_seconds: 30 },
+        initial_atmosphere: {
+          surface_temperature_k: celsiusToKelvin(24),
+          lapse_rate_k_per_m: 0.0065,
+          relative_humidity: 0.65,
+          boundary_layer_depth_m: 1_500,
+          moist_source_layer_depth_m: 500,
+          free_atmosphere_relative_humidity: 0.55,
+          humidity_profile: "uniform",
+        },
+        surface_heating: {
+          max_warming_rate_k_per_s: 0,
+          patch_center_x_m: 2_000,
+          patch_width_m: 1_000,
+          pattern: "single_patch",
+        },
+        background_wind: { u_m_per_s: 0, w_m_per_s: 0 },
+        seed: 43,
+      }),
+  },
 ];
+
+export const BOUSSINESQ_REFERENCE_CASES = BUILT_IN_SCENARIOS;
 
 export const BOUSSINESQ_MODEL_SIZES: BoussinesqModelSize[] = [
   {
@@ -291,6 +485,14 @@ export function normalizeConfig(config: SimulationConfig): SimulationConfig {
   nextConfig.initial_atmosphere.humidity_profile ??= "uniform";
   nextConfig.initial_atmosphere.humidity_layers ??= [];
   nextConfig.initial_atmosphere.humidity_patch ??= null;
+  nextConfig.initial_atmosphere.moist_source_layer_depth_m ??= Math.min(
+    500,
+    nextConfig.initial_atmosphere.boundary_layer_depth_m,
+  );
+  nextConfig.initial_atmosphere.free_atmosphere_relative_humidity ??= Math.min(
+    nextConfig.initial_atmosphere.relative_humidity,
+    0.55,
+  );
   nextConfig.initial_atmosphere.surface_temperature_k = clamp(
     nextConfig.initial_atmosphere.surface_temperature_k,
     celsiusToKelvin(CONTROL_LIMITS.surfaceTemperatureC.min),
@@ -310,6 +512,11 @@ export function normalizeConfig(config: SimulationConfig): SimulationConfig {
     nextConfig.initial_atmosphere.boundary_layer_depth_m,
     CONTROL_LIMITS.boundaryLayerDepth.min,
     nextConfig.domain.height_m,
+  );
+  nextConfig.initial_atmosphere.moist_source_layer_depth_m = clamp(
+    nextConfig.initial_atmosphere.moist_source_layer_depth_m,
+    CONTROL_LIMITS.moistSourceLayerDepth.min,
+    Math.min(nextConfig.initial_atmosphere.boundary_layer_depth_m, nextConfig.domain.height_m),
   );
   nextConfig.time.frame_interval_seconds = Math.max(
     nextConfig.time.time_step_seconds,
@@ -348,6 +555,20 @@ export function configWarnings(config: SimulationConfig): string[] {
   if (config.initial_atmosphere.relative_humidity < 0.65) {
     warnings.push("Low humidity may produce little or no cloud liquid water.");
   }
+  if (
+    config.solver_type === "boussinesq_2d" &&
+    ["uniform", "moist_boundary_layer"].includes(config.initial_atmosphere.humidity_profile ?? "uniform")
+  ) {
+    const lclHeight = approximateBoussinesqLclHeightM(
+      config.initial_atmosphere.surface_temperature_k,
+      config.initial_atmosphere.relative_humidity,
+    );
+    if (lclHeight < config.initial_atmosphere.boundary_layer_depth_m) {
+      warnings.push(
+        "Boundary-layer top is above the estimated LCL; broad cloud decks are likely.",
+      );
+    }
+  }
   if (kelvinToCelsius(config.initial_atmosphere.surface_temperature_k) < 10) {
     warnings.push("Cool initial surface temperatures may delay or suppress cloud formation.");
   }
@@ -370,6 +591,50 @@ export function kelvinToCelsius(valueKelvin: number): number {
 
 export function celsiusToKelvin(valueCelsius: number): number {
   return valueCelsius + KELVIN_OFFSET;
+}
+
+function approximateBoussinesqLclHeightM(
+  surfaceTemperatureK: number,
+  relativeHumidity: number,
+): number {
+  const humidity = clamp(relativeHumidity, 0.000001, 1);
+  const vapor = saturationSpecificHumidity(surfaceTemperatureK) * humidity;
+  if (vapor >= saturationSpecificHumidity(surfaceTemperatureK)) {
+    return 0;
+  }
+
+  let lowerM = 0;
+  let upperM = 100;
+  const maxHeightM = 15_000;
+  while (upperM < maxHeightM) {
+    const liftedTemperatureK = surfaceTemperatureK - 0.0098 * upperM;
+    if (vapor >= saturationSpecificHumidity(liftedTemperatureK)) {
+      break;
+    }
+    lowerM = upperM;
+    upperM *= 2;
+  }
+
+  for (let iteration = 0; iteration < 32; iteration += 1) {
+    const midpointM = (lowerM + upperM) / 2;
+    const liftedTemperatureK = surfaceTemperatureK - 0.0098 * midpointM;
+    if (vapor >= saturationSpecificHumidity(liftedTemperatureK)) {
+      upperM = midpointM;
+    } else {
+      lowerM = midpointM;
+    }
+  }
+
+  return Math.min(upperM, maxHeightM);
+}
+
+function saturationSpecificHumidity(temperatureK: number): number {
+  const temperatureC = temperatureK - KELVIN_OFFSET;
+  const saturationVaporPressureHpa =
+    6.112 * Math.exp((17.67 * temperatureC) / (temperatureC + 243.5));
+  const mixingRatio =
+    (0.622 * saturationVaporPressureHpa) / (900.0 - saturationVaporPressureHpa);
+  return Math.max(0, mixingRatio / (1 + mixingRatio));
 }
 
 function clamp(value: number, min: number, max: number): number {

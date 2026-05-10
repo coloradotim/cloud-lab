@@ -12,10 +12,12 @@ from app.sim.schemas import (
     BackgroundWindConfig,
     DomainConfig,
     GridConfig,
+    HumidityProfilePattern,
     InitialAtmosphereConfig,
     SimulationConfig,
     SimulationFrame,
     SurfaceHeatingConfig,
+    SurfaceHeatingPattern,
     TimeConfig,
 )
 from app.sim.solver import run_simulation
@@ -40,6 +42,7 @@ class BoussinesqReferenceCase:
     slug: str
     name: str
     description: str
+    expected_regime: str
     config: SimulationConfig
 
 
@@ -125,6 +128,19 @@ class BoussinesqThermodynamicDiagnostics:
 
 
 @dataclass(frozen=True)
+class BoussinesqScenarioDiagnostics:
+    cloud_coverage_fraction: float
+    cloud_region_count: int
+    cloud_top_height_m: float | None
+    max_cloud_liquid_water_kg_per_kg: float
+    max_abs_vertical_velocity_m_per_s: float
+    expected_lcl_m: float
+    boundary_layer_depth_m: float
+    status: ValidationStatus
+    notes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class LiftedSaturationSanity:
     saturation_values_kg_per_kg: tuple[float, ...]
     relative_humidity_values: tuple[float, ...]
@@ -139,6 +155,7 @@ def boussinesq_reference_cases() -> list[BoussinesqReferenceCase]:
             slug="quiet-atmosphere",
             name="Quiet atmosphere / no forcing",
             description="Unsaturated unforced slice; should not invent motion or condensate.",
+            expected_regime="quiet",
             config=_reference_config(
                 base,
                 duration_seconds=600.0,
@@ -153,6 +170,7 @@ def boussinesq_reference_cases() -> list[BoussinesqReferenceCase]:
             slug="dry-thermal-bubble",
             name="Dry thermal bubble",
             description="Dry heated patch; should create buoyant circulation without cloud water.",
+            expected_regime="dry_thermal",
             config=_reference_config(
                 base,
                 duration_seconds=900.0,
@@ -164,48 +182,122 @@ def boussinesq_reference_cases() -> list[BoussinesqReferenceCase]:
             ),
         ),
         BoussinesqReferenceCase(
-            slug="humid-lifted-thermal",
-            name="Humid lifted thermal",
-            description="Humid heated patch; should couple uplift and saturation adjustment.",
+            slug="isolated-fair-weather-cumulus",
+            name="Isolated fair-weather cumulus",
+            description="Moderately humid paired thermals; should form separated shallow clouds.",
+            expected_regime="isolated_cumulus",
             config=_reference_config(
                 base,
                 duration_seconds=1_200.0,
-                relative_humidity=0.98,
-                heating_rate=0.022,
+                relative_humidity=0.85,
+                heating_rate=0.024,
                 lapse_rate=0.0065,
                 wind_u=0.15,
                 seed=17,
+                boundary_layer_depth_m=1_500.0,
+                moist_source_layer_depth_m=800.0,
+                free_atmosphere_relative_humidity=0.55,
+                humidity_profile="surface_moisture",
+                heating_pattern="two_patches",
             ),
         ),
         BoussinesqReferenceCase(
-            slug="stable-suppression",
-            name="Stable stratification suppression",
-            description="More stable profile; should weaken vertical development.",
-            config=_reference_config(
-                base,
-                duration_seconds=1_200.0,
-                relative_humidity=0.45,
-                heating_rate=0.016,
-                lapse_rate=0.0035,
-                wind_u=0.15,
-                seed=19,
-            ),
-        ),
-        BoussinesqReferenceCase(
-            slug="fair-weather-boussinesq",
-            name="Fair-weather Boussinesq baseline",
-            description="Baseline humid heated Boussinesq run for manual comparison.",
+            slug="humid-cloud-deck",
+            name="Humid cloud deck",
+            description="Very humid mixed layer; should warn as a broad deck-prone regime.",
+            expected_regime="humid_deck",
             config=_reference_config(
                 base,
                 duration_seconds=1_200.0,
                 relative_humidity=0.98,
-                heating_rate=0.018,
+                heating_rate=0.05,
                 lapse_rate=0.0065,
                 wind_u=0.25,
                 seed=23,
+                boundary_layer_depth_m=1_000.0,
+                moist_source_layer_depth_m=1_000.0,
+                free_atmosphere_relative_humidity=0.98,
+                humidity_profile="uniform",
+                heating_pattern="weak_random",
+            ),
+        ),
+        BoussinesqReferenceCase(
+            slug="deep-convection-candidate",
+            name="Deep convection candidate",
+            description="Warmer deeper domain; should grow taller than fair-weather cumulus.",
+            expected_regime="deep_candidate",
+            config=_reference_config(
+                base,
+                duration_seconds=1_800.0,
+                relative_humidity=0.82,
+                heating_rate=0.022,
+                lapse_rate=0.0075,
+                wind_u=0.10,
+                seed=29,
+                boundary_layer_depth_m=1_000.0,
+                moist_source_layer_depth_m=900.0,
+                free_atmosphere_relative_humidity=0.65,
+                humidity_profile="surface_moisture",
+                domain=DomainConfig(width_m=10_000.0, height_m=6_000.0),
+                grid=GridConfig(columns=48, rows=48),
+                surface_temperature_k=303.15,
             ),
         ),
     ]
+
+
+def run_boussinesq_scenario_validation() -> dict[str, Any]:
+    cases = []
+    for case in boussinesq_reference_cases():
+        frames = run_simulation(case.config)
+        diagnostics = compute_boussinesq_scenario_diagnostics(case, frames)
+        cases.append(
+            {
+                "slug": case.slug,
+                "name": case.name,
+                "description": case.description,
+                "expected_regime": case.expected_regime,
+                "status": diagnostics.status,
+                "diagnostics": _scenario_diagnostics_to_dict(diagnostics),
+            }
+        )
+
+    return {
+        "schema_version": "boussinesq-scenario-validation-v1",
+        "cases": cases,
+    }
+
+
+def format_boussinesq_scenario_summary(report: dict[str, Any]) -> str:
+    lines: list[str] = []
+    for case in report["cases"]:
+        diagnostics = case["diagnostics"]
+        lines.append(
+            "case: {name}\n"
+            "expected_regime: {expected_regime}\n"
+            "cloud_coverage_fraction: {cloud_coverage_fraction:.3f}\n"
+            "cloud_region_count: {cloud_region_count}\n"
+            "cloud_top_height_m: {cloud_top_height_m}\n"
+            "max_cloud_liquid_water_kg_per_kg: {max_cloud_liquid_water_kg_per_kg:.3e}\n"
+            "max_abs_vertical_velocity_m_per_s: {max_abs_vertical_velocity_m_per_s:.3f}\n"
+            "expected_lcl_m: {expected_lcl_m:.0f}\n"
+            "boundary_layer_depth_m: {boundary_layer_depth_m:.0f}\n"
+            "status: {status}\n"
+            "notes: {notes}".format(
+                name=case["name"],
+                expected_regime=case["expected_regime"],
+                cloud_coverage_fraction=diagnostics["cloud_coverage_fraction"],
+                cloud_region_count=diagnostics["cloud_region_count"],
+                cloud_top_height_m=_optional_metric(diagnostics["cloud_top_height_m"]),
+                max_cloud_liquid_water_kg_per_kg=diagnostics["max_cloud_liquid_water_kg_per_kg"],
+                max_abs_vertical_velocity_m_per_s=diagnostics["max_abs_vertical_velocity_m_per_s"],
+                expected_lcl_m=diagnostics["expected_lcl_m"],
+                boundary_layer_depth_m=diagnostics["boundary_layer_depth_m"],
+                status=case["status"],
+                notes="; ".join(diagnostics["notes"]) or "none",
+            )
+        )
+    return "\n\n".join(lines)
 
 
 def boussinesq_model_sizes() -> list[BoussinesqModelSize]:
@@ -568,6 +660,94 @@ def compute_boussinesq_thermodynamic_diagnostics(
     )
 
 
+def compute_boussinesq_scenario_diagnostics(
+    case: BoussinesqReferenceCase,
+    frames: list[SimulationFrame],
+) -> BoussinesqScenarioDiagnostics:
+    if not frames:
+        raise ValueError("at least one frame is required")
+
+    final = frames[-1]
+    dynamics = compute_boussinesq_diagnostics(final)
+    thermo = compute_boussinesq_thermodynamic_diagnostics(frames)
+    cloud_coverage = _cloud_coverage_fraction(final)
+    status_rank = 0
+    notes: list[str] = []
+
+    if dynamics.non_finite_value_count:
+        notes.append("non-finite values appeared in final frame")
+        status_rank = max(status_rank, 2)
+    if dynamics.min_moisture_kg_per_kg < -1e-12:
+        notes.append("negative moisture appeared in final frame")
+        status_rank = max(status_rank, 2)
+
+    if case.expected_regime == "quiet":
+        if dynamics.max_cloud_liquid_water_kg_per_kg > 0.0:
+            notes.append("quiet scenario produced cloud water")
+            status_rank = max(status_rank, 2)
+        if dynamics.max_abs_vertical_velocity_m_per_s > 1e-9:
+            notes.append("quiet scenario produced vertical motion")
+            status_rank = max(status_rank, 2)
+    elif case.expected_regime == "dry_thermal":
+        if dynamics.max_cloud_liquid_water_kg_per_kg > 1e-8:
+            notes.append("dry thermal produced condensate")
+            status_rank = max(status_rank, 2)
+        if dynamics.max_abs_vertical_velocity_m_per_s < 0.05:
+            notes.append("dry thermal did not develop a resolved circulation")
+            status_rank = max(status_rank, 1)
+    elif case.expected_regime == "isolated_cumulus":
+        if cloud_coverage < 0.002:
+            notes.append("isolated cumulus scenario produced too little cloud")
+            status_rank = max(status_rank, 2)
+        if cloud_coverage > 0.20:
+            notes.append("isolated cumulus scenario produced a broad cloud shield")
+            status_rank = max(status_rank, 2)
+        if thermo.cloud_regions.region_count < 2:
+            notes.append("paired heating did not leave separated cloud regions")
+            status_rank = max(status_rank, 1)
+        if thermo.cloud_regions.region_count > 4:
+            notes.append("cloud field fragmented into too many regions")
+            status_rank = max(status_rank, 1)
+    elif case.expected_regime == "humid_deck":
+        if cloud_coverage < 0.20:
+            notes.append("humid deck scenario did not produce a broad cloud field")
+            status_rank = max(status_rank, 1)
+        if thermo.expected_lcl_m >= case.config.initial_atmosphere.boundary_layer_depth_m:
+            notes.append("humid deck setup no longer has LCL inside the mixed layer")
+            status_rank = max(status_rank, 1)
+    elif case.expected_regime == "deep_candidate":
+        if dynamics.cloud_top_height_m is None or dynamics.cloud_top_height_m < 1_500.0:
+            notes.append("deep candidate did not grow above shallow-cumulus depth")
+            status_rank = max(status_rank, 1)
+        if dynamics.max_cloud_liquid_water_kg_per_kg >= 0.009:
+            notes.append("deep candidate hit the cloud-water limiter")
+            status_rank = max(status_rank, 1)
+
+    if case.expected_regime in {"quiet", "dry_thermal"}:
+        pass
+    elif thermo.status == "fail":
+        notes.append("thermodynamic diagnostics failed")
+        status_rank = max(status_rank, 2)
+    elif thermo.status == "warn":
+        notes.append("thermodynamic diagnostics warned")
+        status_rank = max(status_rank, 1)
+
+    if not notes:
+        notes.append("scenario matched its coarse expected regime")
+
+    return BoussinesqScenarioDiagnostics(
+        cloud_coverage_fraction=cloud_coverage,
+        cloud_region_count=thermo.cloud_regions.region_count,
+        cloud_top_height_m=dynamics.cloud_top_height_m,
+        max_cloud_liquid_water_kg_per_kg=dynamics.max_cloud_liquid_water_kg_per_kg,
+        max_abs_vertical_velocity_m_per_s=dynamics.max_abs_vertical_velocity_m_per_s,
+        expected_lcl_m=thermo.expected_lcl_m,
+        boundary_layer_depth_m=case.config.initial_atmosphere.boundary_layer_depth_m,
+        status=("pass", "warn", "fail")[status_rank],
+        notes=tuple(notes),
+    )
+
+
 def compute_boussinesq_diagnostics(frame: SimulationFrame) -> BoussinesqDiagnostics:
     fields = frame.fields
     divergence = compute_divergence_field(frame)
@@ -708,10 +888,14 @@ def lifted_saturation_sanity_path(
     )
 
 
-def compute_cloud_region_diagnostics(frame: SimulationFrame) -> CloudRegionDiagnostics:
+def compute_cloud_region_diagnostics(
+    frame: SimulationFrame,
+    *,
+    threshold_kg_per_kg: float = THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG,
+) -> CloudRegionDiagnostics:
     cloud = frame.fields.cloud_liquid_water_kg_per_kg.values
     cloudy_columns = [
-        any(row[column_index] > THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG for row in cloud)
+        any(row[column_index] > threshold_kg_per_kg for row in cloud)
         for column_index in range(frame.grid.columns)
     ]
     regions: list[tuple[int, int]] = []
@@ -732,7 +916,7 @@ def compute_cloud_region_diagnostics(frame: SimulationFrame) -> CloudRegionDiagn
             row_index
             for row_index, row in enumerate(cloud)
             if any(
-                row[column_index] > THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG
+                row[column_index] > threshold_kg_per_kg
                 for column_index in range(start_column, end_column + 1)
             )
         ]
@@ -940,6 +1124,32 @@ def _thermodynamic_diagnostics_to_dict(
     }
 
 
+def _scenario_diagnostics_to_dict(
+    diagnostics: BoussinesqScenarioDiagnostics,
+) -> dict[str, Any]:
+    return {
+        "cloud_coverage_fraction": diagnostics.cloud_coverage_fraction,
+        "cloud_region_count": diagnostics.cloud_region_count,
+        "cloud_top_height_m": diagnostics.cloud_top_height_m,
+        "max_cloud_liquid_water_kg_per_kg": diagnostics.max_cloud_liquid_water_kg_per_kg,
+        "max_abs_vertical_velocity_m_per_s": diagnostics.max_abs_vertical_velocity_m_per_s,
+        "expected_lcl_m": diagnostics.expected_lcl_m,
+        "boundary_layer_depth_m": diagnostics.boundary_layer_depth_m,
+        "status": diagnostics.status,
+        "notes": list(diagnostics.notes),
+    }
+
+
+def _cloud_coverage_fraction(frame: SimulationFrame) -> float:
+    cloudy_cells = sum(
+        1
+        for row in frame.fields.cloud_liquid_water_kg_per_kg.values
+        for value in row
+        if value > THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG
+    )
+    return cloudy_cells / (frame.grid.rows * frame.grid.columns)
+
+
 def _optional_metric(value: object) -> str:
     if value is None:
         return "none"
@@ -969,27 +1179,39 @@ def _reference_config(
     lapse_rate: float,
     wind_u: float,
     seed: int,
+    boundary_layer_depth_m: float = 1_000.0,
+    moist_source_layer_depth_m: float = 500.0,
+    free_atmosphere_relative_humidity: float = 0.55,
+    humidity_profile: HumidityProfilePattern = "surface_moisture",
+    heating_pattern: SurfaceHeatingPattern = "single_patch",
+    domain: DomainConfig | None = None,
+    grid: GridConfig | None = None,
+    surface_temperature_k: float = 298.15,
 ) -> SimulationConfig:
     return base.model_copy(
         update={
             "solver_type": "boussinesq_2d",
-            "domain": DomainConfig(width_m=10_000.0, height_m=3_000.0),
-            "grid": GridConfig(columns=36, rows=24),
+            "domain": domain or DomainConfig(width_m=10_000.0, height_m=3_000.0),
+            "grid": grid or GridConfig(columns=36, rows=24),
             "time": TimeConfig(
                 time_step_seconds=2.0,
                 duration_seconds=duration_seconds,
                 frame_interval_seconds=30.0,
             ),
             "initial_atmosphere": InitialAtmosphereConfig(
-                surface_temperature_k=298.15,
+                surface_temperature_k=surface_temperature_k,
                 lapse_rate_k_per_m=lapse_rate,
                 relative_humidity=relative_humidity,
-                boundary_layer_depth_m=1_000.0,
+                boundary_layer_depth_m=boundary_layer_depth_m,
+                moist_source_layer_depth_m=moist_source_layer_depth_m,
+                free_atmosphere_relative_humidity=free_atmosphere_relative_humidity,
+                humidity_profile=humidity_profile,
             ),
             "surface_heating": SurfaceHeatingConfig(
                 max_warming_rate_k_per_s=heating_rate,
                 patch_center_x_m=5_000.0,
                 patch_width_m=2_000.0,
+                pattern=heating_pattern,
             ),
             "background_wind": BackgroundWindConfig(u_m_per_s=wind_u, w_m_per_s=0.0),
             "seed": seed,
@@ -1055,6 +1277,11 @@ def main() -> None:
         action="store_true",
         help="Run fair-weather cumulus thermodynamic structure diagnostics.",
     )
+    parser.add_argument(
+        "--scenarios",
+        action="store_true",
+        help="Run coarse expected-regime diagnostics for named Boussinesq scenarios.",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     args = parser.parse_args()
 
@@ -1064,6 +1291,14 @@ def main() -> None:
             print(json.dumps(report, indent=2, sort_keys=True))
         else:
             print(format_boussinesq_thermodynamic_summary(report))
+        return
+
+    if args.scenarios:
+        report = run_boussinesq_scenario_validation()
+        if args.json:
+            print(json.dumps(report, indent=2, sort_keys=True))
+        else:
+            print(format_boussinesq_scenario_summary(report))
         return
 
     parser.print_help()
