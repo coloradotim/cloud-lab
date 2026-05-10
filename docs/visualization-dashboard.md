@@ -46,6 +46,21 @@ The frontend keeps rendering separate from solver and API concerns:
 
 Solver code still lives only in the backend. The dashboard consumes serialized `SimulationFrame` JSON and field metadata.
 
+## Primary Action Bar
+
+The main app keeps core workflow actions visible in a top action bar:
+
+- scenario selection
+- setup visibility
+- start/stop/reset
+- compact run status and progress
+- inspector visibility
+
+Scenario selection and run controls should not be buried inside setup or
+inspector panels. Later workbench layout changes can move panels around, but the
+primary action bar remains the discoverable path for choosing an experiment,
+starting or stopping a run, and finding analysis views.
+
 ## Field Visualization Approach
 
 The dashboard supports field switching for any scalar field present in a frame. Known fields are ordered so cloud water, water vapor, temperature, and velocity fields are easy to reach first, while future fields can still appear without hardcoded rendering branches.

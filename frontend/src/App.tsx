@@ -185,6 +185,8 @@ export function App() {
   const [selectedScenarioSlug, setSelectedScenarioSlug] = useState(
     "fair-weather-moderate-base",
   );
+  const [isSetupOpen, setIsSetupOpen] = useState(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [profileColumnIndex, setProfileColumnIndex] = useState<number | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -439,6 +441,17 @@ export function App() {
     setSimulationConfig(nextConfig);
   }
 
+  function applyBuiltInScenario(referenceSlug: string) {
+    setSelectedScenarioSlug(referenceSlug);
+    const referenceCase = BUILT_IN_SCENARIOS.find((candidate) => {
+      return candidate.slug === referenceSlug;
+    });
+    if (referenceCase && simulationConfig) {
+      applySimulationConfig(referenceCase.apply(simulationConfig));
+      setConfigMessage(null);
+    }
+  }
+
   function saveScenario(name: string) {
     if (!simulationConfig) {
       return;
@@ -551,6 +564,21 @@ export function App() {
         </p>
       </section>
 
+      <TopActionBar
+        selectedScenarioSlug={selectedScenarioSlug}
+        playback={playback}
+        canStart={simulationConfig !== null}
+        isSetupOpen={isSetupOpen}
+        isInspectorOpen={isInspectorOpen}
+        hasPinnedInspectorContext={profileColumnIndex !== null}
+        onScenarioChange={applyBuiltInScenario}
+        onSetupToggle={() => setIsSetupOpen((current) => !current)}
+        onInspectorToggle={() => setIsInspectorOpen((current) => !current)}
+        onStart={startPlayback}
+        onStop={stopPlayback}
+        onReset={resetPlayback}
+      />
+
       <section className="status-panel" aria-labelledby="status-title">
         <div>
           <p className="eyebrow">Backend</p>
@@ -578,19 +606,21 @@ export function App() {
         <SampleRunSummary sampleRun={sampleRun} />
       </section>
 
-      <SimulationControls
-        config={simulationConfig}
-        solvers={solvers}
-        savedScenarios={savedScenarios}
-        selectedReferenceCase={selectedScenarioSlug}
-        message={configMessage}
-        onConfigChange={applySimulationConfig}
-        onSelectedReferenceCaseChange={setSelectedScenarioSlug}
-        onSaveScenario={saveScenario}
-        onUpdateScenario={updateScenario}
-        onLoadScenario={loadScenario}
-        onDeleteScenario={deleteScenario}
-      />
+      {isSetupOpen ? (
+        <SimulationControls
+          config={simulationConfig}
+          solvers={solvers}
+          savedScenarios={savedScenarios}
+          selectedReferenceCase={selectedScenarioSlug}
+          message={configMessage}
+          onConfigChange={applySimulationConfig}
+          onSelectedReferenceCaseChange={applyBuiltInScenario}
+          onSaveScenario={saveScenario}
+          onUpdateScenario={updateScenario}
+          onLoadScenario={loadScenario}
+          onDeleteScenario={deleteScenario}
+        />
+      ) : null}
 
       <section className="playback-panel" aria-labelledby="playback-title">
         <div>
@@ -606,8 +636,6 @@ export function App() {
           onReset={resetPlayback}
         />
       </section>
-
-      <ScenarioDiagnosticsPanel diagnostics={scenarioDiagnostics} />
 
       <ScientificDashboard
         frame={frames[displayedFrameIndex] ?? null}
@@ -632,20 +660,108 @@ export function App() {
         onPinnedColumnChange={setProfileColumnIndex}
       />
 
-      <VerticalProfilePanel
-        profile={buildVerticalProfile(
-          frames[displayedFrameIndex] ?? null,
-          simulationConfig,
-          profileColumnIndex,
-        )}
-      />
+      {isInspectorOpen ? (
+        <>
+          <ScenarioDiagnosticsPanel diagnostics={scenarioDiagnostics} />
 
-      <MicrophysicsDiagnosticsPanel
-        frames={frames}
-        displayedFrame={frames[displayedFrameIndex] ?? null}
-        config={simulationConfig}
-      />
+          <VerticalProfilePanel
+            profile={buildVerticalProfile(
+              frames[displayedFrameIndex] ?? null,
+              simulationConfig,
+              profileColumnIndex,
+            )}
+          />
+
+          <MicrophysicsDiagnosticsPanel
+            frames={frames}
+            displayedFrame={frames[displayedFrameIndex] ?? null}
+            config={simulationConfig}
+          />
+        </>
+      ) : null}
     </main>
+  );
+}
+
+function TopActionBar({
+  selectedScenarioSlug,
+  playback,
+  canStart,
+  isSetupOpen,
+  isInspectorOpen,
+  hasPinnedInspectorContext,
+  onScenarioChange,
+  onSetupToggle,
+  onInspectorToggle,
+  onStart,
+  onStop,
+  onReset,
+}: {
+  selectedScenarioSlug: string;
+  playback: PlaybackState;
+  canStart: boolean;
+  isSetupOpen: boolean;
+  isInspectorOpen: boolean;
+  hasPinnedInspectorContext: boolean;
+  onScenarioChange: (scenarioSlug: string) => void;
+  onSetupToggle: () => void;
+  onInspectorToggle: () => void;
+  onStart: () => void;
+  onStop: () => void;
+  onReset: () => void;
+}) {
+  const isActive = playback.status === "starting" || playback.status === "running";
+  const progress =
+    playback.durationSeconds > 0
+      ? Math.min(100, (playback.currentTimeSeconds / playback.durationSeconds) * 100)
+      : 0;
+
+  return (
+    <section className="top-action-bar" aria-label="Primary simulation actions">
+      <label className="top-scenario-select">
+        <span>Scenario</span>
+        <select
+          value={selectedScenarioSlug}
+          onChange={(event) => onScenarioChange(event.target.value)}
+        >
+          <option value="">Custom controls</option>
+          {BUILT_IN_SCENARIOS.map((scenario) => (
+            <option key={scenario.slug} value={scenario.slug}>
+              {scenario.name}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <div className="top-action-buttons">
+        <button type="button" onClick={onSetupToggle} aria-pressed={isSetupOpen}>
+          {isSetupOpen ? "Hide setup" : "Setup"}
+        </button>
+        <button type="button" onClick={onStart} disabled={isActive || !canStart}>
+          Start
+        </button>
+        <button type="button" onClick={onStop} disabled={playback.status !== "running"}>
+          Stop
+        </button>
+        <button type="button" onClick={onReset}>
+          Reset
+        </button>
+        <button
+          type="button"
+          onClick={onInspectorToggle}
+          aria-pressed={isInspectorOpen}
+          className={hasPinnedInspectorContext ? "has-inspector-context" : undefined}
+        >
+          {isInspectorOpen ? "Hide inspector" : "Inspector"}
+        </button>
+      </div>
+
+      <div className="top-run-status" aria-live="polite">
+        <span className={`run-status-dot run-status-${playback.status}`} />
+        <span>{playback.status}</span>
+        <strong>{progress.toFixed(0)}%</strong>
+      </div>
+    </section>
   );
 }
 
@@ -941,12 +1057,6 @@ function SimulationControls({
     }
 
     onSelectedReferenceCaseChange(referenceSlug);
-    const referenceCase = BUILT_IN_SCENARIOS.find((candidate) => {
-      return candidate.slug === referenceSlug;
-    });
-    if (referenceCase) {
-      onConfigChange(referenceCase.apply(config));
-    }
   }
 
   function loadSavedScenario(scenarioId: string) {
