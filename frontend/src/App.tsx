@@ -1146,7 +1146,7 @@ function formatProfileValue(value: number | null | undefined): string {
   return value.toExponential(2);
 }
 
-function SimulationControls({
+export function SimulationControls({
   config,
   solvers,
   savedScenarios,
@@ -1262,29 +1262,102 @@ function SimulationControls({
       <div className="controls-header">
         <div>
           <p className="eyebrow">Simulation setup</p>
-          <h2 id="controls-title">Initial conditions</h2>
+          <h2 id="controls-title">Scenario setup</h2>
         </div>
 
-        <div className="setup-selects">
-          <label className="preset-select">
-            {basicControl("scenario")?.label ?? "Scenario"}
-            <select
-              value={selectedReferenceCase}
-              onChange={(event) => applyReferenceCase(event.target.value)}
-              title={basicControl("scenario")?.shortHelp}
-            >
-              <option value="">Custom controls</option>
-              {BUILT_IN_SCENARIOS.map((referenceCase) => (
-                <option key={referenceCase.slug} value={referenceCase.slug}>
-                  {referenceCase.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <label className="preset-select setup-scenario-select">
+          {basicControl("scenario")?.label ?? "Scenario"}
+          <select
+            value={selectedReferenceCase}
+            onChange={(event) => applyReferenceCase(event.target.value)}
+            title={basicControl("scenario")?.shortHelp}
+          >
+            <option value="">Custom experiment</option>
+            {BUILT_IN_SCENARIOS.map((referenceCase) => (
+              <option key={referenceCase.slug} value={referenceCase.slug}>
+                {referenceCase.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
+      <p className="control-note changes-note">Changes reset playback and apply to the next run.</p>
+
+      <div className="scenario-card">
+        <div>
+          <p className="eyebrow">Selected experiment</p>
+          <h3>{activeReferenceCase?.name ?? "Custom experiment"}</h3>
+          <p>{activeReferenceCase?.description ?? "Editable configuration with no built-in scenario contract."}</p>
+        </div>
+        <dl className="scenario-metadata">
+          <div>
+            <dt>Intended phenomenon</dt>
+            <dd>
+              {activeReferenceCase?.intendedPhenomenon ?? "Defined by the current control values."}
+            </dd>
+          </div>
+          <div>
+            <dt>Expected outcome</dt>
+            <dd>{activeReferenceCase?.expectedOutcome ?? "No predefined expectation."}</dd>
+          </div>
+          <div>
+            <dt>Thermodynamics</dt>
+            <dd>
+              {activeReferenceCase?.thermodynamicAssumptions ??
+                "Use the controls below to define the initial atmosphere."}
+            </dd>
+          </div>
+          <div>
+            <dt>Forcing</dt>
+            <dd>{activeReferenceCase?.forcingSetup ?? "Use the forcing controls below."}</dd>
+          </div>
+        </dl>
+        <div className="scenario-card-footer">
+          {activeReferenceCase ? (
+            <>
+              <div>
+                <h4>Key diagnostics</h4>
+                <ul className="control-note-list">
+                  {activeReferenceCase.diagnosticExpectations.map((diagnostic) => (
+                    <li key={diagnostic}>{diagnostic}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4>Limitations</h4>
+                <ul className="control-note-list">
+                  {activeReferenceCase.knownLimitations.map((limitation) => (
+                    <li key={limitation}>{limitation}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          ) : null}
+        </div>
+        <p className="control-note">
+          Solver: {activeSolver?.name ?? "Boussinesq 2-D"}
+          <span
+            className={`truth-badge truth-${activeSolverTruth.category}`}
+            title={`${activeSolverTruth.explanation}${activeSolverTruth.limitations ? ` ${activeSolverTruth.limitations}` : ""}`}
+          >
+            {activeSolverTruth.label}
+          </span>
+        </p>
+        {activeSolver?.limitations.length ? (
+          <ul className="control-note-list">
+            {activeSolver.limitations.map((limitation) => (
+              <li key={limitation}>{limitation}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
+
+      <div className="controls-grid">
+        <ControlGroup title="Basic controls">
           {basicControl("model_size")?.state !== "hidden" ? (
-            <label className="preset-select">
-              {basicControl("model_size")?.label ?? "Model size"}
+            <label className="select-control">
+              <span>{basicControl("model_size")?.label ?? "Model size"}</span>
               <select
                 value={selectedModelSize}
                 disabled={basicControl("model_size")?.state === "disabled"}
@@ -1305,82 +1378,22 @@ function SimulationControls({
               ) : null}
             </label>
           ) : null}
-        </div>
-      </div>
-
-      <p className="control-note changes-note">Changes reset playback and apply to the next run.</p>
-
-      <div className="controls-grid">
-        <ControlGroup title="Scenario">
-          <p className="control-note">
-            {activeReferenceCase?.description ?? "Custom editable Boussinesq scenario."}
-          </p>
-          {activeReferenceCase ? (
-            <>
-              <p className="control-note">{activeReferenceCase.intendedPhenomenon}</p>
-              <dl className="scenario-metadata">
-                <div>
-                  <dt>Category</dt>
-                  <dd>{activeReferenceCase.category}</dd>
-                </div>
-                <div>
-                  <dt>Thermodynamics</dt>
-                  <dd>{activeReferenceCase.thermodynamicAssumptions}</dd>
-                </div>
-                <div>
-                  <dt>Forcing</dt>
-                  <dd>{activeReferenceCase.forcingSetup}</dd>
-                </div>
-                <div>
-                  <dt>Expected</dt>
-                  <dd>{activeReferenceCase.expectedOutcome}</dd>
-                </div>
-              </dl>
-            </>
-          ) : null}
           {activeModelSize ? <p className="control-note">{activeModelSize.description}</p> : null}
-          <p className="control-note">
-            Solver: {activeSolver?.name ?? "Boussinesq 2-D"}
-            <span
-              className={`truth-badge truth-${activeSolverTruth.category}`}
-              title={`${activeSolverTruth.explanation}${activeSolverTruth.limitations ? ` ${activeSolverTruth.limitations}` : ""}`}
-            >
-              {activeSolverTruth.label}
-            </span>
-          </p>
-          {activeSolver?.limitations.length ? (
-            <ul className="control-note-list">
-              {activeSolver.limitations.map((limitation) => (
-                <li key={limitation}>{limitation}</li>
-              ))}
-            </ul>
-          ) : null}
-        </ControlGroup>
-
-        <ControlGroup title="Thermodynamics">
           {renderNumberControl(basicControl("surface_temperature"), {
             value: kelvinToCelsius(config.initial_atmosphere.surface_temperature_k),
             limits: CONTROL_LIMITS.surfaceTemperatureC,
             onChange: (value) =>
               update("initial_atmosphere.surface_temperature_k", celsiusToKelvin(value)),
           })}
-          {renderNumberControl(basicControl("lapse_rate"), {
-            value: config.initial_atmosphere.lapse_rate_k_per_m,
-            limits: CONTROL_LIMITS.lapseRate,
-            onChange: (value) => update("initial_atmosphere.lapse_rate_k_per_m", value),
-          })}
-          {renderNumberControl(basicControl("boundary_layer_depth"), {
-            value: config.initial_atmosphere.boundary_layer_depth_m,
-            limits: {
-              ...CONTROL_LIMITS.boundaryLayerDepth,
-              max: config.domain.height_m,
-            },
-            onChange: (value) => update("initial_atmosphere.boundary_layer_depth_m", value),
-          })}
           {renderNumberControl(basicControl("source_layer_relative_humidity"), {
             value: config.initial_atmosphere.relative_humidity,
             limits: CONTROL_LIMITS.relativeHumidity,
             onChange: (value) => update("initial_atmosphere.relative_humidity", value),
+          })}
+          {renderNumberControl(basicControl("runtime"), {
+            value: config.time.duration_seconds,
+            limits: CONTROL_LIMITS.duration,
+            onChange: (value) => update("time.duration_seconds", value),
           })}
         </ControlGroup>
 
@@ -1389,7 +1402,20 @@ function SimulationControls({
           "moist_source_layer_depth",
           "free_atmosphere_relative_humidity",
         ]) ? (
-          <ControlGroup title="Moisture structure">
+          <ControlGroup title="Atmosphere / moisture">
+            {renderNumberControl(basicControl("lapse_rate"), {
+              value: config.initial_atmosphere.lapse_rate_k_per_m,
+              limits: CONTROL_LIMITS.lapseRate,
+              onChange: (value) => update("initial_atmosphere.lapse_rate_k_per_m", value),
+            })}
+            {renderNumberControl(basicControl("boundary_layer_depth"), {
+              value: config.initial_atmosphere.boundary_layer_depth_m,
+              limits: {
+                ...CONTROL_LIMITS.boundaryLayerDepth,
+                max: config.domain.height_m,
+              },
+              onChange: (value) => update("initial_atmosphere.boundary_layer_depth_m", value),
+            })}
             {renderSelectControl(advancedControl("humidity_profile"), {
               value: humidityProfile,
               options: HUMIDITY_PROFILES,
@@ -1426,7 +1452,7 @@ function SimulationControls({
           "heating_patch_width",
           "heating_patch_center",
         ]) ? (
-          <ControlGroup title="Surface forcing">
+          <ControlGroup title="Surface forcing / motion forcing">
             {renderSelectControl(basicControl("heating_pattern"), {
               value: heatingPattern,
               options: SURFACE_HEATING_PATTERNS,
@@ -1458,87 +1484,90 @@ function SimulationControls({
               },
               onChange: (value) => update("surface_heating.patch_center_x_m", value),
             })}
+            {renderNumberControl(advancedControl("background_wind"), {
+              value: config.background_wind.u_m_per_s,
+              limits: CONTROL_LIMITS.wind,
+              onChange: (value) => update("background_wind.u_m_per_s", value),
+            })}
           </ControlGroup>
         ) : null}
 
-        <ControlGroup title="Time and output">
-          {renderNumberControl(basicControl("runtime"), {
-            value: config.time.duration_seconds,
-            limits: CONTROL_LIMITS.duration,
-            onChange: (value) => update("time.duration_seconds", value),
-          })}
-          {config.solver_type === "microphysics_lab"
-            ? renderNumberControl(basicControl("prescribed_lift"), {
-                value: config.background_wind.w_m_per_s,
-                limits: CONTROL_LIMITS.wind,
-                onChange: (value) => update("background_wind.w_m_per_s", value),
-              })
-            : null}
-        </ControlGroup>
+        {config.solver_type === "microphysics_lab" ? (
+          <ControlGroup title="Surface forcing / motion forcing">
+            {renderNumberControl(basicControl("prescribed_lift"), {
+              value: config.background_wind.w_m_per_s,
+              limits: CONTROL_LIMITS.wind,
+              onChange: (value) => update("background_wind.w_m_per_s", value),
+            })}
+          </ControlGroup>
+        ) : null}
       </div>
+
+      <details className="saved-experiments">
+        <summary>Saved experiments</summary>
+        <ControlGroup title="Saved experiments">
+          <p className="control-note">{advancedControl("saved_scenarios")?.shortHelp}</p>
+          <label className="select-control">
+            <span>Saved scenario</span>
+            <select
+              value={selectedSavedScenario}
+              onChange={(event) => loadSavedScenario(event.target.value)}
+            >
+              <option value="">No saved experiment selected</option>
+              {savedScenarios.map((scenario) => (
+                <option key={scenario.id} value={scenario.id}>
+                  {scenario.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-control">
+            <span>Experiment name</span>
+            <input
+              type="text"
+              value={saveScenarioName}
+              placeholder="e.g. two patches, higher cap"
+              onChange={(event) => setSaveScenarioName(event.target.value)}
+            />
+          </label>
+          <div className="button-row compact">
+            <button
+              type="button"
+              onClick={() => {
+                onSaveScenario(saveScenarioName);
+                setSaveScenarioName("");
+              }}
+            >
+              Save copy
+            </button>
+            <button
+              type="button"
+              disabled={!selectedSavedScenario}
+              onClick={() => onUpdateScenario(selectedSavedScenario)}
+            >
+              Update
+            </button>
+            <button
+              type="button"
+              disabled={!selectedSavedScenario}
+              onClick={() => {
+                onDeleteScenario(selectedSavedScenario);
+                setSelectedSavedScenario("");
+              }}
+            >
+              Delete
+            </button>
+          </div>
+          <p className="control-note">
+            Built-in scenarios stay read-only; saved experiments live in this browser.
+          </p>
+        </ControlGroup>
+      </details>
 
       {hasAdvancedControls ? (
         <details className="advanced-controls">
-          <summary>Advanced settings</summary>
+          <summary>Advanced model settings</summary>
           <div className="controls-grid">
-            <ControlGroup title="Saved experiments">
-              <p className="control-note">{advancedControl("saved_scenarios")?.shortHelp}</p>
-              <label className="select-control">
-                <span>Saved scenario</span>
-                <select
-                  value={selectedSavedScenario}
-                  onChange={(event) => loadSavedScenario(event.target.value)}
-                >
-                  <option value="">No saved experiment selected</option>
-                  {savedScenarios.map((scenario) => (
-                    <option key={scenario.id} value={scenario.id}>
-                      {scenario.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-control">
-                <span>Experiment name</span>
-                <input
-                  type="text"
-                  value={saveScenarioName}
-                  placeholder="e.g. two patches, higher cap"
-                  onChange={(event) => setSaveScenarioName(event.target.value)}
-                />
-              </label>
-              <div className="button-row compact">
-                <button
-                  type="button"
-                  onClick={() => {
-                    onSaveScenario(saveScenarioName);
-                    setSaveScenarioName("");
-                  }}
-                >
-                  Save copy
-                </button>
-                <button
-                  type="button"
-                  disabled={!selectedSavedScenario}
-                  onClick={() => onUpdateScenario(selectedSavedScenario)}
-                >
-                  Update
-                </button>
-                <button
-                  type="button"
-                  disabled={!selectedSavedScenario}
-                  onClick={() => {
-                    onDeleteScenario(selectedSavedScenario);
-                    setSelectedSavedScenario("");
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-              <p className="control-note">
-                Built-in scenarios stay read-only; saved experiments live in this browser.
-              </p>
-            </ControlGroup>
-
             {hasVisibleControls(["domain_width", "domain_height", "grid_columns", "grid_rows"]) ? (
               <ControlGroup title="Domain and grid">
                 {renderNumberControl(advancedControl("domain_width"), {
@@ -1564,7 +1593,7 @@ function SimulationControls({
               </ControlGroup>
             ) : null}
 
-            <ControlGroup title="Time, wind, reproducibility">
+            <ControlGroup title="Numerics and reproducibility">
               {renderNumberControl(advancedControl("time_step"), {
                 value: config.time.time_step_seconds,
                 limits: CONTROL_LIMITS.timeStep,
@@ -1574,16 +1603,6 @@ function SimulationControls({
                 value: config.time.frame_interval_seconds,
                 limits: CONTROL_LIMITS.frameInterval,
                 onChange: (value) => update("time.frame_interval_seconds", value),
-              })}
-              {renderNumberControl(advancedControl("background_wind"), {
-                value: config.background_wind.u_m_per_s,
-                limits: CONTROL_LIMITS.wind,
-                onChange: (value) => update("background_wind.u_m_per_s", value),
-              })}
-              {renderNumberControl(advancedControl("prescribed_lift"), {
-                value: config.background_wind.w_m_per_s,
-                limits: CONTROL_LIMITS.wind,
-                onChange: (value) => update("background_wind.w_m_per_s", value),
               })}
               {renderNumberControl(advancedControl("seed"), {
                 value: config.seed,

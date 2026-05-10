@@ -496,6 +496,10 @@ h2 {
   width: min(100%, 760px);
 }
 
+.setup-scenario-select {
+  width: min(100%, 520px);
+}
+
 .preset-select {
   display: grid;
   gap: 5px;
@@ -545,6 +549,53 @@ h2 {
   padding: 0 6px;
   color: #153137;
   font-weight: 800;
+}
+
+.scenario-card {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 14px;
+  background: #eef6f2;
+}
+
+.scenario-card h3,
+.scenario-card h4,
+.scenario-card p {
+  margin: 0;
+}
+
+.scenario-card h3 {
+  color: #153137;
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.scenario-card h4 {
+  color: #4f6f68;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.scenario-card > div:first-child {
+  display: grid;
+  gap: 6px;
+}
+
+.scenario-card-footer {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.scenario-card-footer > div {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d9e2dd;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
 }
 
 .control-note,
@@ -679,12 +730,14 @@ h2 {
   margin: 0;
 }
 
-.advanced-controls {
+.advanced-controls,
+.saved-experiments {
   display: grid;
   gap: 14px;
 }
 
-.advanced-controls summary {
+.advanced-controls summary,
+.saved-experiments summary {
   width: fit-content;
   border: 1px solid #8a9e98;
   border-radius: 8px;
@@ -695,9 +748,14 @@ h2 {
   cursor: pointer;
 }
 
-.advanced-controls[open] summary {
+.advanced-controls[open] summary,
+.saved-experiments[open] summary {
   margin-bottom: 14px;
   background: #edf6f2;
+}
+
+.saved-experiments .control-group {
+  max-width: 100%;
 }
 
 .scenario-metadata {

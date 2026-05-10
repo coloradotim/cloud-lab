@@ -35,6 +35,12 @@ Scenario selection also drives control relevance. Built-in scenarios declare the
 solver they use, and the setup UI uses a central control metadata model to decide
 whether each control is basic, advanced, disabled, hidden, or legacy.
 
+The setup drawer presents scenario meaning before raw controls. For a built-in
+scenario, it shows the name, intended phenomenon, thermodynamic assumptions,
+forcing setup, expected outcome, diagnostic expectations, and known
+limitations. For a custom experiment, it states that no predefined scenario
+contract exists and leaves interpretation to the current control values.
+
 Examples:
 
 - Fair-weather and dry-failed Boussinesq scenarios emphasize heating strength,
@@ -44,8 +50,8 @@ Examples:
   runtime while hiding Boussinesq surface-heating geometry.
 - Weak-random heating hides direct patch center/width controls because the seed
   and pattern own the placement.
-- Direct grid, timestep, frame cadence, wind, seed, and saved-experiment
-  controls live in Advanced settings.
+- Direct grid, timestep, frame cadence, and seed controls live in Advanced
+  model settings. Saved experiments have their own collapsible section.
 
 The UI should not expose a generic pile of sliders for every solver. If a
 control would imply a capability that the selected solver does not have, hide it.
