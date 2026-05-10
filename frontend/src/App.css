@@ -492,6 +492,9 @@ h2 {
 }
 
 .profile-markers span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid #b9cbc4;
   border-radius: 999px;
   padding: 6px 10px;
@@ -499,6 +502,13 @@ h2 {
   background: #e7f0eb;
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.profile-markers em {
+  color: #4f6f68;
+  font-size: 0.62rem;
+  font-style: normal;
+  text-transform: uppercase;
 }
 
 .profile-table-wrap {
@@ -790,6 +800,44 @@ h2 {
   overflow-wrap: anywhere;
 }
 
+.truth-badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  margin-left: 7px;
+  border: 1px solid #b9cbc4;
+  border-radius: 999px;
+  padding: 2px 7px;
+  color: #39554f;
+  background: #e7f0eb;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.25;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.truth-derived_diagnostic,
+.truth-visual_approximation {
+  color: #4b4b66;
+  background: #ececf7;
+  border-color: #c9c8df;
+}
+
+.truth-bulk_approximation,
+.truth-experimental {
+  color: #5d4b26;
+  background: #f5edd5;
+  border-color: #d8c487;
+}
+
+.truth-prescribed_forcing {
+  color: #583737;
+  background: #f7e2df;
+  border-color: #dcaaa1;
+}
+
 .probe-diagnostics {
   display: grid;
   gap: 10px;
@@ -816,12 +864,8 @@ h2 {
 }
 
 .probe-diagnostics em {
-  border-radius: 999px;
-  padding: 2px 6px;
-  color: #39554f;
-  background: #e7f0eb;
-  font-size: 0.62rem;
-  font-style: normal;
+  flex-shrink: 0;
+  margin-left: 0;
 }
 
 .probe-diagnostics strong {

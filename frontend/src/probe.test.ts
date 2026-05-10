@@ -119,11 +119,26 @@ describe("probe diagnostics", () => {
     expect(diagnostics.find((diagnostic) => diagnostic.key === "relative_humidity")).toMatchObject({
       unit: "%",
       source: "derived",
+      truth: { category: "derived_diagnostic", label: "Derived diagnostic" },
     });
     expect(diagnostics.find((diagnostic) => diagnostic.key === "buoyancy_m_per_s2")).toMatchObject({
       unit: "m s-2",
       source: "derived",
+      truth: { category: "derived_diagnostic", label: "Derived diagnostic" },
     });
+  });
+
+  it("labels microphysics lab vertical velocity as prescribed forcing", () => {
+    const diagnostics = buildProbeDiagnostics(
+      { ...frame, config: { solver_type: "microphysics_lab" } as SimulationFrame["config"] },
+      { row: 1, column: 1, mode: "point" },
+    );
+
+    expect(diagnostics.find((diagnostic) => diagnostic.key === "vertical_velocity_m_per_s"))
+      .toMatchObject({
+        source: "field",
+        truth: { category: "prescribed_forcing", label: "Prescribed forcing" },
+      });
   });
 
   it("averages a 3x3 neighborhood probe", () => {

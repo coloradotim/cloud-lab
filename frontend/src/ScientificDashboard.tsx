@@ -8,7 +8,7 @@ import {
   fieldSummaryForField,
   fieldOptionsFromFrame,
   gridPointFromCanvas,
-  normalizedDisplayValueForField,
+  normalizedDisplayValueForFieldKey,
   vectorScaleForFrame,
 } from "./visualization";
 
@@ -47,7 +47,9 @@ export function ScientificDashboard({
   const [probeMode, setProbeMode] = useState<ProbeRegionMode>("point");
   const fieldOptions = useMemo(() => fieldOptionsFromFrame(frame), [frame]);
   const activeField = frame?.fields[selectedField] ?? null;
-  const fieldSummary = activeField ? fieldSummaryForField(selectedField, activeField) : null;
+  const fieldSummary = activeField
+    ? fieldSummaryForField(selectedField, activeField, frame?.config?.solver_type)
+    : null;
   const activeProbeSelection = pinnedProbe ?? hoveredProbe;
   const probe = useMemo<ProbeResult | null>(() => {
     if (!frame || !activeProbeSelection) {
@@ -125,7 +127,7 @@ export function ScientificDashboard({
             >
               {fieldOptions.map((option) => (
                 <option key={option.key} value={option.key}>
-                  {option.label} ({option.unit})
+                  {option.label} ({option.unit}) - {option.categoryLabel}
                 </option>
               ))}
             </select>
@@ -214,7 +216,17 @@ export function ScientificDashboard({
             <dl>
               <div>
                 <dt>Selected field</dt>
-                <dd>{activeField?.metadata.display_name ?? "No field"}</dd>
+                <dd>
+                  {activeField?.metadata.display_name ?? "No field"}
+                  {fieldSummary ? (
+                    <span
+                      className={`truth-badge truth-${fieldSummary.truth.category}`}
+                      title={`${fieldSummary.truth.explanation}${fieldSummary.truth.limitations ? ` ${fieldSummary.truth.limitations}` : ""}`}
+                    >
+                      {fieldSummary.truth.label}
+                    </span>
+                  ) : null}
+                </dd>
               </div>
               <div>
                 <dt>{fieldSummary?.label ?? "Field max"}</dt>
@@ -228,6 +240,22 @@ export function ScientificDashboard({
                 <div>
                   <dt>Display threshold</dt>
                   <dd>{fieldSummary.helper}</dd>
+                </div>
+              ) : null}
+              {fieldSummary ? (
+                <div>
+                  <dt>Scaling</dt>
+                  <dd>
+                    <span
+                      className="truth-badge truth-visual_approximation"
+                      title={fieldSummary.scaling.explanation}
+                    >
+                      {fieldSummary.scaling.scale}, {fieldSummary.scaling.range}
+                    </span>
+                    {fieldSummary.scaling.comparison === "shared_by_default"
+                      ? " Shared for comparisons."
+                      : " Independent scale acceptable."}
+                  </dd>
                 </div>
               ) : null}
             </dl>
@@ -253,7 +281,12 @@ export function ScientificDashboard({
                 <div key={diagnostic.key}>
                   <span>
                     {diagnostic.label}
-                    {diagnostic.source === "derived" ? <em>Derived</em> : null}
+                    <em
+                      className={`truth-badge truth-${diagnostic.truth.category}`}
+                      title={`${diagnostic.truth.explanation}${diagnostic.truth.limitations ? ` ${diagnostic.truth.limitations}` : ""}`}
+                    >
+                      {diagnostic.truth.label}
+                    </em>
                   </span>
                   <strong>
                     {diagnostic.formattedValue}
@@ -320,7 +353,7 @@ function drawScalarField(
   for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
     for (let columnIndex = 0; columnIndex < columns; columnIndex += 1) {
       const value = field.values[rowIndex][columnIndex];
-      const normalized = normalizedDisplayValueForField(field, value);
+      const normalized = normalizedDisplayValueForFieldKey(selectedField, field, value);
       const [red, green, blue] = colorForNormalizedValue(normalized, colorMap);
       context.fillStyle = `rgb(${red}, ${green}, ${blue})`;
       context.fillRect(

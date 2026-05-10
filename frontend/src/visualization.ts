@@ -14,6 +14,7 @@ export type FieldOption = {
   label: string;
   unit: string;
   description: string;
+  categoryLabel: string;
 };
 
 export type FieldStats = {
@@ -26,6 +27,8 @@ export type FieldSummary = {
   value: string;
   unit: string;
   helper?: string;
+  truth: TruthMetadata;
+  scaling: ScalingMetadata;
 };
 
 export type GridPoint = {
@@ -33,9 +36,170 @@ export type GridPoint = {
   column: number;
 };
 
-const DISPLAY_NOISE_THRESHOLDS: Record<string, number> = {
-  cloud_liquid_water_kg_per_kg: 1e-8,
-  rain_water_kg_per_kg: 1e-8,
+export type TruthCategory =
+  | "solver_output"
+  | "derived_diagnostic"
+  | "bulk_approximation"
+  | "visual_approximation"
+  | "prescribed_forcing"
+  | "experimental";
+
+export type TruthMetadata = {
+  category: TruthCategory;
+  label: string;
+  explanation: string;
+  limitations?: string;
+};
+
+export type ScalingMode = "linear" | "log";
+export type ScalingRangeMode = "adaptive" | "fixed" | "metadata" | "symmetric";
+
+export type ScalingMetadata = {
+  scale: ScalingMode;
+  range: ScalingRangeMode;
+  signed: boolean;
+  noiseThreshold?: number;
+  defaultMin?: number;
+  defaultMax?: number;
+  comparison: "shared_by_default" | "independent_ok";
+  explanation: string;
+};
+
+const TRUTH_CATEGORY_DETAILS: Record<TruthCategory, Omit<TruthMetadata, "category">> = {
+  solver_output: {
+    label: "Solver output",
+    explanation: "Emitted directly by the selected solver.",
+  },
+  derived_diagnostic: {
+    label: "Derived diagnostic",
+    explanation: "Computed from emitted fields and configuration assumptions.",
+  },
+  bulk_approximation: {
+    label: "Bulk approximation",
+    explanation: "Physically motivated bulk-model value, not droplet-resolved physics.",
+  },
+  visual_approximation: {
+    label: "Visual approximation",
+    explanation: "Rendering interpretation of fields, not a solver-emitted physical field.",
+  },
+  prescribed_forcing: {
+    label: "Prescribed forcing",
+    explanation: "Imposed input or forcing, not predicted dynamics.",
+  },
+  experimental: {
+    label: "Experimental",
+    explanation: "Available for exploration but not quantitatively validated.",
+  },
+};
+
+const FIELD_TRUTH_CATEGORIES: Record<string, TruthCategory> = {
+  temperature_k: "solver_output",
+  temperature_perturbation_k: "solver_output",
+  water_vapor_kg_per_kg: "solver_output",
+  cloud_liquid_water_kg_per_kg: "solver_output",
+  rain_water_kg_per_kg: "solver_output",
+  horizontal_velocity_m_per_s: "solver_output",
+  vertical_velocity_m_per_s: "solver_output",
+  relative_humidity: "derived_diagnostic",
+  buoyancy_m_per_s2: "derived_diagnostic",
+  optical_depth: "visual_approximation",
+  rain_indicator: "bulk_approximation",
+};
+
+const FIELD_TRUTH_LIMITATIONS: Record<string, string> = {
+  relative_humidity: "Uses the V1 saturation approximation and local pressure assumption.",
+  buoyancy_m_per_s2: "Approximate thermal buoyancy diagnostic, not full pressure-coupled acceleration.",
+  optical_depth: "Future bulk optics view will depend on assumed droplet properties.",
+  rain_indicator: "Bulk rain indicator, not droplet-resolved precipitation.",
+};
+
+const MICROPHYSICS_LAB_FIELD_OVERRIDES: Record<string, TruthCategory> = {
+  horizontal_velocity_m_per_s: "prescribed_forcing",
+  vertical_velocity_m_per_s: "prescribed_forcing",
+};
+
+const FIELD_SCALING_POLICIES: Record<string, ScalingMetadata> = {
+  cloud_liquid_water_kg_per_kg: {
+    scale: "log",
+    range: "adaptive",
+    signed: false,
+    noiseThreshold: 1e-8,
+    defaultMin: 0,
+    defaultMax: 1e-3,
+    comparison: "shared_by_default",
+    explanation: "Suppresses numerical condensate noise and uses log scaling for visible cloud structure.",
+  },
+  rain_water_kg_per_kg: {
+    scale: "log",
+    range: "adaptive",
+    signed: false,
+    noiseThreshold: 1e-8,
+    defaultMin: 0,
+    defaultMax: 1e-4,
+    comparison: "shared_by_default",
+    explanation: "Suppresses tiny rain-water noise and uses log scaling when rain is present.",
+  },
+  water_vapor_kg_per_kg: {
+    scale: "linear",
+    range: "metadata",
+    signed: false,
+    defaultMin: 0,
+    defaultMax: 0.03,
+    comparison: "shared_by_default",
+    explanation: "Linear moisture scale; metadata bounds are used when the solver provides them.",
+  },
+  temperature_k: {
+    scale: "linear",
+    range: "adaptive",
+    signed: false,
+    comparison: "shared_by_default",
+    explanation: "Absolute temperature is displayed in Celsius with padded adaptive range.",
+  },
+  temperature_perturbation_k: {
+    scale: "linear",
+    range: "symmetric",
+    signed: true,
+    defaultMin: -5,
+    defaultMax: 5,
+    comparison: "shared_by_default",
+    explanation: "Signed perturbations use a zero-centered symmetric range.",
+  },
+  horizontal_velocity_m_per_s: {
+    scale: "linear",
+    range: "symmetric",
+    signed: true,
+    defaultMin: -1,
+    defaultMax: 1,
+    comparison: "shared_by_default",
+    explanation: "Signed velocity uses a zero-centered symmetric range.",
+  },
+  vertical_velocity_m_per_s: {
+    scale: "linear",
+    range: "symmetric",
+    signed: true,
+    defaultMin: -1,
+    defaultMax: 1,
+    comparison: "shared_by_default",
+    explanation: "Signed velocity uses a zero-centered symmetric range.",
+  },
+  optical_depth: {
+    scale: "log",
+    range: "adaptive",
+    signed: false,
+    noiseThreshold: 1e-4,
+    defaultMin: 0,
+    defaultMax: 10,
+    comparison: "shared_by_default",
+    explanation: "Future bulk optical-depth rendering should share a log scale for comparisons.",
+  },
+};
+
+const DEFAULT_SCALING_POLICY: ScalingMetadata = {
+  scale: "linear",
+  range: "adaptive",
+  signed: false,
+  comparison: "shared_by_default",
+  explanation: "Fallback linear adaptive scale because this field has no specific display policy yet.",
 };
 
 export type VectorScale = {
@@ -71,6 +235,7 @@ export function fieldOptionsFromFrame(frame: SimulationFrame | null): FieldOptio
       label: field.metadata.display_name,
       unit: displayUnitForField(field),
       description: field.metadata.description,
+      categoryLabel: truthMetadataForField(key, field, frame.config?.solver_type).label,
     };
   });
 }
@@ -131,10 +296,16 @@ export function displayStatsForField(field: ScalarField): FieldStats {
   };
 }
 
-export function fieldSummaryForField(fieldKey: string, field: ScalarField): FieldSummary {
+export function fieldSummaryForField(
+  fieldKey: string,
+  field: ScalarField,
+  solverType?: string,
+): FieldSummary {
   const stats = displayStatsForField(field);
   const unit = displayUnitForField(field);
-  const displayNoiseThreshold = DISPLAY_NOISE_THRESHOLDS[fieldKey];
+  const truth = truthMetadataForField(fieldKey, field, solverType);
+  const scaling = scalingMetadataForField(fieldKey, field);
+  const displayNoiseThreshold = scaling.noiseThreshold;
 
   if (
     isKnownNonNegativeField(fieldKey, field) &&
@@ -146,6 +317,8 @@ export function fieldSummaryForField(fieldKey: string, field: ScalarField): Fiel
       value: formatDisplayValue(field, getFieldStats(field).max),
       unit,
       helper: `Values below ${displayNoiseThreshold.toExponential(1)} ${unit} are display noise.`,
+      truth,
+      scaling,
     };
   }
 
@@ -153,11 +326,19 @@ export function fieldSummaryForField(fieldKey: string, field: ScalarField): Fiel
     label: "Field min / max",
     value: `${formatDisplayNumberForField(field, stats.min)} to ${formatDisplayNumberForField(field, stats.max)}`,
     unit,
+    truth,
+    scaling,
   };
 }
 
 export function displayRangeForField(field: ScalarField): FieldStats {
-  if (isVelocityField(field)) {
+  return displayRangeForFieldKey("", field);
+}
+
+export function displayRangeForFieldKey(fieldKey: string, field: ScalarField): FieldStats {
+  const policy = scalingMetadataForField(fieldKey, field);
+
+  if (policy.range === "symmetric" || isVelocityField(field)) {
     const stats = displayStatsForField(field);
     const maxAbs = Math.max(Math.abs(stats.min), Math.abs(stats.max), 0.01);
     return { min: -maxAbs, max: maxAbs };
@@ -169,7 +350,10 @@ export function displayRangeForField(field: ScalarField): FieldStats {
     return expandFlatRange({ min: stats.min - padding, max: stats.max + padding });
   }
 
-  const range = isCondensateField(field) ? getFieldStats(field) : valueRangeForField(field);
+  const range =
+    policy.scale === "log" || isCondensateField(field)
+      ? getFieldStats(field)
+      : valueRangeForField(field);
   return {
     min: displayValueForField(field, range.min),
     max: displayValueForField(field, range.max),
@@ -182,13 +366,119 @@ export function formatDisplayValue(field: ScalarField, value: number): string {
 }
 
 export function normalizedDisplayValueForField(field: ScalarField, value: number): number {
-  if (isCondensateField(field)) {
-    return normalizedLogValue(value, displayRangeForField(field).max);
+  return normalizedDisplayValueForFieldKey("", field, value);
+}
+
+export function normalizedDisplayValueForFieldKey(
+  fieldKey: string,
+  field: ScalarField,
+  value: number,
+): number {
+  const scaling = scalingMetadataForField(fieldKey, field);
+  if (scaling.scale === "log" || isCondensateField(field)) {
+    return normalizedLogValue(
+      value,
+      displayRangeForFieldKey(fieldKey, field).max,
+      scaling.noiseThreshold,
+    );
   }
 
   const displayValue = displayValueForField(field, value);
-  const range = displayRangeForField(field);
+  const range = displayRangeForFieldKey(fieldKey, field);
   return normalizedLinearValue(displayValue, range);
+}
+
+export function sharedDisplayRangeForField(fieldKey: string, fields: ScalarField[]): FieldStats {
+  if (fields.length === 0) {
+    return { min: 0, max: 1 };
+  }
+
+  const firstField = fields[0];
+  const scaling = scalingMetadataForField(fieldKey, firstField);
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+
+  for (const field of fields) {
+    const range = displayRangeForFieldKey(fieldKey, field);
+    min = Math.min(min, range.min);
+    max = Math.max(max, range.max);
+  }
+
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return {
+      min: scaling.defaultMin ?? 0,
+      max: scaling.defaultMax ?? 1,
+    };
+  }
+
+  if (scaling.signed) {
+    const maxAbs = Math.max(Math.abs(min), Math.abs(max), 0.01);
+    return { min: -maxAbs, max: maxAbs };
+  }
+
+  return expandFlatRange({ min, max });
+}
+
+export function truthMetadataForField(
+  fieldKey: string,
+  field?: ScalarField,
+  solverType?: string,
+): TruthMetadata {
+  const category =
+    solverType === "microphysics_lab" && MICROPHYSICS_LAB_FIELD_OVERRIDES[fieldKey]
+      ? MICROPHYSICS_LAB_FIELD_OVERRIDES[fieldKey]
+      : FIELD_TRUTH_CATEGORIES[fieldKey] ?? inferTruthCategory(fieldKey, field);
+
+  return {
+    category,
+    ...TRUTH_CATEGORY_DETAILS[category],
+    limitations: FIELD_TRUTH_LIMITATIONS[fieldKey],
+  };
+}
+
+export function truthMetadataForSolver(solverType: string): TruthMetadata {
+  if (solverType === "microphysics_lab") {
+    return {
+      category: "bulk_approximation",
+      ...TRUTH_CATEGORY_DETAILS.bulk_approximation,
+      limitations: "Controlled parcel/box lab with prescribed forcing, not resolved 2-D dynamics.",
+    };
+  }
+
+  if (solverType === "educational_2d") {
+    return {
+      category: "experimental",
+      ...TRUTH_CATEGORY_DETAILS.experimental,
+      limitations: "Teaching/debugging model retained for legacy compatibility, not public cloud physics.",
+    };
+  }
+
+  if (solverType === "boussinesq_2d") {
+    return {
+      category: "experimental",
+      ...TRUTH_CATEGORY_DETAILS.experimental,
+      limitations: "Qualitative Boussinesq dynamics scaffold, not quantitative CFD.",
+    };
+  }
+
+  return {
+    category: "experimental",
+    ...TRUTH_CATEGORY_DETAILS.experimental,
+    limitations: "Solver limitations are not yet categorized.",
+  };
+}
+
+export function scalingMetadataForField(fieldKey: string, field?: ScalarField): ScalingMetadata {
+  const policy =
+    FIELD_SCALING_POLICIES[fieldKey] ??
+    FIELD_SCALING_POLICIES[inferFieldKeyFromMetadata(field)] ??
+    (field && isVelocityField(field)
+      ? FIELD_SCALING_POLICIES.vertical_velocity_m_per_s
+      : field && isCondensateField(field)
+        ? FIELD_SCALING_POLICIES.cloud_liquid_water_kg_per_kg
+        : DEFAULT_SCALING_POLICY);
+
+  return policy;
 }
 
 export function gridPointFromCanvas(
@@ -277,12 +567,12 @@ function normalizedLinearValue(value: number, range: FieldStats): number {
   return (value - range.min) / (range.max - range.min);
 }
 
-function normalizedLogValue(value: number, maxValue: number): number {
-  if (value <= 0 || maxValue <= 0) {
+function normalizedLogValue(value: number, maxValue: number, noiseThreshold = 1e-8): number {
+  if (value <= noiseThreshold || maxValue <= noiseThreshold) {
     return 0;
   }
 
-  const floor = Math.min(1e-8, maxValue * 0.01);
+  const floor = noiseThreshold;
   const logMin = Math.log10(floor);
   const logMax = Math.log10(Math.max(maxValue, floor * 10));
   return (Math.log10(Math.max(value, floor)) - logMin) / (logMax - logMin);
@@ -319,6 +609,46 @@ function isKnownNonNegativeField(fieldKey: string, field: ScalarField): boolean 
       fieldKey,
     ) || isCondensateField(field)
   );
+}
+
+function inferTruthCategory(fieldKey: string, field?: ScalarField): TruthCategory {
+  if (/optical|render/.test(fieldKey)) {
+    return "visual_approximation";
+  }
+
+  if (/rain/.test(fieldKey) && !field) {
+    return "bulk_approximation";
+  }
+
+  if (field && isCondensateField(field)) {
+    return "solver_output";
+  }
+
+  return "solver_output";
+}
+
+function inferFieldKeyFromMetadata(field?: ScalarField): string {
+  if (!field) {
+    return "";
+  }
+
+  const displayName = field.metadata.display_name.toLowerCase();
+  if (displayName.includes("cloud")) {
+    return "cloud_liquid_water_kg_per_kg";
+  }
+  if (displayName.includes("rain")) {
+    return "rain_water_kg_per_kg";
+  }
+  if (displayName.includes("perturbation")) {
+    return "temperature_perturbation_k";
+  }
+  if (displayName.includes("temperature")) {
+    return "temperature_k";
+  }
+  if (displayName.includes("vapor")) {
+    return "water_vapor_kg_per_kg";
+  }
+  return "";
 }
 
 function formatDisplayNumberForField(field: ScalarField, displayValue: number): string {

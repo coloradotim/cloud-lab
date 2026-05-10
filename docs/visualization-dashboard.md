@@ -7,6 +7,28 @@ without encoding solver state in the renderer. See
 the [testing and validation plan](testing-and-validation.md) for the broader
 distinction between contract, scenario, diagnostic, and visualization checks.
 
+## Truth / Confidence Labels
+
+Cloud Lab labels displayed values and views by what they represent:
+
+- `Solver output`: emitted directly by the selected solver.
+- `Derived diagnostic`: computed from solver fields or configuration assumptions,
+  such as relative humidity, estimated LCL, cloud-base markers, or approximate
+  buoyancy.
+- `Bulk approximation`: physically motivated simplified bulk-model output, such
+  as controlled parcel/box microphysics or future bulk rain indicators.
+- `Visual approximation`: rendering interpretation of fields rather than a
+  solver-emitted field, such as future optical-depth cloud appearance.
+- `Prescribed forcing`: imposed input rather than predicted dynamics, such as
+  `microphysics_lab` vertical lift.
+- `Experimental`: available for exploration but not quantitatively validated,
+  including the current Boussinesq dynamics scaffold.
+
+Labels should be short in the UI and paired with tooltips or helper text that
+explain limitations. New fields, diagnostics, rendering modes, and solver modes
+should add metadata in the frontend visualization helpers rather than one-off
+copy in individual components.
+
 ## Rendering Architecture
 
 The frontend keeps rendering separate from solver and API concerns:
@@ -25,6 +47,27 @@ Solver code still lives only in the backend. The dashboard consumes serialized `
 ## Field Visualization Approach
 
 The dashboard supports field switching for any scalar field present in a frame. Known fields are ordered so cloud water, water vapor, temperature, and velocity fields are easy to reach first, while future fields can still appear without hardcoded rendering branches.
+
+Field scaling is centralized so the dashboard does not exaggerate numerical
+noise or hide meaningful structure.
+
+| Field or view | Scale | Range | Sign handling | Noise threshold | Comparison behavior |
+| --- | --- | --- | --- | --- | --- |
+| Cloud liquid water | Log | Adaptive | Non-negative | `1e-8 kg kg-1` | Shared scale by default |
+| Rain water | Log | Adaptive | Non-negative | `1e-8 kg kg-1` | Shared scale by default |
+| Water vapor | Linear | Metadata/default when available | Non-negative | none | Shared scale by default |
+| Absolute temperature | Linear | Padded adaptive, displayed in `deg C` | Non-negative | none | Shared scale by default |
+| Temperature perturbation | Linear | Symmetric around zero | Signed | none | Shared scale by default |
+| Horizontal velocity | Linear | Symmetric around zero | Signed | none | Shared scale by default |
+| Vertical velocity | Linear | Symmetric around zero | Signed | none | Shared scale by default |
+| Bulk optical depth, future | Log | Adaptive/default | Non-negative | `1e-4` | Shared scale by default |
+
+Non-negative condensate fields suppress tiny values below the display-noise
+threshold so values such as `1e-73 kg kg-1` are not presented as meaningful
+cloud or rain. Signed fields use zero-centered ranges so weak positive and
+negative motion are comparable. Side-by-side comparison views should share
+scales for the same field by default; if an independent adaptive scale is added
+later, the UI must label that clearly.
 
 Current scalar rendering:
 
