@@ -197,18 +197,99 @@ h2 {
 }
 
 .status-panel,
-  .schema-panel,
-  .controls-panel,
-  .playback-panel,
-  .scenario-diagnostics-panel,
-  .dashboard-panel,
-  .profile-panel {
+.schema-panel,
+.controls-panel,
+.playback-panel,
+.scenario-diagnostics-panel,
+.dashboard-panel,
+.profile-panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 24px;
   border-top: 1px solid #cbd8d1;
   padding-top: 28px;
+}
+
+.workbench-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+
+.workbench-shell.setup-open.inspector-open {
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr) minmax(320px, 390px);
+}
+
+.workbench-shell.setup-open:not(.inspector-open) {
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+}
+
+.workbench-shell.inspector-open:not(.setup-open) {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+}
+
+.workbench-setup,
+.workbench-stage,
+.workbench-inspector {
+  min-width: 0;
+}
+
+.workbench-setup,
+.workbench-inspector {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  max-height: calc(100vh - 116px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.workbench-stage {
+  display: grid;
+  gap: 18px;
+}
+
+.workbench-stage .dashboard-panel,
+.workbench-stage .playback-panel,
+.workbench-setup .controls-panel,
+.workbench-inspector .scenario-diagnostics-panel,
+.workbench-inspector .profile-panel,
+.workbench-inspector .microphysics-panel {
+  max-width: none;
+}
+
+.workbench-setup .controls-panel,
+.workbench-inspector .scenario-diagnostics-panel,
+.workbench-inspector .profile-panel,
+.workbench-inspector .microphysics-panel {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.workbench-setup .controls-grid,
+.workbench-inspector .scenario-diagnostics-grid,
+.workbench-inspector .microphysics-summary-grid {
+  grid-template-columns: 1fr;
+}
+
+.workbench-inspector {
+  gap: 18px;
+}
+
+.developer-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 18px;
+  max-width: 1180px;
+}
+
+.developer-strip .status-panel,
+.developer-strip .schema-panel {
+  align-items: stretch;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .status {
@@ -1134,6 +1215,37 @@ h2 {
   line-height: 1.35;
 }
 
+@media (max-width: 1500px) {
+  .workbench-shell.setup-open.inspector-open {
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  }
+
+  .workbench-shell.setup-open.inspector-open .workbench-inspector {
+    grid-column: 1 / -1;
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 1120px) {
+  .workbench-shell,
+  .workbench-shell.setup-open.inspector-open,
+  .workbench-shell.setup-open:not(.inspector-open),
+  .workbench-shell.inspector-open:not(.setup-open) {
+    grid-template-columns: 1fr;
+  }
+
+  .workbench-setup,
+  .workbench-inspector {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
 @media (max-width: 680px) {
   .app-shell {
     align-content: start;
@@ -1186,5 +1298,9 @@ h2 {
 
   .top-action-buttons button {
     flex: 1 1 120px;
+  }
+
+  .developer-strip {
+    grid-template-columns: 1fr;
   }
 }
