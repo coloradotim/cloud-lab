@@ -39,6 +39,8 @@ The frontend keeps rendering separate from solver and API concerns:
 - `probe.ts` maps frame fields into solver-neutral point and neighborhood diagnostics.
 - `sounding.ts` derives vertical profiles and LCL/boundary-layer markers from the displayed frame.
 - `microphysicsDiagnostics.ts` derives parcel/box water-budget and timing summaries from buffered frames.
+- `scenarioDiagnostics.ts` compares buffered frames against built-in scenario
+  expectations and returns deterministic expected/observed/status notes.
 - `ScientificDashboard.tsx` renders scalar fields and velocity vectors onto a canvas.
 - `MicrophysicsDiagnosticsPanel.tsx` renders the `microphysics_lab` summary and optional droplet histogram.
 
@@ -138,6 +140,23 @@ The probe readout currently displays:
 Missing fields are shown as "Not emitted" instead of failing the dashboard. This keeps probe behavior compatible with future solver backends that may emit different diagnostics.
 
 Relative humidity and buoyancy are derived diagnostics. They are useful for inspecting the current educational model, but they should not be treated as full physical diagnostics from a pressure-coupled or validated cloud model.
+
+## Scenario Diagnostics
+
+The expected/observed scenario panel consumes the selected built-in scenario,
+current config, and buffered frames. It surfaces deterministic checks such as:
+
+- no cloud yet versus cloud by configured runtime
+- immediate surface-attached cloud
+- boundary-dominated cloud water
+- multiple cloud regions in multi-thermal scenarios
+- dry failed cumulus motion without significant cloud
+- microphysics no-lift cloud/rain control behavior
+
+Statuses are intentionally qualitative: `plausible`, `warning`,
+`failed_expectation`, or `not_evaluated`. Warnings are visible diagnostics for
+prototype behavior that may later become hard validation thresholds. The panel
+does not modify solver state and does not replace backend science validation.
 
 ## Sounding / Profile View
 

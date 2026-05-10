@@ -309,6 +309,13 @@ Rules:
 - warnings must not be silently ignored
 - warnings can become hard failures after thresholds are calibrated
 
+The frontend scenario diagnostics panel is one visible home for these checks.
+It evaluates buffered frames deterministically and reports
+`plausible`/`warning`/`failed_expectation`/`not_evaluated` for built-in
+scenarios. These UI diagnostics should agree with scenario contracts, but they
+do not replace backend validation. When a warning becomes central to a scenario
+promise, promote it into a testable backend or frontend contract.
+
 ## Hard Failures Vs Warnings
 
 ### Hard Failures

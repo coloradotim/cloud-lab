@@ -13,6 +13,22 @@ Scenario contracts are tested according to the
 which scenario expectations are hard failures, which remain diagnostics, and how
 to update tests when scenario assumptions change.
 
+## Expected / Observed Diagnostics
+
+The browser shows a compact scenario check for the selected built-in scenario.
+It compares scenario metadata against deterministic observations from the
+buffered frames:
+
+- expected behavior from the scenario description and diagnostic expectations
+- observed cloud onset, cloud base/top, cloud region count, boundary cloud
+  fraction, vertical motion, rain onset, and microphysics water-budget signals
+- status: `plausible`, `warning`, `failed_expectation`, or `not_evaluated`
+- notes explaining which contract or diagnostic drove the status
+
+This panel is not an AI summary and not a quality score. It is a deterministic
+run interpretation layer meant to make scenario contracts visible while keeping
+the solver and renderer unchanged.
+
 ## Built-In Scenario Catalog
 
 ### Fair-weather cumulus — moderate cloud base
