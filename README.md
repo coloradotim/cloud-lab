@@ -178,7 +178,7 @@ Architecture and implementation:
 - [Simulation data model](docs/simulation-data-model.md)
 - [Simulation controls](docs/simulation-controls.md)
 - [Live simulation streaming](docs/live-streaming.md)
-- [Visualization](docs/visualization-dashboard.md)
+- [Visualization and workbench views](docs/visualization-and-workbench-views.md)
 - [Development workflow](docs/development.md)
 - [Testing and validation](docs/testing-and-validation.md)
 
