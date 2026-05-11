@@ -3,42 +3,40 @@
 Cloud Lab testing has two jobs:
 
 1. Keep the software contracts stable.
-2. Keep the scientific and product behavior honest.
+2. Keep the scientific, visual, and product behavior honest.
 
-Tests should not merely make CI green. They should make sure Cloud Lab remains a
-reliable exploratory cloud-physics sandbox as the solver, scenarios, and
-visualizations evolve.
+Tests should not merely make CI green. They should make sure Cloud Lab remains a reliable lab-driven cloud-physics product as solvers, scenarios, diagnostics, and visualizations evolve.
 
 Core principle:
 
 ```text
-Tests should protect the current scientific and product contract, not old toy-model behavior and not accidental new behavior.
+Tests should protect the current lab/science/product contract, not old toy-model behavior and not accidental new behavior.
 ```
 
-When a physics-related test fails, do not assume the test is stale and do not
-assume the code is wrong. Classify the test first, then decide whether to update
-the expectation, fix the implementation, rename or reframe the scenario, or
-convert the check to a diagnostic warning.
+When a physics-related test fails, do not assume the test is stale and do not assume the code is wrong. Classify the test first, then decide whether to update the expectation, fix the implementation, rename or reframe the lab/scenario, or convert the check to a diagnostic warning.
 
 Related docs:
 
+- [Product vision](product-vision.md)
+- [Lab roadmap](lab-roadmap.md)
+- [Workbench V2 product spec](workbench-v2-product-spec.md)
 - [Development](development.md)
 - [Scenario catalog](scenarios.md)
 - [Boussinesq validation](boussinesq-validation.md)
 - [Microphysics lab](microphysics-lab.md)
 - [Microphysics comparison](microphysics-comparison.md)
 - [Simulation data model](simulation-data-model.md)
-- [Scientific visualization dashboard](visualization-dashboard.md)
+- [Visualization and workbench views](visualization-dashboard.md)
 
 ## Purpose
 
-Cloud Lab is both software and a scientific/visual model. The test suite must
-therefore protect:
+Cloud Lab is both software and a scientific/visual learning product. The test suite must protect:
 
-- application contracts: API shapes, schema versions, solver dispatch, frontend
-  assumptions, and saved configuration compatibility
-- model behavior: physically meaningful directionality, named scenario promises,
-  numerical sanity, and transparent diagnostic caveats
+- application contracts: API shapes, schema versions, solver dispatch, frontend assumptions, and saved artifact compatibility
+- lab contracts: the physical question, expected behavior, controls, diagnostics, and limitations for each lab
+- scenario contracts: named user-facing experiments inside labs
+- model behavior: physically meaningful directionality, numerical sanity, and transparent diagnostic caveats
+- visualization honesty: direct fields, derived diagnostics, bulk approximations, visual approximations, and experimental outputs remain distinguishable
 
 The test suite must prevent two opposite failure modes:
 
@@ -47,9 +45,27 @@ The test suite must prevent two opposite failure modes:
 2. Tests are changed to bless new wrong physics.
 ```
 
-Passing tests should mean the current model still honors the documented product
-and science contract. Passing tests should not mean the model is meteorologically
-complete or quantitatively validated.
+Passing tests should mean the current model still honors the documented product and science contract. Passing tests should not mean the model is meteorologically complete or quantitatively validated.
+
+## Test Hierarchy
+
+Use this hierarchy when deciding what a test protects:
+
+```text
+Software contract
+  ↓
+Lab contract
+  ↓
+Scenario contract
+  ↓
+Physics relationship
+  ↓
+Diagnostic / warning
+  ↓
+Visualization / rendering interpretation
+```
+
+A lab contract is broader than a scenario. For example, the Fair-Weather Cumulus Lab includes the expectation that moisture, heating, stability, and LCL/cloud-base diagnostics help users understand shallow cumulus formation. Individual scenarios such as dry failed cumulus or multi-thermal cumulus field are specific experiments inside that lab.
 
 ## Test Categories
 
@@ -69,27 +85,63 @@ Examples:
 - `SimulationFrame` validates.
 - fields match grid shape.
 - fields include unit metadata.
-- solver catalog exposes only public solvers.
+- solver catalog exposes expected public physics cores.
 - explicit legacy configs still run.
-- scenario configs validate.
-- saved configs round-trip.
+- lab/scenario configs validate.
+- saved scenarios and saved runs round-trip.
 - frontend type assumptions match backend schema.
-
-Current expectations:
-
-- public/default 2-D solver is `boussinesq_2d`
-- `microphysics_lab` is public for controlled parcel/box microphysics
-- `educational_2d` remains backend-supported only for explicit legacy configs
-  and regression use
-- scenario and saved-config behavior should preserve schema compatibility
 
 Hard failure policy:
 
 - These should usually fail CI.
-- Intentional contract changes must update schemas, docs, tests, and PR notes in
-  the same change.
+- Intentional contract changes must update schemas, docs, tests, and PR notes in the same change.
 
-### B. Numerical Sanity Tests
+### B. Lab Contract Tests
+
+Purpose:
+
+```text
+Confirm that a lab still supports the physical question it claims to explore.
+```
+
+Examples:
+
+- Fair-Weather Cumulus Lab supports cloud formation, failed-cloud controls, LCL/cloud-base diagnostics, and source-layer moisture/stability controls.
+- Warm Rain / Droplet Growth Lab separates cloud water from rain and does not imply droplet-resolved precipitation when only bulk behavior exists.
+- Cloud Optics / Beauty Lab labels optical appearance and 2.5-D views as visual approximations unless richer physics exists.
+- Orographic / Terrain Cloud Lab includes flat/dry/moist controls before terrain results are treated as meaningful.
+
+Lab contract tests may be code tests, scenario metadata tests, or docs/metadata checks depending on maturity.
+
+### C. Scenario Contract Tests
+
+Purpose:
+
+```text
+Confirm that named user-facing scenarios do what they claim.
+```
+
+A scenario is a user-facing experiment inside a lab. It has an intent. Tests must protect that intent.
+
+A built-in scenario should include metadata:
+
+- lab
+- name
+- slug
+- solver / physics core
+- intended phenomenon
+- thermodynamic setup
+- forcing setup
+- expected qualitative behavior
+- expected diagnostics
+- limitations/caveats
+
+Hard failure policy:
+
+- A scenario that violates its core promise should fail or be renamed/reframed.
+- Do not update expectations to accept behavior that contradicts the scenario name or lab question.
+
+### D. Numerical Sanity Tests
 
 Purpose:
 
@@ -113,12 +165,9 @@ Examples:
 Hard failure policy:
 
 - These should usually be hard failures.
-- Do not relax them to make a scenario pass unless there is a clearly documented
-  numerical reason.
-- If a numerical sanity test fails after a physics change, first investigate the
-  new physics and boundary behavior before changing the threshold.
+- Do not relax them to make a scenario pass unless there is a clearly documented numerical reason.
 
-### C. Physics Relationship Tests
+### E. Physics Relationship Tests
 
 Purpose:
 
@@ -132,134 +181,20 @@ Examples:
 
 - increasing relative humidity lowers expected LCL.
 - decreasing relative humidity raises LCL or suppresses cloud.
-- stronger heating gives stronger vertical response than weaker heating, all
-  else equal.
+- stronger heating gives stronger vertical response than weaker heating, all else equal.
 - dry failed cumulus produces motion but little/no cloud.
 - no-lift microphysics case stays cloud-free.
 - lifted humid parcel condenses.
 - heating offsets lift and delays or reduces condensation.
-- dry cap/stable layer suppresses cloud depth or cloud amount compared with a
-  comparable uncapped case.
-- multi-thermal forcing creates multiple thermal/cloud regions for at least part
-  of the run, when that is the scenario's stated purpose.
+- dry cap/stable layer suppresses cloud depth or cloud amount compared with a comparable uncapped case.
+- multi-thermal forcing creates multiple thermal/cloud regions for at least part of the run, when that is the scenario's stated purpose.
 
 Hard failure policy:
 
 - Use hard failures when the relationship is robust and controlled.
-- Use warnings or diagnostics when the relationship depends on prototype behavior
-  or not-yet-calibrated thresholds.
+- Use warnings or diagnostics when the relationship depends on prototype behavior or not-yet-calibrated thresholds.
 
-Bad examples to avoid:
-
-- `cloud water must exceed old threshold X by exactly 900 seconds`
-- `boundary-layer depth must always be 500 m`
-- `fair-weather cloud must appear by 15 minutes regardless of scenario runtime`
-
-### D. Scenario Contract Tests
-
-Purpose:
-
-```text
-Confirm that named user-facing scenarios do what they claim.
-```
-
-A scenario is a user-facing experiment. It has an intent. Tests must protect
-that intent.
-
-A built-in scenario should include metadata:
-
-- name
-- slug
-- category
-- solver
-- intended phenomenon
-- thermodynamic setup
-- forcing setup
-- expected qualitative behavior
-- expected diagnostics
-- limitations/caveats
-
-#### Fair-weather Cumulus — Moderate Cloud Base
-
-Hard expectations:
-
-- uses `boussinesq_2d`
-- uses a physically described source-layer / surface-moist initialization
-- has finite expected LCL above the surface, not basically fog
-- does not produce immediate surface-attached cloud
-- produces cloud liquid water by configured runtime
-- cloud is not primarily boundary/sponge artifact
-- cloud onset is not wildly inconsistent with LCL/saturation diagnostics
-
-Diagnostics / warnings:
-
-- below-LCL cloud fraction
-- cloud-base spread
-- cloud-top spread
-- cloud-water centroid
-- cloud region count
-
-Non-negotiable:
-
-```text
-If a scenario is named fair-weather cumulus and produces zero cloud by its configured runtime, do not update the test to accept zero cloud. Fix the scenario, extend runtime, adjust physically defensible initialization/forcing, or rename the scenario.
-```
-
-#### Multi-Thermal Cumulus Field
-
-Expectations:
-
-- multiple thermal responses occur
-- if clouds form, multiple cloud regions should exist for at least part of the
-  run
-- region merger later is acceptable if documented
-- cloud bases should be more clustered than tops in well-mixed cases, at least
-  as a diagnostic
-
-#### Dry Failed Cumulus
-
-Hard expectations:
-
-- produces motion/updraft response
-- produces negligible or no cloud
-- useful negative control against fair-weather cumulus
-
-#### Humid Low-Cloud / Foggy Boundary Layer
-
-Hard expectations:
-
-- very low LCL is expected
-- low cloud is allowed
-- must not be labeled classic fair-weather cumulus
-- should clearly say near-saturated/low-cloud behavior
-
-#### Dry Cap / Suppressed Cumulus
-
-Relationship expectations:
-
-- cloud depth, integrated cloud water, or cloud top is reduced compared with a
-  comparable no-cap/moist case
-- exact no-cloud outcome may be a diagnostic first
-
-#### Microphysics Lab — Lifted Humid Parcel
-
-Hard expectations:
-
-- prescribed lift cools parcel
-- condensation occurs after saturation
-- vapor decreases after condensation
-- total water budget remains sane
-- rain appears only after bulk threshold if applicable
-
-#### Microphysics Lab — No-Lift Control
-
-Hard expectations:
-
-- no cloud
-- no rain
-- water budget stable
-
-### E. Reference / Validation Tests
+### F. Reference / Validation Tests
 
 Purpose:
 
@@ -267,7 +202,7 @@ Purpose:
 Provide developer-facing validation cases that catch regressions.
 ```
 
-Reference cases are not the same as scenarios.
+Reference cases are not the same as labs or scenarios.
 
 Examples:
 
@@ -278,10 +213,9 @@ Examples:
 - microphysics validation cases
 - surface/moisture initialization sanity checks
 
-Reference cases may be exposed in the UI for debugging, but they should not be
-presented as polished user scenarios unless wrapped with user-facing metadata.
+Reference cases may be exposed in the UI for debugging, but they should not be presented as polished user scenarios unless wrapped with lab/scenario metadata.
 
-### F. Diagnostic / Warning Checks
+### G. Diagnostic / Warning Checks
 
 Purpose:
 
@@ -309,12 +243,22 @@ Rules:
 - warnings must not be silently ignored
 - warnings can become hard failures after thresholds are calibrated
 
-The frontend scenario diagnostics panel is one visible home for these checks.
-It evaluates buffered frames deterministically and reports
-`plausible`/`warning`/`failed_expectation`/`not_evaluated` for built-in
-scenarios. These UI diagnostics should agree with scenario contracts, but they
-do not replace backend validation. When a warning becomes central to a scenario
-promise, promote it into a testable backend or frontend contract.
+### H. Visualization Honesty Tests
+
+Purpose:
+
+```text
+Ensure visualizations do not misrepresent what is modeled.
+```
+
+Examples:
+
+- cloud appearance mode is labeled as a visual/bulk optical approximation
+- 2.5-D view is labeled as a visual extrusion from 2-D fields
+- comparison views use shared scales by default where appropriate
+- zero/near-zero cloud water is not rendered as meaningful cloud
+- visual controls do not mutate solver fields
+- raw scientific field views remain available when pretty views exist
 
 ## Hard Failures Vs Warnings
 
@@ -327,11 +271,12 @@ Use hard failures for:
 - negative moisture
 - no-forcing creates motion/cloud
 - reproducibility breaks
-- public scenario violates its core promise
+- public lab/scenario violates its core promise
 - fair-weather cumulus produces no cloud by configured runtime
 - dry failed cumulus produces significant cloud
 - microphysics no-lift control produces cloud/rain
 - public solver catalog exposes retired/legacy solver unintentionally
+- visual approximation is presented as direct physical output
 
 ### Warnings / Diagnostics
 
@@ -346,19 +291,17 @@ Use warnings for:
 - exact cloud timing, unless scenario contract depends on it
 - prototype Boussinesq morphology issues
 
-Warnings are not a junk drawer. They are tracked indicators that are not yet
-calibrated enough to fail CI. If a warning becomes central to user trust or a
-scenario contract, promote it to a hard failure.
+Warnings are not a junk drawer. They are tracked indicators that are not yet calibrated enough to fail CI. If a warning becomes central to user trust or a lab/scenario contract, promote it to a hard failure.
 
-## How To Update Tests When Physics Assumptions Change
+## How To Update Tests When Assumptions Change
 
-Use this process for PRs that touch solver physics, initialization, scenarios,
-or validation expectations.
+Use this process for PRs that touch solver physics, initialization, lab/scenario definitions, visualization assumptions, or validation expectations.
 
 1. Identify what changed:
    - solver physics
    - initialization
    - default config
+   - lab definition
    - scenario definition
    - public solver visibility
    - visualization only
@@ -366,16 +309,18 @@ or validation expectations.
 
 2. Classify failing tests:
    - contract
-   - numerical sanity
-   - scientific behavior
+   - lab contract
    - scenario contract
+   - numerical sanity
+   - physics relationship
    - diagnostic/warning
+   - visualization honesty
    - obsolete legacy
 
 3. For each failing test, choose one action:
    - keep test, fix code
    - update assertion
-   - rewrite around better scientific expectation
+   - rewrite around better scientific/product expectation
    - convert to warning diagnostic
    - move to validation suite
    - delete only if truly obsolete
@@ -402,8 +347,8 @@ Do not keep tests that only preserve obsolete toy-model expectations.
 
 Role:
 
-- public/default 2-D cloud solver
-- qualitative shallow-cloud dynamics scaffold
+- public/default 2-D cloud dynamics scaffold
+- supports selected labs such as Fair-Weather Cumulus
 - not quantitative CFD
 
 Tests should protect:
@@ -430,6 +375,7 @@ Role:
 
 - controlled parcel/box microphysics lab
 - prescribed forcing, not resolved dynamics
+- supports Warm Rain / Droplet Growth concepts until richer microphysics exists
 
 Tests should protect:
 
@@ -443,9 +389,8 @@ Tests should protect:
 Tests should not claim:
 
 - 2-D flow realism
-- droplet-resolved precipitation unless PySDM/droplet outputs are actually
-  present
-- physical rain shafts
+- droplet-resolved precipitation unless PySDM/droplet outputs are actually present
+- physical rain shafts unless sedimentation/evaporation is implemented and validated
 
 ### `educational_2d`
 
@@ -463,7 +408,7 @@ Tests should protect:
 Tests should not require:
 
 - public UI exposure
-- scientific behavior consistency with current scenarios
+- scientific behavior consistency with current labs/scenarios
 
 ## CI / Test Tier Policy
 
@@ -475,7 +420,7 @@ Should include:
 - schema tests
 - API tests
 - public solver catalog tests
-- scenario metadata validation
+- lab/scenario metadata validation
 - frontend tests/build
 - fast numerical sanity
 - microphysics basic checks
@@ -486,9 +431,9 @@ Should include:
 Run when relevant files change:
 
 - Boussinesq solver changed: Boussinesq validation and thermodynamic diagnostics
-- scenario presets changed: scenario contract tests
+- lab/scenario definitions changed: lab/scenario contract tests
 - microphysics changed: microphysics validation
-- visualization changed: scaling/truth-label tests
+- visualization changed: scaling/truth-label/visual honesty tests
 - public solver/default config changed: full contract/API/schema suite
 
 ### Science / Manual Validation
@@ -496,7 +441,7 @@ Run when relevant files change:
 Run for:
 
 - major physics PRs
-- scenario regime changes
+- lab/scenario regime changes
 - before release/checkpoint
 - when diagnostics thresholds change
 
@@ -508,24 +453,19 @@ Includes:
 - S/M/L runs
 - PySDM optional tests if installed
 
-### Full Backend Suite
+## Required PR Checklist For Product/Science Changes
 
-Required when a PR changes:
+For any PR changing product, lab, solver, scenario, visualization, or validation behavior, include:
 
-- default solver
-- public solver catalog
-- default humidity profile
-- scenario/preset behavior
-- solver physics
-- `SimulationConfig`
-- frame schema
-- scientific expectations
+```text
+Lab/product impact:
+- Lab served:
+- Physical question supported:
+- User control / diagnostic / visual payoff:
+- Approximation or limitation disclosed:
+```
 
-PR #75 is the reference example of a PR that required the full backend suite.
-
-## Required PR Checklist For Solver/Scenario Changes
-
-For any PR changing solver/scenario behavior, the PR body must include:
+For solver/scenario changes, also include:
 
 ```text
 Test expectation changes:
@@ -533,7 +473,7 @@ Test expectation changes:
 - Why are they obsolete or still valid?
 - Which tests were rewritten?
 - Which diagnostics became warnings?
-- Which scenario contracts are now protected?
+- Which lab/scenario contracts are now protected?
 ```
 
 And:
@@ -542,20 +482,11 @@ And:
 Scientific/product behavior changes:
 - default solver changed? yes/no
 - public solver list changed? yes/no
-- scenario behavior changed? yes/no
+- lab/scenario behavior changed? yes/no
 - physics assumptions changed? yes/no
 - docs updated? yes/no
 ```
 
-Also include:
-
-- validation tier(s) run
-- any known warnings or xfails
-- whether scenario metadata changed
-- whether user-facing labels still match model behavior
-
 ## Maintenance Notes
 
-This document is itself part of the model contract. Update it when Cloud Lab adds
-new solvers, new public scenarios, new diagnostics, new validation tiers, or new
-rules for hard failures versus warnings.
+This document is part of the model/product contract. Update it when Cloud Lab adds new labs, new solvers, new public scenarios, new diagnostics, new validation tiers, or new rules for hard failures versus warnings.
