@@ -1,24 +1,68 @@
 # Cloud Lab
 
-Cloud Lab is a local browser-based cloud physics sandbox for exploring cloud formation, warm-cloud microphysics, surface heating, terrain forcing, and real-time scientific visualization.
+Cloud Lab helps users explore atmospheric physics through beautiful, interactive cloud experiments grounded in real physical principles.
 
-## Status
+Short phrase:
 
-This repository is in its initial scaffold stage. The current app provides:
+> Beautiful cloud experiments. Real atmospheric physics.
 
-- A FastAPI backend with a `/health` endpoint.
-- A separated Python simulation package boundary under `backend/app/sim`.
-- A React + Vite frontend that reports backend connection status.
-- A shared simulation config and frame schema with units metadata.
-- A minimal 2-D vertical-slice solver that emits time-evolving schema frames.
-- Live local simulation playback with start/stop controls and WebSocket frame streaming.
-- A first scientific visualization dashboard for streamed 2-D fields and velocity vectors.
-- Interactive simulation controls plus a fair-weather cumulus preset that can launch from the UI.
-- Backend tests, linting, formatting checks, and type checking.
-- Frontend linting, unit tests, and production build scripts.
-- GitHub Actions CI for pushes and pull requests to `main`.
+Cloud Lab is a local browser-based cloud physics laboratory. It is organized around guided cloud labs where users can manipulate atmospheric initial conditions and forcing, run simulations, visualize the clouds that form, inspect diagnostics, save runs, compare outcomes, and learn real cloud physics.
 
-Serious cloud physics has not been implemented yet. The simulation module currently defines placeholder configuration and frame schemas so future physics work starts from documented, testable boundaries.
+## Product Direction
+
+Cloud Lab is not a solver demo, a rendering toy, or a generic diagnostics dashboard. It is a lab-driven product.
+
+The core product loop is:
+
+```text
+Choose lab → choose scenario → adjust physical controls → run → watch → inspect → save/compare → vary → learn
+```
+
+The project starts with simplified and transparent models, but the architecture is intended to support progressively higher-fidelity atmospheric simulation over time.
+
+## Core Labs
+
+The product roadmap is organized around phenomenon labs:
+
+1. Fair-Weather Cumulus
+2. Evolving Boundary Layer
+3. Layered Atmosphere
+4. Orographic / Terrain Clouds
+5. Warm Rain / Droplet Growth
+6. Cloud Optics / Beauty
+7. Fog / Stratus
+8. Mixed-Phase / Ice later
+
+Each lab should define the physical question, key controls, expected behavior, diagnostics, visual payoff, limitations, and future upgrade path.
+
+## Current Status
+
+Cloud Lab has a working prototype foundation:
+
+- FastAPI backend and React/Vite frontend.
+- Versioned simulation config and frame schemas.
+- Multi-solver backend registry.
+- `boussinesq_2d` experimental 2-D dynamics scaffold.
+- `microphysics_lab` controlled parcel/box warm-cloud mode.
+- Legacy `educational_2d` backend for explicit compatibility and regression use.
+- WebSocket live run streaming.
+- Scientific 2-D visualization and cloud appearance rendering.
+- Scenario diagnostics, vertical profiles, probes, replay, saved runs, and comparison prototypes.
+- Automated tests, validation docs, and CI.
+
+The current frontend should be treated as a capability prototype. Workbench V2 is the clean-slate product direction: a lab picker and focused lab workbench organized around the product loop above.
+
+## Development Priority
+
+Current product development should prioritize:
+
+1. Lab-driven Workbench V2.
+2. A complete Fair-Weather Cumulus reference lab.
+3. Beautiful and honest cloud visualization, including optical controls and 2.5-D views.
+4. Evolving boundary-layer and layered-atmosphere capabilities.
+5. Orographic, warm-rain, fog/stratus, and later mixed-phase labs.
+
+New features should identify which lab they serve and which physical question they help answer.
 
 ## Requirements
 
@@ -107,17 +151,44 @@ npm run lint
 npm run build
 ```
 
+Use targeted test tiers for ordinary work. Full validation is for solver-wide, release/checkpoint, high-risk, or explicitly requested work.
+
 ## CI
 
-GitHub Actions runs on pushes and pull requests to `main`. CI installs backend and frontend dependencies, then runs backend tests, backend lint/format/type checks, frontend lint, and frontend build.
+GitHub Actions runs on pushes and pull requests to `main`. CI installs backend and frontend dependencies, then runs configured backend and frontend checks.
 
-## Documentation
+Science validation is separated from ordinary quick checks where practical so UI/docs work does not pay the full solver-validation cost.
+
+## Key Documentation
+
+Strategic direction:
+
+- [Product vision](docs/product-vision.md)
+- [Lab roadmap](docs/lab-roadmap.md)
+- [Workbench V2 product spec](docs/workbench-v2-product-spec.md)
+- [Workbench V2 architecture](docs/workbench-v2-architecture.md)
+- [ADR-001: Lab-driven product architecture](docs/architecture-decisions/ADR-001-lab-driven-product.md)
+- [Scientific roadmap](docs/scientific-roadmap.md)
+
+Architecture and implementation:
 
 - [Architecture](docs/architecture.md)
 - [Simulation data model](docs/simulation-data-model.md)
-- [Minimal 2-D solver](docs/minimal-solver.md)
-- [Simulation controls and presets](docs/simulation-controls.md)
+- [Simulation controls](docs/simulation-controls.md)
 - [Live simulation streaming](docs/live-streaming.md)
-- [Scientific visualization dashboard](docs/visualization-dashboard.md)
-- [Scientific roadmap](docs/scientific-roadmap.md)
+- [Visualization](docs/visualization-dashboard.md)
 - [Development workflow](docs/development.md)
+- [Testing and validation](docs/testing-and-validation.md)
+
+Solver and science docs:
+
+- [Educational 2-D solver](docs/minimal-solver.md)
+- [Boussinesq solver](docs/boussinesq-solver.md)
+- [Boussinesq validation](docs/boussinesq-validation.md)
+- [Microphysics lab](docs/microphysics-lab.md)
+- [Microphysics comparison](docs/microphysics-comparison.md)
+- [Microphysics schema proposal](docs/microphysics-schema.md)
+
+## Durable Rule
+
+> Solver outputs physical fields. Renderer turns fields into views. UI controls experiments. Diagnostics explain behavior. Documentation explains assumptions. Tests protect the science.
