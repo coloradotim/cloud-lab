@@ -1,101 +1,97 @@
 # Next Physics Core
 
-Cloud Lab should proceed with a hybrid next-core strategy: preserve the existing
-solvers, evaluate PySDM in isolation, use a microphysics-lab solver mode for
-controlled experiments, and delay full dynamics/microphysics coupling until both
-sides are individually credible.
+This document defines Cloud Lab's current physics-core strategy. It is not the product roadmap.
 
-This is the architecture decision that frames the current solver split and the
-initial `microphysics_lab` implementation.
+The product roadmap is lab-driven. Physics cores exist to serve labs.
 
-It does not block product work on interactive experiments. Structured forcing,
-scenario controls, replay/scrubbing, and bulk physically informed rendering should
-move forward while the physics-credibility track continues.
+Primary product direction:
+
+- `docs/product-vision.md`
+- `docs/lab-roadmap.md`
+- `docs/workbench-v2-product-spec.md`
+- `docs/workbench-v2-architecture.md`
+- `docs/architecture-decisions/ADR-001-lab-driven-product.md`
+
+## Decision Summary
+
+Cloud Lab should use a hybrid physics-core strategy:
+
+1. Preserve the existing physics cores where they remain useful.
+2. Use `boussinesq_2d` as an experimental 2-D dynamics scaffold for selected labs, especially Fair-Weather Cumulus.
+3. Use `microphysics_lab` as the controlled warm-cloud experiment path for Warm Rain / Droplet Growth concepts.
+4. Evaluate PySDM in isolated parcel, box, column, and prescribed-flow cases before any production coupling.
+5. Do not integrate PySDM directly into `boussinesq_2d` yet.
+6. Delay full dynamics/microphysics coupling until both sides are individually credible and a lab requires the coupling.
+
+This keeps Cloud Lab moving toward more serious modeling while still supporting beautiful, interactive labs now.
+
+## How This Serves The Lab Roadmap
+
+Each physics core should be judged by the labs it enables.
+
+| Lab | Near-term physics path | Notes |
+| --- | --- | --- |
+| Fair-Weather Cumulus | `boussinesq_2d` | Experimental but useful for shallow thermal/cloud behavior. |
+| Evolving Boundary Layer | future profile/column + 2-D coupling | Major missing science/product layer. |
+| Layered Atmosphere | future profile/layer model | Needs editable and evolving profiles. |
+| Orographic / Terrain Clouds | idealized terrain forcing + validation | May start with Boussinesq, but must stay labeled. |
+| Warm Rain / Droplet Growth | `microphysics_lab`, PySDM evaluation later | Microphysics-first lab, not Boussinesq-first. |
+| Cloud Optics / Beauty | renderer consumes fields/diagnostics | Physics core should not contain rendering logic. |
+| Fog / Stratus | future surface cooling + profile/mixing model | Likely depends on boundary-layer/profile evolution. |
+| Mixed-Phase / Ice | future physics core | Not near-term. |
+
+Physics work that cannot identify the lab it serves should usually wait.
 
 ## Current State
 
-Cloud Lab currently has three available solver backends behind one shared frame
-contract:
+Cloud Lab currently has three solver backends behind one shared frame contract:
 
 | Solver | Role | Current status |
 | --- | --- | --- |
-| `educational_2d` | Fast teaching, UI, debugging, and regression model. | Complete enough for V1 interaction and schema validation. |
+| `educational_2d` | Legacy/internal teaching, UI, debugging, and regression model. | Useful for compatibility and regression, not public product direction. |
 | `boussinesq_2d` | Experimental streamfunction-vorticity dynamics scaffold. | Useful and validated as a prototype, but not a final CFD core. |
 | `microphysics_lab` | Controlled parcel/box warm-cloud microphysics experiments. | Initial bulk saturation-adjustment mode available; PySDM remains optional evaluation work. |
 
-The shared `sim-frame-v1` frame schema emits row-major 2-D scalar fields with units,
-field metadata, and display hints. Every frame carries:
+The shared `sim-frame-v1` frame schema emits row-major 2-D scalar fields with units, field metadata, and display hints. Every frame currently carries:
 
 - grid coordinates in meters
 - absolute temperature
 - temperature perturbation
 - water vapor
 - cloud liquid water
-- rain water placeholder
+- rain water
 - horizontal velocity
 - vertical velocity
 
-This schema boundary is important. The frontend and renderer should keep consuming
-physical fields without knowing whether those fields came from a teaching model,
-Boussinesq dynamics, PySDM evaluation, or a future PDE framework.
+This schema boundary is important. The frontend and renderer should consume physical fields without knowing whether those fields came from a teaching model, Boussinesq dynamics, microphysics evaluation, or a future higher-fidelity core.
 
 ## Validation State
 
-The Boussinesq validation suite currently checks quiet, dry, humid, stable,
-reproducibility, divergence, and thermal-bubble behavior. The science validation
-suite passes with one expected failure: the humid lifted thermal places peak cloud
-liquid water below the boundary-layer top.
+The Boussinesq validation suite checks quiet, dry, humid, stable, reproducibility, divergence, thermal-bubble behavior, and fair-weather thermodynamic structure diagnostics.
 
-The current evidence supports using `boussinesq_2d` for controlled visual
-experiments, schema/UI validation, reference-case regression tests, and targeted
-dynamics work. It does not support treating it as a quantitatively credible CFD
-foundation for advanced microphysics.
+The current evidence supports using `boussinesq_2d` for controlled visual experiments, Fair-Weather Cumulus learning, schema/UI validation, reference-case regression tests, and targeted dynamics work.
+
+It does not support treating it as a quantitatively credible CFD foundation for advanced microphysics.
 
 Known Boussinesq limitations include:
 
 - simple warm-cloud saturation adjustment
 - prototype stabilizers and safety caps
 - no turbulence closure
-- no terrain
+- no terrain-following dynamics
 - no Coriolis force
 - no rain sedimentation
 - no ice physics
 - no validated pressure-coupled atmospheric dynamics
-- a remaining cloud-water placement issue in the humid reference case
+- remaining cloud-water placement and thermodynamic limitations in some cases
 
-The solver has useful validation scaffolding, but scientific honesty requires keeping
-that separate from a claim that the dynamics are solved.
-
-## Decision
-
-Cloud Lab should use a hybrid next-core strategy:
-
-1. Keep `educational_2d` as the fast teaching, UI, and debug model.
-2. Keep `boussinesq_2d` as an experimental dynamics scaffold and validation
-   environment.
-3. Evaluate PySDM in isolated parcel, box, column, and prescribed-flow cases first.
-4. Do not integrate PySDM directly into `boussinesq_2d` yet.
-5. Use `microphysics_lab` as the controlled warm-cloud experiment mode.
-6. Revisit Boussinesq/PySDM coupling only after the dynamics and microphysics paths
-   are separately credible.
-
-In parallel, build the interactive cloud-lab track: structured surface heating,
-structured moisture initial conditions, lift controls, simple terrain/orographic
-forcing, scenario presets, replay/scrubbing, and bulk renderer improvements. These
-features should consume documented solver fields and approximation metadata rather
-than reaching into solver internals.
-
-This keeps Cloud Lab moving toward better science without coupling a stronger
-microphysics package to unresolved flow and thermodynamic-placement behavior.
+The solver has useful validation scaffolding, but scientific honesty requires keeping that separate from a claim that the dynamics are solved.
 
 ## Option Evaluation
 
 ### Option A: Improve In-House Boussinesq / Anelastic Dynamics
 
-Improving the current in-house dynamics remains useful for targeted questions:
-boundary behavior, pressure/projection handling, thermal-bubble benchmarks,
-entrainment-like behavior, and cleaner transport. It also preserves tight integration
-with the current architecture and validation suite.
+Improving the current in-house dynamics remains useful when a lab exposes a concrete need: cloud-base behavior, boundary artifacts, terrain forcing, entrainment-like behavior, or cleaner transport.
 
 Pros:
 
@@ -109,16 +105,11 @@ Cons:
 - high risk of reinventing known CFD and numerical-analysis problems
 - not sufficient by itself for credible droplet microphysics
 
-Role in the strategy: continue validation-driven dynamics improvements, but do not
-make `boussinesq_2d` the immediate host for advanced microphysics.
+Role in the strategy: continue validation-driven dynamics improvements only where they serve labs.
 
-### Option B: Prescribed-Flow + PySDM Lab Mode
+### Option B: Prescribed-Flow + PySDM / Microphysics Lab Mode
 
-A prescribed-flow or parcel/box/column PySDM mode lets Cloud Lab evaluate warm-cloud
-microphysics under controlled conditions before coupling it to a live dynamics core.
-This is the best next implementation direction because it isolates the question:
-can Cloud Lab produce scientifically interpretable droplet, condensation, and
-rain-initiation behavior within the local-first architecture?
+A prescribed-flow or parcel/box/column PySDM path lets Cloud Lab evaluate warm-cloud microphysics under controlled conditions before coupling it to live dynamics.
 
 Pros:
 
@@ -133,14 +124,11 @@ Cons:
 - prescribed flow can feel less satisfying than a fully coupled cloud simulation
 - requires clear UI labeling so users understand what is controlled versus predicted
 
-Role in the strategy: make this the next microphysics implementation target.
+Role in the strategy: primary path for Warm Rain / Droplet Growth, droplet-size distributions, and later droplet-aware optics.
 
 ### Option C: Library-Backed PDE Framework / Dedalus-Style Spike
 
-A PDE framework could eventually provide a more scientifically grounded dynamics path
-than extending the current prototype by hand. It may be appropriate for an isolated
-spike after Cloud Lab has clearer microphysics-lab requirements and a stronger sense
-of local performance budgets.
+A PDE framework could eventually provide a more scientifically grounded dynamics path than extending the current prototype by hand. It may be appropriate for an isolated spike once Cloud Lab has clearer lab requirements and local performance budgets.
 
 Pros:
 
@@ -152,29 +140,28 @@ Cons:
 
 - integration complexity
 - uncertain local Mac performance and packaging experience
-- likely heavier than the immediate PySDM evaluation need
+- likely heavier than the immediate lab needs
 - may force schema, dependency, or workflow churn too early
 
-Role in the strategy: evaluate later, not as the immediate next core.
+Role in the strategy: evaluate later, not as the immediate product path.
 
-### Option D: Hybrid Approach
+### Option D: Hybrid Lab-Driven Approach
 
-The hybrid approach keeps the existing solvers useful while adding a separate
-microphysics path. Dynamics and microphysics can mature independently before coupling.
+The hybrid approach keeps existing solvers useful while adding separate physics paths as labs require them. Dynamics, profiles, microphysics, terrain, and rendering can mature independently before coupling.
 
 Pros:
 
-- preserves working UI, schema, and validation infrastructure
+- preserves working API/schema/validation infrastructure
+- supports beautiful labs now
 - gives PySDM a fair isolated evaluation
 - avoids coupling good microphysics to unresolved dynamics
-- allows future Boussinesq, anelastic, or PDE-framework work without blocking
-  microphysics exploration
+- allows future Boussinesq, anelastic, PDE-framework, or 3-D work without blocking current labs
 
 Cons:
 
-- requires careful naming and UI separation between solver modes
+- requires careful naming and UI separation between labs and physics cores
 - creates more than one validation track
-- delays the emotionally satisfying "full cloud model" milestone
+- delays the emotionally satisfying “full cloud model” milestone
 
 Role in the strategy: recommended path.
 
@@ -190,99 +177,51 @@ PySDM can improve droplet physics. It does not fix:
 - thermodynamic lifting behavior
 - cloud-water placement caused by dynamics or environmental coupling
 
-Directly coupling PySDM to `boussinesq_2d` now would make failures harder to
-interpret. A bad cloud outcome could come from the velocity field, thermodynamics,
-microphysics configuration, numerical coupling, visualization, or all of them.
+Directly coupling PySDM to `boussinesq_2d` now would make failures harder to interpret. A bad cloud outcome could come from the velocity field, thermodynamics, microphysics configuration, numerical coupling, visualization, or all of them.
 
-An isolated PySDM path keeps the first question crisp: can Cloud Lab run and explain
-credible warm-cloud microphysics under controlled motion and thermodynamic histories?
+An isolated microphysics path keeps the first question crisp: can Cloud Lab run and explain credible warm-cloud microphysics under controlled motion and thermodynamic histories?
 
-## Proposed Implementation Sequence
+## Proposed Physics-Core Maturation
 
-1. Keep this design document as the current architecture decision.
-2. Use `docs/pysdm-evaluation.md` as the current isolated PySDM evaluation record.
-3. Continue interactive scenario controls and bulk visualization improvements using
-   documented approximations.
-4. Expand `microphysics_lab` from its initial parcel/box bulk mode toward column and
-   prescribed-flow experiments.
-5. Implement the optional microphysics payload proposed in
-   `docs/microphysics-schema.md` without breaking existing scalar-field consumers.
-6. Compare Cloud Lab's simple saturation adjustment against PySDM under controlled
-   conditions.
-7. Add validation cases for parcel ascent, condensation onset, droplet growth, and
-   rain-initiation thresholds as the PySDM path matures.
-8. Decide later whether PySDM should couple to `boussinesq_2d`, an improved in-house
-   dynamics core, or a library-backed PDE dynamics path.
-9. Consider a later Dedalus/PDE-framework spike once local performance, packaging,
-   and schema needs are better understood.
+Physics-core work should mature in this order unless a lab need changes the priority:
 
-Bulk optical rendering may use cloud liquid water and an assumed effective radius as
-a labeled approximation. Droplet-aware optics should wait for droplet-size or
-effective-radius outputs. Bulk rain-water visualization and autoconversion or
-sedimentation indicators are useful near-term feedback, but they should not be
-described as droplet-resolved precipitation formation.
+1. Keep existing cores stable behind the shared frame contract.
+2. Build Workbench V2 around labs rather than solver modes.
+3. Use Boussinesq for Fair-Weather Cumulus while validating lab-specific behavior.
+4. Add boundary-layer/profile evolution as the next major bridge toward realistic cloud variety.
+5. Use `microphysics_lab` for controlled Warm Rain / Droplet Growth experiments.
+6. Evaluate PySDM in isolation and map outputs into `docs/microphysics-schema.md`.
+7. Add terrain/orographic physics only with companion validation.
+8. Couple dynamics and microphysics only when a lab requires it and each side is separately credible.
+9. Consider PDE-framework or true 3-D spikes only after the lab framework, schemas, validation, and performance needs are clear.
 
-## Success Criteria For The Next Core
+## Success Criteria For Future Physics Cores
 
-The next credible physics core should support:
+A future higher-fidelity physics core should support:
 
-- local Mac execution without paid cloud compute
+- a named lab and physical question
+- local Mac execution or a clearly justified compute model
 - deterministic or reproducible runs
-- stable `SimulationFrame` outputs
+- stable `SimulationFrame` outputs or a versioned schema extension
 - documented units and assumptions
-- scientific views that remain separate from rendering choices
-- microphysics outputs that are interpretable without hidden visualization tricks
+- diagnostics that explain behavior
+- visualizations that remain separate from solver logic
 - validation cases that fail for meaningful scientific reasons
-- frontend controls that describe scenarios rather than solver internals
-
-For `microphysics_lab`, success means a user can run controlled warm-cloud experiments
-and inspect vapor, liquid water, rain-relevant quantities, and droplet-size behavior
-without implying that Cloud Lab has solved full cloud dynamics.
+- clear UI labels for limitations and approximation level
 
 ## Risks
 
 | Risk | Why it matters | Guardrail |
 | --- | --- | --- |
 | Coupling bad dynamics to good microphysics | PySDM results would become hard to interpret. | Isolate PySDM first. |
-| Over-investing in custom CFD | Building credible dynamics alone could consume the project. | Keep Boussinesq work validation-driven. |
+| Over-investing in custom CFD | Building credible dynamics alone could consume the project. | Keep dynamics work lab-driven and validation-driven. |
 | Dependency complexity | PySDM or PDE frameworks may complicate local setup. | Evaluate packaging and Mac performance explicitly. |
 | Schema churn | Droplet distributions do not fit the current scalar-field-only contract cleanly. | Extend schema deliberately and preserve old consumers. |
-| UI overfitting | Controls could become tied to one solver's internals. | Keep scenario controls separate from solver implementation details. |
-| Scientific overclaiming | Visual output may look more authoritative than the model deserves. | Document assumptions and label solver modes clearly. |
+| UI overfitting | Controls could become tied to one solver's internals. | Keep lab/scenario controls separate from solver implementation details. |
+| Scientific overclaiming | Visual output may look more authoritative than the model deserves. | Document assumptions and label solver modes, diagnostics, and renderers clearly. |
 
-## Follow-On Issues
+## Durable Rule
 
-Create or update implementation issues for:
+Add physics because it enables a lab, answers a physical question, improves a diagnostic, or prevents misleading output.
 
-- PySDM isolated parcel/box evaluation.
-- Continued `microphysics_lab` parcel/box/column validation and PySDM comparison work.
-- Frame/schema implementation for the droplet-size distribution proposal in
-  `docs/microphysics-schema.md`.
-- Microphysics validation cases for parcel ascent and condensation onset.
-- Comparison of simple saturation adjustment versus PySDM in controlled conditions.
-- UI labels and controls that distinguish educational, Boussinesq, and microphysics
-  lab modes.
-- Later PDE-framework spike, including local performance and packaging audit.
-
-## Impact Audit
-
-Solver architecture: keep the backend registry pattern and add solver modes without
-collapsing them into one "real" solver prematurely.
-
-Frontend assumptions: preserve the existing scalar frame fields while preparing for
-optional richer microphysics outputs.
-
-Performance: require local Mac performance checks before adopting heavy PDE or
-microphysics dependencies as default workflows.
-
-Microphysics integration: evaluate PySDM independently before coupling it to live
-dynamics.
-
-Visualization pipeline: continue rendering physical fields and avoid solver-specific
-visual shortcuts.
-
-Validation strategy: maintain separate validation tracks for educational behavior,
-Boussinesq dynamics, and microphysics-lab physics.
-
-Product strategy: keep Cloud Lab moving toward a hands-on experiment sandbox while
-guarding against scientific overclaiming.
+Do not add physics merely because it is interesting in isolation.
