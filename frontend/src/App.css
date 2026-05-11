@@ -137,9 +137,11 @@ h2 {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  min-width: 0;
 }
 
 .top-action-buttons button {
+  flex: 0 1 auto;
   min-height: 40px;
   padding: 8px 12px;
   white-space: nowrap;
@@ -269,9 +271,11 @@ h2 {
   position: sticky;
   top: 92px;
   display: grid;
+  align-content: start;
   max-height: calc(100vh - 116px);
   overflow: auto;
   padding-right: 4px;
+  overscroll-behavior: contain;
 }
 
 .workbench-stage {
@@ -1415,6 +1419,32 @@ h2 {
   .workbench-shell.setup-open.inspector-open .workbench-inspector {
     grid-column: 1 / -1;
     position: static;
+    max-height: min(560px, 52vh);
+    overflow: auto;
+    padding-right: 0;
+  }
+}
+
+@media (max-width: 1280px) {
+  .top-action-bar {
+    grid-template-columns: minmax(260px, 1fr) auto;
+  }
+
+  .top-action-buttons {
+    justify-content: flex-end;
+  }
+
+  .top-run-status,
+  .top-backend-status {
+    justify-content: flex-start;
+  }
+
+  .visualization-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .field-readout {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     max-height: none;
     overflow: visible;
     padding-right: 0;
@@ -1435,6 +1465,39 @@ h2 {
     max-height: none;
     overflow: visible;
     padding-right: 0;
+  }
+
+  .workbench-setup .controls-panel,
+  .workbench-inspector .inspector-panel {
+    max-height: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .top-action-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .top-action-buttons,
+  .top-run-status,
+  .top-backend-status {
+    justify-content: stretch;
+  }
+
+  .top-action-buttons button {
+    flex: 1 1 112px;
+  }
+
+  .playback-controls {
+    width: 100%;
+  }
+
+  .playback-stats {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .inspector-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -1481,20 +1544,31 @@ h2 {
 
   .top-action-bar {
     position: static;
-    grid-template-columns: 1fr;
-  }
-
-  .top-action-buttons,
-  .top-run-status,
-  .top-backend-status {
-    justify-content: stretch;
-  }
-
-  .top-action-buttons button {
-    flex: 1 1 120px;
   }
 
   .developer-grid {
     grid-template-columns: 1fr;
+  }
+
+  .canvas-shell {
+    min-height: 300px;
+  }
+
+  .canvas-shell canvas {
+    height: clamp(300px, 72vw, 460px);
+  }
+
+  .controls-grid,
+  .field-readout,
+  .scenario-card-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .number-control {
+    grid-template-columns: 1fr;
+  }
+
+  .number-control input[type="number"] {
+    width: 100%;
   }
 }

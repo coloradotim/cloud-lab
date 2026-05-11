@@ -78,6 +78,18 @@ data flow. Backend/schema/sample-run details live in the secondary
 developer/system drawer so they are available for troubleshooting without
 occupying the normal cloud-experiment workflow.
 
+Responsive behavior is intentionally pragmatic rather than phone-first:
+
+- wide desktop: setup and inspector can dock beside the canvas; if both are
+  open at intermediate widths, the inspector moves below the stage with its own
+  scroll area.
+- laptop / medium width: the workbench stacks to preserve canvas width, while
+  the top action bar wraps scenario, run controls, status, and system access
+  into reachable rows.
+- narrow screens: setup, inspector, playback, and developer details stack
+  full-width; controls wrap rather than disappearing, and the canvas keeps a
+  minimum useful height.
+
 The setup drawer is scenario-first. It starts with a scenario card describing
 the selected experiment's phenomenon, expected outcome, diagnostics, and known
 limitations, then shows basic controls, atmosphere/moisture controls,
