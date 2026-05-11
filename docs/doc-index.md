@@ -11,6 +11,8 @@ If documents appear to conflict, prefer the lab-driven product direction in:
 5. `docs/architecture-decisions/ADR-001-lab-driven-product.md`
 6. `AGENTS.md`
 
+Older implementation docs remain useful as technical references, but they should not override the lab-driven product direction.
+
 ## Start Here
 
 - `README.md` — project overview, setup, current status, and doc map.
@@ -102,6 +104,22 @@ Read:
 3. `docs/live-streaming.md`
 4. `docs/testing-and-validation.md`
 5. impacted lab/scenario docs
+
+## Lab Ordering Note
+
+The lab list is conceptual. It is not always the build sequence.
+
+Current product priority is:
+
+1. Workbench V2 and lab-driven UI.
+2. Fair-Weather Cumulus as the first complete reference lab.
+3. Cloud Optics / Beauty capabilities.
+4. Evolving Boundary Layer capabilities.
+5. Layered Atmosphere.
+6. Orographic / Terrain Clouds.
+7. Warm Rain / Droplet Growth.
+8. Fog / Stratus.
+9. Mixed-Phase / Ice later.
 
 ## Current Authoritative Direction
 
