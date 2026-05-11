@@ -16,6 +16,7 @@ Older implementation docs remain useful as technical references, but they should
 ## Start Here
 
 - `README.md` — project overview, setup, current status, and doc map.
+- `docs/current-phase-plan.md` — current executable phase, open issue order, and phase guardrails.
 - `docs/product-vision.md` — product identity, tagline, north star, and durable principles.
 - `docs/lab-roadmap.md` — lab-driven roadmap and core phenomenon labs.
 - `docs/workbench-v2-product-spec.md` — clean-slate lab/workbench user experience.
@@ -24,6 +25,7 @@ Older implementation docs remain useful as technical references, but they should
 
 ## Product And UX
 
+- `docs/current-phase-plan.md` — source of truth for the current execution order.
 - `docs/workbench-v2-product-spec.md` — source of truth for the future product shell.
 - `docs/workbench-v2-architecture.md` — source of truth for future frontend structure.
 - `docs/visualization-and-workbench-views.md` — visualization and workbench view guidance; includes current prototype context and future view model.
@@ -58,11 +60,12 @@ Older implementation docs remain useful as technical references, but they should
 Read:
 
 1. `AGENTS.md`
-2. `docs/product-vision.md`
-3. `docs/lab-roadmap.md`
-4. `docs/workbench-v2-product-spec.md`
-5. `docs/workbench-v2-architecture.md`
-6. the issue being implemented
+2. `docs/current-phase-plan.md`
+3. `docs/product-vision.md`
+4. `docs/lab-roadmap.md`
+5. `docs/workbench-v2-product-spec.md`
+6. `docs/workbench-v2-architecture.md`
+7. the issue being implemented
 
 ### New lab work
 
@@ -120,6 +123,8 @@ Current product priority is:
 7. Warm Rain / Droplet Growth.
 8. Fog / Stratus.
 9. Mixed-Phase / Ice later.
+
+For executable current-phase order, use `docs/current-phase-plan.md`.
 
 ## Current Authoritative Direction
 
