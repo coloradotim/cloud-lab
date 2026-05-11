@@ -101,6 +101,33 @@ optional frame-level `microphysics` payload rather than required scalar fields. 
 `docs/microphysics-schema.md` for the proposed schema shape, payload-size guardrails,
 and migration path.
 
+## Saved Run Artifact Schema
+
+Saved run artifacts are frontend-local records stored separately from saved
+scenario configs. A saved scenario is a reusable setup recipe; a saved run
+artifact is an observation record for one completed or buffered run.
+
+Saved run artifacts use `schema_version = "saved-run-artifact-v1"` and contain:
+
+- identity: `id`, `kind = "run_artifact"`, name, notes, and creation timestamp
+- scenario reference: built-in scenario slug/name when the run came from one
+- schema references: config schema version and emitted frame schema version
+- provenance: solver type, app version, backend version when known
+- normalized `SimulationConfig`
+- run summary: configured duration, frame count, final time, displayed time
+- diagnostics summary: scenario status, expected/observed text, cloud/rain
+  timing, cloud height, max cloud water, max updraft, LCL estimate, and notes
+- replay metadata: total frame count, stored frame count, sampling stride, and
+  truncation flag
+- sampled frames: up to a bounded subset of emitted `SimulationFrame` records
+
+The browser stores sampled frames pragmatically to keep localStorage from
+becoming a database. If serialized artifacts grow too large, the app falls back
+to metadata-only artifacts with no stored replay frames. Loading a metadata-only
+artifact still restores the config and diagnostics summary, but the run cannot
+be replayed frame-by-frame until exported run files or a stronger local storage
+backend exist.
+
 ## Modeled Frame Fields
 
 | Field | Unit | Initial status |

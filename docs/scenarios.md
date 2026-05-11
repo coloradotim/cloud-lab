@@ -139,8 +139,8 @@ mislabeled or misconfigured, not an acceptable zero-cloud outcome.
 
 ## Saved Experiments
 
-Saved experiments are local browser records stored in `localStorage`. They
-contain:
+Saved experiments are reusable setup recipes stored in `localStorage`. They
+answer "how do I run this again?" and contain:
 
 - a user-facing name
 - created/updated timestamps
@@ -149,6 +149,13 @@ contain:
 
 Built-in scenarios are read-only. Loading a built-in scenario and saving it
 creates a user scenario copy that can be updated or deleted locally.
+
+Saved run artifacts are separate local records. They answer "what happened in
+this specific run?" and store the normalized config alongside run diagnostics,
+scenario expected/observed text, replay metadata, optional user notes, and a
+sampled subset of emitted frames for later inspection. Loading a saved run
+artifact applies its config and, when sampled frames are present, restores those
+frames into the replay view. It does not create or update a saved experiment.
 
 This storage is intentionally local only. Future work may add JSON export,
 replay files, parameter sweeps, and side-by-side comparison, but no database or

@@ -228,6 +228,7 @@ h2 {
 .schema-panel,
 .controls-panel,
 .playback-panel,
+.saved-runs-panel,
 .scenario-diagnostics-panel,
 .dashboard-panel,
 .profile-panel,
@@ -285,6 +286,7 @@ h2 {
 
 .workbench-stage .dashboard-panel,
 .workbench-stage .playback-panel,
+.workbench-stage .saved-runs-panel,
 .workbench-setup .controls-panel,
 .workbench-inspector .inspector-panel,
 .workbench-inspector .scenario-diagnostics-panel,
@@ -543,6 +545,118 @@ h2 {
   margin: 12px 0 0;
   color: #31413e;
   font-weight: 700;
+}
+
+.saved-runs-panel {
+  display: grid;
+  gap: 14px;
+  max-width: none;
+}
+
+.saved-runs-panel summary {
+  width: fit-content;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.saved-runs-panel[open] summary {
+  margin-bottom: 14px;
+  background: #edf6f2;
+}
+
+.saved-runs-layout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.saved-run-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 14px;
+  background: #f9fbf7;
+}
+
+.saved-run-card h3,
+.saved-run-card h4,
+.saved-run-card p {
+  margin: 0;
+}
+
+.saved-run-card h3 {
+  color: #153137;
+  font-size: 1rem;
+}
+
+.saved-run-card h4 {
+  color: #4f6f68;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.saved-run-card p,
+.empty-saved-runs {
+  color: #31413e;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.saved-run-card textarea {
+  min-height: 76px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #8a9e98;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #153137;
+  background: #ffffff;
+  font-weight: 700;
+}
+
+.saved-run-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.saved-run-detail-grid div {
+  border: 1px solid #d9e2dd;
+  border-radius: 8px;
+  padding: 8px;
+  background: #ffffff;
+}
+
+.saved-run-detail-grid dt {
+  color: #4f6f68;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.saved-run-detail-grid dd {
+  margin: 4px 0 0;
+  color: #153137;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.saved-run-interpretation {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #d9e2dd;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
 }
 
 .jump-targets {
