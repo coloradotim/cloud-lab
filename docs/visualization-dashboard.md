@@ -54,7 +54,9 @@ The main app keeps core workflow actions visible in a top action bar:
 - setup visibility
 - start/stop/reset
 - compact run status and progress
+- compact backend online/offline state
 - inspector visibility
+- developer/system drawer visibility
 
 Scenario selection and run controls should not be buried inside setup or
 inspector panels. Later workbench layout changes can move panels around, but the
@@ -72,8 +74,9 @@ stacked page. The workbench has three regions:
 
 On wide screens setup and inspector can flank the canvas. On narrower screens
 they stack without changing the run, replay, probe, profile, or microphysics
-data flow. Backend/schema/sample-run details still exist as a secondary
-developer strip until the dedicated developer drawer work lands.
+data flow. Backend/schema/sample-run details live in the secondary
+developer/system drawer so they are available for troubleshooting without
+occupying the normal cloud-experiment workflow.
 
 The setup drawer is scenario-first. It starts with a scenario card describing
 the selected experiment's phenomenon, expected outcome, diagnostics, and known
@@ -81,6 +84,20 @@ limitations, then shows basic controls, atmosphere/moisture controls,
 surface/motion forcing, saved experiments, and collapsed advanced model
 settings. Scenario selection and run controls remain in the top action bar so
 they are not hidden inside the drawer.
+
+## Developer / System Drawer
+
+The top action bar shows compact backend state alongside run progress. Detailed
+system information is behind the `System` drawer:
+
+- backend health and API base URL
+- sample frame schema summary
+- sample run summary
+- public solver catalog details
+
+The drawer is intended for local development and troubleshooting. Offline
+backend state remains visible in the top bar so users can still tell why runs
+cannot start even when the drawer is closed.
 
 ## Field Visualization Approach
 

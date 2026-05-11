@@ -99,7 +99,7 @@ h2 {
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) auto auto;
+  grid-template-columns: minmax(280px, 1fr) auto auto auto;
   align-items: center;
   gap: 14px;
   border: 1px solid #cbd8d1;
@@ -171,14 +171,32 @@ h2 {
   white-space: nowrap;
 }
 
+.top-backend-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #153137;
+  background: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .top-run-status strong {
   color: #4f6f68;
   font-size: 0.78rem;
 }
 
-.run-status-dot {
+.run-status-dot,
+.backend-status-dot {
   width: 10px;
   height: 10px;
+  flex: 0 0 auto;
   border-radius: 999px;
   background: #9aa8a3;
 }
@@ -193,6 +211,14 @@ h2 {
 }
 
 .run-status-error {
+  background: #c64b3f;
+}
+
+.backend-status-online {
+  background: #3f8b75;
+}
+
+.backend-status-offline {
   background: #c64b3f;
 }
 
@@ -330,18 +356,69 @@ h2 {
   min-width: 0;
 }
 
-.developer-strip {
+.developer-drawer {
+  display: grid;
+  gap: 18px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 16px;
+  background: #f9fbf7;
+}
+
+.developer-drawer-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.developer-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 18px;
-  max-width: 1180px;
 }
 
-.developer-strip .status-panel,
-.developer-strip .schema-panel {
+.developer-grid .status-panel,
+.developer-grid .schema-panel {
   align-items: stretch;
   flex-direction: column;
   gap: 14px;
+  border-top: 0;
+  padding-top: 0;
+}
+
+.developer-grid h3 {
+  margin: 0;
+  color: #153137;
+  font-size: 1rem;
+}
+
+.solver-catalog-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.solver-catalog-list li {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.solver-catalog-list strong {
+  color: #153137;
+}
+
+.solver-catalog-list span {
+  color: #4f6f68;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .status {
@@ -1373,6 +1450,7 @@ h2 {
   .playback-panel,
   .profile-header,
   .dashboard-header,
+  .developer-drawer-header,
   .microphysics-header {
     align-items: flex-start;
     flex-direction: column;
@@ -1407,7 +1485,8 @@ h2 {
   }
 
   .top-action-buttons,
-  .top-run-status {
+  .top-run-status,
+  .top-backend-status {
     justify-content: stretch;
   }
 
@@ -1415,7 +1494,7 @@ h2 {
     flex: 1 1 120px;
   }
 
-  .developer-strip {
+  .developer-grid {
     grid-template-columns: 1fr;
   }
 }
