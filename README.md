@@ -22,14 +22,14 @@ The project starts with simplified and transparent models, but the architecture 
 
 ## Core Labs
 
-The product roadmap is organized around phenomenon labs:
+The product roadmap is organized around phenomenon labs. The order below is conceptual, not a strict implementation sequence:
 
 1. Fair-Weather Cumulus
-2. Evolving Boundary Layer
-3. Layered Atmosphere
-4. Orographic / Terrain Clouds
-5. Warm Rain / Droplet Growth
-6. Cloud Optics / Beauty
+2. Cloud Optics / Beauty
+3. Evolving Boundary Layer
+4. Layered Atmosphere
+5. Orographic / Terrain Clouds
+6. Warm Rain / Droplet Growth
 7. Fog / Stratus
 8. Mixed-Phase / Ice later
 
@@ -161,6 +161,8 @@ Science validation is separated from ordinary quick checks where practical so UI
 
 ## Key Documentation
 
+Start with the [Documentation index](docs/doc-index.md) when unsure what to read.
+
 Strategic direction:
 
 - [Product vision](docs/product-vision.md)
@@ -188,6 +190,8 @@ Solver and science docs:
 - [Microphysics lab](docs/microphysics-lab.md)
 - [Microphysics comparison](docs/microphysics-comparison.md)
 - [Microphysics schema proposal](docs/microphysics-schema.md)
+- [PySDM evaluation](docs/pysdm-evaluation.md)
+- [Lab contract template](docs/lab-contract-template.md)
 
 ## Durable Rule
 
