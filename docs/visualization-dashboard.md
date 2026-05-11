@@ -105,6 +105,20 @@ without opening setup or developer panels. Saved run artifacts are distinct from
 saved experiments; experiments describe how to run a setup again, while run
 artifacts describe what happened in one run.
 
+The scenario comparison panel is also part of the stage. It supports two
+comparison paths:
+
+- run two built-in scenarios side by side, with scenario B aligned to scenario
+  A's domain, grid, runtime, and frame cadence
+- load two saved run artifacts and inspect their sampled replay frames and
+  diagnostics
+
+Comparison playback is synchronized by simulation time rather than frame index.
+When one run has fewer frames or a shorter sampled replay, the shared timeline is
+limited to the overlapping final time. Scalar fields use a shared display range
+across both canvases so differences in color intensity represent differences in
+the underlying field, not independent autoscaling.
+
 ## Developer / System Drawer
 
 The top action bar shows compact backend state alongside run progress. Detailed
@@ -246,6 +260,11 @@ Statuses are intentionally qualitative: `plausible`, `warning`,
 `failed_expectation`, or `not_evaluated`. Warnings are visible diagnostics for
 prototype behavior that may later become hard validation thresholds. The panel
 does not modify solver state and does not replace backend science validation.
+
+The comparison table reuses these diagnostics where possible and reports
+first-cloud time, max cloud water, cloud-top height, first rain, max rain water,
+max updraft, and estimated LCL. Deltas are reported as run B minus run A; missing
+diagnostics are shown as not observed rather than forced to zero.
 
 ## Sounding / Profile View
 

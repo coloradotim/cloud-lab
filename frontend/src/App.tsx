@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import "./App.css";
 import { MicrophysicsDiagnosticsPanel } from "./MicrophysicsDiagnosticsPanel";
+import { ScenarioComparisonPanel } from "./ScenarioComparisonPanel";
 import { ScientificDashboard } from "./ScientificDashboard";
 import {
   BUILT_IN_SCENARIOS,
@@ -753,6 +754,13 @@ export function App() {
             onSaveCurrentRun={saveCurrentRunArtifact}
             onLoadRunArtifact={loadRunArtifact}
             onDeleteRunArtifact={deleteRunArtifact}
+          />
+
+          <ScenarioComparisonPanel
+            baseConfig={simulationConfig}
+            savedRuns={savedRuns}
+            apiBaseUrl={apiBaseUrl}
+            websocketBaseUrl={websocketBaseUrl}
           />
         </section>
 
