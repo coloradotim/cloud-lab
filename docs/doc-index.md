@@ -26,7 +26,7 @@ Older implementation docs remain useful as technical references, but they should
 
 - `docs/workbench-v2-product-spec.md` — source of truth for the future product shell.
 - `docs/workbench-v2-architecture.md` — source of truth for future frontend structure.
-- `docs/visualization-dashboard.md` — visualization and workbench view guidance; includes current prototype context and future view model.
+- `docs/visualization-and-workbench-views.md` — visualization and workbench view guidance; includes current prototype context and future view model.
 - `docs/scenarios.md` — scenario contracts and current scenario catalog; scenarios are lab-specific experiments.
 - `docs/simulation-controls.md` — current/prototype control system and control meanings; Workbench V2 should reorganize controls around labs.
 
@@ -91,7 +91,7 @@ Read:
 
 1. `docs/product-vision.md`
 2. `docs/lab-roadmap.md`
-3. `docs/visualization-dashboard.md`
+3. `docs/visualization-and-workbench-views.md`
 4. `docs/workbench-v2-product-spec.md`
 5. relevant lab sections
 
