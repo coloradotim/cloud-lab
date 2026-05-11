@@ -157,9 +157,16 @@ sampled subset of emitted frames for later inspection. Loading a saved run
 artifact applies its config and, when sampled frames are present, restores those
 frames into the replay view. It does not create or update a saved experiment.
 
+Side-by-side comparison builds on both concepts. Built-in scenarios can be run
+as A/B experiments with matched model size and runtime, while saved run
+artifacts can be compared later using their sampled replay frames and stored
+diagnostics. Comparisons are most meaningful when both sides use compatible
+solvers, domains, and frame fields; different solvers can still be inspected,
+but shared field scales and diagnostics should be interpreted cautiously.
+
 This storage is intentionally local only. Future work may add JSON export,
-replay files, parameter sweeps, and side-by-side comparison, but no database or
-auth is required for the initial scenario system.
+replay files, parameter sweeps, and stronger comparison persistence, but no
+database or auth is required for the initial scenario system.
 
 ## Sounding/Profile View
 
