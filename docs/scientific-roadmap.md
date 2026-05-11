@@ -1,62 +1,257 @@
 # Scientific Roadmap
 
-Cloud Lab should grow from a clear, testable vertical slice into richer cloud dynamics without pretending the first model is more complete than it is.
+Cloud Lab helps users explore atmospheric physics through beautiful, interactive cloud experiments grounded in real physical principles.
 
-## V1 Physics Scope
+The scientific roadmap serves the lab roadmap. It should not become a separate solver-first roadmap that pulls the product away from guided cloud experiments.
 
-The first physics target is a minimal 2-D vertical slice that can support a fair-weather cumulus experiment. V1 should focus on:
+Primary product roadmap:
 
-- A rectangular horizontal-by-vertical domain.
-- Surface heating as a lower-boundary forcing.
-- Moisture and temperature state variables with documented units.
-- Simple buoyancy and vertical motion approximations.
-- Condensation indicators for cloud-relevant regions.
-- Deterministic seeded runs for reproducible tests and visual comparisons.
+- `docs/lab-roadmap.md`
+- `docs/workbench-v2-product-spec.md`
+- `docs/workbench-v2-architecture.md`
+- `docs/product-vision.md`
 
-## Fair-Weather Cumulus First
+This document explains how the physics should mature in support of those labs.
 
-Fair-weather cumulus is the first target because it is visually understandable and scientifically rich without immediately requiring severe storm dynamics, ice microphysics, or complex terrain.
+## Science Strategy
 
-The first preset should make it easy to explore how surface heating, boundary-layer humidity, and lapse rate affect shallow cloud formation in a vertical slice.
+Cloud Lab should grow from clear, testable vertical-slice and parcel experiments into richer cloud dynamics and microphysics without pretending early models are more complete than they are.
 
-## Product And Physics Tracks
-
-Cloud Lab is not only a solver exercise. The near-term product should become a hands-on cloud laboratory where users can manipulate initial states and forcing, then inspect meaningful and beautiful results.
-
-That means interactive scenario work can proceed in parallel with physics validation. Structured and painted surface heating, structured and painted moisture profiles, lift controls, scenario presets, replay/scrubbing, saved run artifacts, comparison tools, and bulk physically informed rendering are valid near-term product work as long as they preserve solver/renderer/UI separation and document their approximations.
-
-After the canvas-first workbench UI lands, the main product/science loop should be:
+The strategy is:
 
 ```text
-Create condition → run → inspect → save → compare → vary → learn
+beautiful labs now + honest simplified physics + clean contracts → progressively higher-fidelity models later
 ```
 
-This loop should guide the next science-adjacent features:
+The project should not choose between a toy and a hard-core model. It should build approachable labs on top of a science framework that can become serious over time.
 
-- saved run artifacts with diagnostics and replay metadata
-- painted surface-heating and moisture initial conditions
-- small parameter sweeps over key scenario controls
-- terrain/orographic experiments with validation companions
-- bulk rain visualization and later bulk rain behavior
-- optical appearance controls that remain renderer-only and approximation-labeled
+## Current Physics Scope
+
+The current foundation is a local 2-D vertical-slice and controlled parcel/box framework. It supports:
+
+- rectangular horizontal-by-vertical domains
+- surface heating / lower-boundary forcing
+- moisture and temperature state variables with documented units
+- buoyancy and vertical motion approximations
+- cloud liquid water and rain-water placeholders / bulk behavior
+- deterministic seeded runs
+- validation and scenario diagnostics
+- scientific and approximate cloud appearance visualization
+
+The current public physics paths are:
+
+- `boussinesq_2d`: experimental 2-D dynamics scaffold for qualitative cloud experiments.
+- `microphysics_lab`: controlled parcel/box warm-cloud microphysics mode.
+
+`educational_2d` remains an internal/legacy learning backend for explicit compatibility and regression use.
+
+## Lab-Driven Physics Roadmap
+
+### Fair-Weather Cumulus
+
+Physical question:
+
+> Why do puffy cumulus clouds form on some warm afternoons and not others?
+
+Science needs:
+
+- surface heating
+- source-layer humidity
+- lapse rate and stability
+- boundary-layer depth / inversion
+- LCL and cloud-base diagnostics
+- cloud-top and max-updraft diagnostics
+- dry failed-cumulus controls
+
+Current status:
+
+- partly supported by `boussinesq_2d`
+- thermodynamic cloud-base diagnostics exist
+- still simplified and qualitative
+
+Next science improvements should target teaching-relevant failures: cloud base, cloud onset, cloud-top response, dry controls, and entrainment/drying behavior.
+
+### Evolving Boundary Layer
+
+Physical question:
+
+> How does the daytime atmosphere evolve into a cloud-producing environment?
+
+Science needs:
+
+- evolving temperature and moisture profiles
+- surface sensible heat flux
+- surface moisture flux / evaporation
+- mixed-layer growth
+- entrainment of dry air from above
+- time-evolving LCL and RH profiles
+- dry/moist advection tendencies
+
+Current status:
+
+- not yet a full model capability
+- should become a major next science/product direction after the workbench and fair-weather lab are coherent
+
+This is the bridge between static surface-heating scenarios and more realistic cloud evolution. It can begin as a simplified 1-D profile/boundary-layer model coupled to the 2-D slice environment.
+
+### Layered Atmosphere
+
+Physical question:
+
+> Why do clouds form in separate layers at different altitudes?
+
+Science needs:
+
+- editable temperature and moisture profiles
+- moist layers aloft
+- dry layers
+- inversions
+- broad ascent / cooling
+- cloud-layer detection diagnostics
+
+Current status:
+
+- profile and layer concepts exist in early form
+- needs explicit lab/scenario structure and diagnostics
+
+This should grow naturally from the evolving boundary-layer/profile system.
+
+### Orographic / Terrain Clouds
+
+Physical question:
+
+> How does terrain lift create clouds?
+
+Science needs:
+
+- idealized terrain profiles
+- terrain-induced lift approximation
+- upstream moisture and stability profiles
+- wind controls
+- terrain-relative cloud diagnostics
+- flat/dry/moist controls
+
+Current status:
+
+- planned as idealized terrain forcing, not full terrain-following CFD
+
+Terrain must be paired with validation and comparison. The goal is qualitative orographic learning, not mesoscale mountain weather prediction.
+
+### Warm Rain / Droplet Growth
+
+Physical question:
+
+> Why does some cloud water become rain while some clouds never rain?
+
+Science needs:
+
+- droplet-size distributions
+- cloud liquid water
+- rain water
+- autoconversion / collision-coalescence approximation
+- eventual PySDM or droplet-aware path
+- rain-onset diagnostics
+- water-budget diagnostics
+- sub-cloud evaporation
+
+Current status:
+
+- `microphysics_lab` provides controlled bulk parcel/box behavior
+- PySDM remains an isolated evaluation path
+- current rain behavior is bulk/placeholder, not droplet-resolved precipitation
+
+This should be a focused lab, not something prematurely bolted onto every dynamics scenario.
+
+### Cloud Optics / Beauty
+
+Physical question:
+
+> Why do clouds look bright, dark, soft, sharp, glowing, or dramatic?
+
+Science/visualization needs:
+
+- cloud liquid water
+- optical-depth approximation
+- assumed or diagnosed effective radius
+- sun angle
+- view angle / camera
+- shadowing and edge brightening
+- 2.5-D visual extrusion
+- later droplet-aware optics
+
+Current status:
+
+- bulk cloud appearance is appropriate before PySDM
+- 2.5-D can provide spatial payoff before true 3-D
+
+Optics is not merely polish. It is a product pillar, provided approximations are labeled clearly.
+
+### Fog / Stratus
+
+Physical question:
+
+> Why does fog or low stratus form near the surface, and why does it dissipate?
+
+Science needs:
+
+- surface cooling
+- near-surface humidity
+- inversion strength
+- mixing/wind controls
+- morning warming / dissipation
+- fog-depth diagnostics
+
+Current status:
+
+- not yet a separate lab
+- should become easier after profile and boundary-layer capabilities exist
+
+### Mixed-Phase / Ice
+
+Physical question:
+
+> How do cold clouds differ from warm clouds?
+
+Science needs:
+
+- freezing level
+- liquid vs ice water
+- supercooled liquid
+- ice nuclei proxy
+- snow/ice precipitation categories later
+- ice-aware optics later
+
+Current status:
+
+- later lab
+- should not be near-term until warm-cloud, profile, rendering, and validation foundations are stronger
 
 ## Warm-Cloud Microphysics Direction
 
-Early microphysics should remain deliberately simple: vapor, cloud water, and rain water fields with non-negative invariants and documented approximations. The project should avoid unexplained constants and should separate physically meaningful quantities from visualization shortcuts.
+Early microphysics should remain deliberately simple: vapor, cloud water, and rain water fields with non-negative invariants and documented approximations.
 
-As the model matures, evaluate PySDM or a similar library for more credible warm-cloud microphysics. That evaluation should compare integration complexity, reproducibility, performance on a Mac, and how well the library fits Cloud Lab's frame schemas.
+Evaluate PySDM or a similar library for more credible warm-cloud microphysics only in isolated parcel/box/column/prescribed-flow contexts first. PySDM should not be coupled directly to `boussinesq_2d` until both the dynamics and microphysics paths are separately credible.
 
-The v1 frame schema already reserves `water_vapor_kg_per_kg`, `cloud_liquid_water_kg_per_kg`, and `rain_water_kg_per_kg` fields with units metadata so later warm-cloud work can evolve without inventing new transport names in the frontend.
+Droplet-size distributions and effective radius are important for the Warm Rain / Droplet Growth Lab and later droplet-aware optics. They do not need to block bulk optical rendering or early 2.5-D visualization.
 
-The current next-core decision is documented in `docs/next-physics-core.md`: keep the existing solvers, use `microphysics_lab` for isolated warm-cloud experiments, evaluate PySDM there first, and delay full dynamics/microphysics coupling until both paths are separately credible.
+## Boussinesq Direction
 
-Do not add advanced microphysics until the current Boussinesq reference cases in `docs/boussinesq-validation.md` remain stable and understandable. Those cases are the current science gate for deciding whether the dynamics are trustworthy enough to build on.
+`boussinesq_2d` remains experimental. It is useful for controlled visual experiments, UI/schema validation, fair-weather cumulus work, and targeted dynamics diagnostics. It should not be treated as a final CFD core.
 
-Current gate decision: `boussinesq_2d` remains experimental. It is useful for controlled visual experiments, UI/schema validation, and targeted dynamics work, but it should not be treated as the final dynamics core for advanced microphysics until cloud-water placement and the remaining dynamics limitations are resolved.
+Improvements to Boussinesq should be driven by lab needs, not abstract solver perfection.
 
-The current fair-weather gate includes thermodynamic structure diagnostics for cloud-base plausibility: expected LCL, source-layer theta and water-vapor mixedness, actual condensate onset height, cloud-water distribution relative to LCL, and multi-region base spread. These diagnostics intentionally report behavior rather than forcing cloud-water placement or renderer shape.
+Good reasons to improve Boussinesq:
 
-Bulk cloud and rain visualization can improve before PySDM. The renderer may use bulk cloud liquid water plus assumed effective radius for labeled optical-depth, opacity, and lighting approximations. Bulk rain water and simple autoconversion or sedimentation indicators are useful for visual feedback, but they are not droplet-resolved precipitation formation. Droplet-aware optics and more credible collision/coalescence remain later PySDM-adjacent work.
+- fair-weather cloud bases or cloud onset are physically misleading
+- boundary artifacts corrupt user-facing labs
+- terrain/orographic labs require better vertical transport or boundary behavior
+- diagnostics show physically wrong relationships in controlled scenarios
+
+Bad reasons:
+
+- making it generally “more realistic” without a lab question
+- preparing it to host advanced microphysics before dynamics are credible
+- optimizing current prototype behavior that will later be replaced
 
 ## Bulk Rain Direction
 
@@ -71,38 +266,63 @@ Neither stage should be described as droplet-resolved precipitation formation. P
 
 Terrain should be introduced as idealized orographic forcing, not a full terrain-following atmospheric model.
 
-The terrain path should be paired with validation from the start:
+Terrain labs should include:
 
 - flat terrain control
 - dry ridge no-cloud control
 - moist ridge cloud case
 - Boulder foothills / upslope-inspired idealized case
-- diagnostics for terrain height, slope/lift region, cloud location relative to terrain, and below-terrain masking
+- terrain height / slope / lift diagnostics
+- cloud location relative to terrain
+- below-terrain masking checks
 
 Terrain should not be allowed to create plausible-looking clouds without comparison cases that explain what the approximation does and does not prove.
 
-## Fluid Dynamics Assumptions To Start
+## 2.5-D And 3-D Direction
 
-The starting dynamics can be simplified and educational, but the assumptions must be explicit. Initial work may use coarse approximations for advection, buoyancy, and diffusion while tests cover shape consistency, non-negative moisture fields, deterministic output, and stable schemas.
+2.5-D is a visualization path, not a physics path.
 
-Known early limitations should be documented near the implementation and in validation notes when new physics behavior is added.
+A 2.5-D view may render existing 2-D fields as a shallow visual extrusion with camera controls. It should be labeled as a visual approximation and should not imply out-of-plane dynamics.
 
-The initial solver uses localized surface heating, first-order advection, simple diffusion, buoyancy from temperature perturbation, saturation adjustment, and latent heating. It deliberately does not include a pressure solve, turbulence closure, terrain, rain sedimentation, ice physics, or a conservation guarantee.
+True 3-D simulation is a later hard-core modeling path. It should wait until:
 
-## Level-Up Path
+- the lab-driven workbench is coherent
+- 2-D labs and schemas are stable
+- visualization and diagnostics are mature
+- the project has a specific lab need that cannot be served by 2-D / 2.5-D
+- compute/performance and validation costs are accepted deliberately
 
-1. Implement a minimal 2-D vertical-slice core with deterministic frame generation.
-2. Add fair-weather cumulus presets and validation notes.
-3. Stream live frames to the browser over WebSockets.
-4. Add visualization layers for velocity, vapor, cloud water, rain water, buoyancy, and condensation.
-5. Validate the Boussinesq solver against quiet, dry, humid, stable, and resolution/runtime reference cases.
-6. Continue improving or replace the experimental Boussinesq dynamics before treating it as a microphysics host.
-7. Add structured surface-heating and moisture scenario controls for interactive experiments while keeping solver assumptions explicit.
-8. Add the canvas-first workbench, scenario diagnostics, and control relevance metadata so users can inspect experiments coherently.
-9. Add saved run artifacts, side-by-side comparison, and small parameter sweeps so users can preserve and compare experiments.
-10. Add painted surface-heating and moisture editors so users can create custom initial conditions.
-11. Expand `microphysics_lab` validation cases, then evaluate PySDM there for droplet-size distribution and rain formation.
-12. Add terrain forcing for orographic lift experiments, paired with validation/comparison cases.
-13. Add bulk rain sedimentation and evaporation only with documented water-budget and non-negative-moisture checks.
-14. Extend toward 2.5-D where selected 3-D effects can be approximated.
-15. Move toward true 3-D only after the 2-D model, tests, schemas, and visualization pipeline are stable.
+## Validation Philosophy
+
+Validation should protect lab behavior and scientific honesty.
+
+Tests and diagnostics should answer:
+
+- Did the lab do what it claims?
+- Did the model respond in the correct physical direction?
+- Did numerical behavior remain sane?
+- Are approximations labeled?
+- Did a change break a user-facing physical explanation?
+
+Validation should not preserve old toy-model behavior just because it existed, and it should not bless new behavior simply because it looks appealing.
+
+## Build Sequence Guidance
+
+The product roadmap is lab-driven, not a rigid feature checklist. A reasonable science/product maturation path is:
+
+1. Workbench V2 and lab-driven UI.
+2. Fair-Weather Cumulus as the first complete reference lab.
+3. Cloud Optics / Beauty capabilities, including optical controls and 2.5-D visualization.
+4. Evolving Boundary Layer capabilities.
+5. Layered Atmosphere controls and diagnostics.
+6. Orographic / Terrain Clouds with validation.
+7. Warm Rain / Droplet Growth, including droplet distributions and bulk-to-droplet-aware comparison.
+8. Fog / Stratus.
+9. Mixed-Phase / Ice later.
+10. True 3-D only when a lab need and science framework justify it.
+
+## Durable Rule
+
+Add physics because it enables a lab, answers a physical question, improves a diagnostic, or prevents misleading output.
+
+Do not add physics merely because it is interesting in isolation.
