@@ -21,8 +21,24 @@ significant cloud at initialization.
 
 ## Adjustable Parameters
 
-The setup UI is solver-aware and scenario-aware. Controls are driven by a
-central metadata/relevance model rather than one-off JSX conditionals.
+The setup UI is solver-aware and scenario-aware. The collapsible setup drawer
+is organized around scenario meaning first, then controls. It keeps the
+top-level scenario selector and run buttons visible in the workbench top bar,
+while detailed setup lives in this order:
+
+- selected scenario card: intended phenomenon, thermodynamics, forcing,
+  expected outcome, diagnostics, and limitations
+- basic controls: model size when relevant, surface temperature, source-layer
+  humidity, and runtime
+- atmosphere / moisture: lapse rate, boundary-layer top, humidity profile,
+  moist source depth, and free-atmosphere humidity
+- surface / motion forcing: heating pattern, heating strength, patch geometry,
+  background wind, or prescribed parcel lift when using `microphysics_lab`
+- saved experiments: local saved configurations for rerunning an experiment
+- advanced model settings: domain, grid, timestep, frame cadence, and seed
+
+Controls are driven by a central metadata/relevance model rather than one-off
+JSX conditionals.
 
 Control states:
 
@@ -39,11 +55,10 @@ features exist. Controls are disabled when their role is useful to explain, such
 as Boussinesq prescribed lift: vertical motion is predicted from heating and
 dynamics, so the ordinary workflow should leave imposed vertical motion at zero.
 
-Basic controls are visible first. Advanced settings are collapsed by default and
-include direct grid/domain controls, timestep, frame cadence, wind,
-reproducibility seed, saved experiments, and lower-level placement controls.
-Changing setup values resets playback and applies to the next run; controls do
-not live-edit an already running simulation.
+Basic controls are visible first. Saved experiments and advanced model settings
+are separate collapsible sections, and advanced settings are collapsed by
+default. Changing setup values resets playback and applies to the next run;
+controls do not live-edit an already running simulation.
 
 The current UI exposes the following controls when relevant:
 

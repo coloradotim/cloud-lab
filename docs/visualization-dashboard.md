@@ -75,6 +75,13 @@ they stack without changing the run, replay, probe, profile, or microphysics
 data flow. Backend/schema/sample-run details still exist as a secondary
 developer strip until the dedicated developer drawer work lands.
 
+The setup drawer is scenario-first. It starts with a scenario card describing
+the selected experiment's phenomenon, expected outcome, diagnostics, and known
+limitations, then shows basic controls, atmosphere/moisture controls,
+surface/motion forcing, saved experiments, and collapsed advanced model
+settings. Scenario selection and run controls remain in the top action bar so
+they are not hidden inside the drawer.
+
 ## Field Visualization Approach
 
 The dashboard supports field switching for any scalar field present in a frame. Known fields are ordered so cloud water, water vapor, temperature, and velocity fields are easy to reach first, while future fields can still appear without hardcoded rendering branches.
