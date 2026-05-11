@@ -1,121 +1,150 @@
 # Cloud Lab Product Vision
 
-## What Cloud Lab is
+## Tagline
 
-Cloud Lab is a local browser-based cloud physics sandbox for exploring cloud formation, warm-cloud microphysics, atmospheric motion, surface heating, terrain forcing, and real-time scientific visualization.
+Cloud Lab helps users explore atmospheric physics through beautiful, interactive cloud experiments grounded in real physical principles.
 
-The goal is not to build a full mesoscale weather model. The goal is to build a focused, visually compelling, scientifically honest cloud laboratory that helps users experiment with the physical processes that make clouds form, grow, rain, dissipate, and look beautiful.
+Short phrase:
 
-Cloud Lab should feel like a cloud chamber for the atmosphere: interactive, inspectable, playful, and grounded in real physics.
+> Beautiful cloud experiments. Real atmospheric physics.
 
-## Product principles
+## What Cloud Lab Is
 
-### 1. Scientific enough to be meaningful
+Cloud Lab is a local browser-based cloud physics laboratory for creating, running, visualizing, and comparing cloud experiments.
 
-Cloud Lab should avoid fake physics when real simplified physics is practical. The simulation can start simple, but assumptions should be documented and the architecture should leave room for better dynamics and microphysics.
+The goal is not merely to build a cloud model, a rendering toy, or a diagnostics dashboard. The goal is to help users learn cloud physics by making beautiful, physically meaningful atmospheric experiments.
 
-### 2. Beautiful enough to invite exploration
+Cloud Lab starts with simplified, transparent models, but its architecture should support progressively higher-fidelity atmospheric simulation over time. The project should be approachable and visually rewarding now, while remaining disciplined enough to grow toward serious cloud modeling later.
 
-Clouds are fun partly because they are beautiful. Visualization is not decoration; it is part of the product. The app should eventually help users see scattering, lighting, cloud edges, shadowing, rain shafts, and the visual consequences of droplet and liquid-water changes.
+## North Star
 
-### 3. Local-first and approachable
+Cloud Lab should make atmospheric physics visible.
 
-The first version should run locally on a Mac through a browser UI. Do not require paid cloud compute. Do not require complicated infrastructure before the core experience works.
+A user should be able to choose a cloud lab, adjust a small set of meaningful physical controls, run an experiment, watch beautiful cloud behavior evolve, inspect why it happened, save the run, compare it with another run, and learn something real about the atmosphere.
 
-### 4. Solver, renderer, and UI stay separate
-
-The solver should produce physical fields. The renderer should consume those fields and turn them into scientific and visual views. The UI should control scenarios and display results. Keep those boundaries clean.
-
-### 5. Capture ideas aggressively, implement selectively
-
-This project will generate many good ideas. Capture them in docs and roadmap issues, but keep V1 focused. Avoid idea sprawl by turning future ideas into focused implementation issues only when the foundation is ready.
-
-## Target experience
-
-A user opens a local browser app, selects a meteorologically grounded scenario, adjusts relevant initial conditions, runs a 2-D vertical slice simulation, watches cloud-relevant fields evolve, inspects why the cloud behaved as it did, saves the run, compares it with another run, and deliberately varies key controls.
-
-The near-term target experience should include:
-
-- Fair-weather cumulus over localized surface heating
-- Adjustable heating, humidity, lapse rate, wind, runtime, resolution, and seed
-- Scenario-aware controls that show only relevant settings by default
-- Real-time visualization of vapor, cloud liquid water, temperature perturbation, and velocity
-- Bulk cloud appearance rendering that is clearly labeled as an optical approximation
-- A field probe for inspecting local atmospheric values
-- A vertical sounding/profile view for inspecting cloud-base, LCL, humidity, and cap structure
-- Expected / observed / status diagnostics for built-in scenarios
-- Meteorologically grounded built-in scenarios plus local saved experiment configurations
-- Saved run artifacts with config, diagnostics, replay metadata, and notes
-- Side-by-side scenario or run comparison
-- Reproducible runs through seeded configurations
-- Documented units and assumptions
-- Tests, CI, and a sustainable development workflow
-
-## Near-Term Dual Track
-
-Cloud Lab should now move on two parallel tracks.
-
-The interactive cloud-experiment track should make the sandbox more playful and useful now: structured and eventually painted surface-heating maps, structured moisture fields, lifting controls, simple terrain/orographic forcing, scenario presets, replay and scrubbing, saved run artifacts, scenario comparison, and physically informed bulk visualization.
-
-The physics-credibility track should keep the science honest: automated sanity checks, scenario expected/observed/status diagnostics, `microphysics_lab` validation, PySDM evaluation in isolation, and clear labels for every approximation. These tracks support each other, but PySDM or a final computational fluid dynamics core is not required before building better scenario controls and bulk field rendering.
-
-## Post-workbench product loop
-
-After the canvas-first workbench UI lands, the next milestone is the full experiment loop:
+The product should optimize for this loop:
 
 ```text
-Create condition → run → inspect → save → compare → vary → learn
+Choose lab → choose scenario → adjust physical controls → run → watch → inspect → save/compare → vary → learn
 ```
 
-This requires more than isolated features. The product needs:
+## Product Identity
 
-- saved run artifacts, not just saved configs
-- painted surface-heating and moisture initial-condition editors
-- optical appearance controls for bulk cloud rendering
-- lightweight parameter sweeps for key controls
-- rain visualization and later bulk rain behavior
-- terrain/orographic validation cases alongside terrain experiments
+Cloud Lab is best understood as a collection of guided phenomenon labs, not as a pile of solver modes or UI panels.
 
-This loop is the practical path to the original product goal: letting users mess with initial states and forcing, see the clouds that form, and understand what happened.
+Each lab should answer a physical question:
 
-## First scientific scope
+- Why do fair-weather cumulus clouds form on some warm afternoons and not others?
+- How does the daytime boundary layer evolve toward cloud formation?
+- Why do cloud layers form at different altitudes?
+- How does terrain lift create clouds?
+- Why does some cloud water become rain while some does not?
+- Why do clouds look bright, dark, soft, sharp, glowing, or dramatic?
+- Why do fog and low stratus form and dissipate?
+- How do ice and mixed-phase processes change cold clouds?
 
-Start with a 2-D vertical slice. The early model should be simple but extensible:
+The interface should expose those questions and the controls needed to explore them. Solvers, numerical methods, and approximation details should remain visible when needed, but they should not define the user experience.
 
-- Buoyancy-driven motion
-- Temperature advection
-- Water vapor advection
-- Simple saturation and condensation
-- Latent heating from condensation
-- Cloud liquid water field
-- Rain water placeholder and later bulk rain behavior
-- No ice phase initially
-- No full mesoscale dynamics
-- No advanced turbulence model initially
+## Product Principles
 
-The model should support future upgrades toward better fluid dynamics, PySDM-based microphysics, terrain forcing, 2.5-D visualization, and eventual 3-D experiments.
+### 1. Beautiful, interactive experiments first
 
-## Why fair-weather cumulus first
+Clouds are visually compelling. Beauty is not decoration here; it is a core part of the learning experience. Cloud Lab should make cloud fields visible, spatial, and satisfying to explore.
 
-Fair-weather cumulus is the right starting target because it is visually satisfying, physically intuitive, and driven by processes Cloud Lab wants to expose:
+### 2. Real physical grounding, honest limits
 
-- localized surface heating
-- buoyant thermals
-- lifting and cooling
-- saturation and condensation
-- cloud growth and dissipation
-- entrainment of dry environmental air
-- visual cloud boundaries and cloud-base structure
+Cloud Lab should not fake physics when real simplified physics is practical. When the app uses approximation, it should say so plainly. A view may be beautiful and useful even if it is approximate, as long as the user is not misled.
 
-It is also a good bridge toward Colorado-relevant terrain and orographic scenarios.
+### 3. Lab-driven, not solver-driven
 
-## Visualization philosophy
+A lab defines the physical question, controls, expected behavior, diagnostics, visualization needs, and limitations. Solvers are implementation details that support labs.
 
-Cloud Lab should support two visual modes over time:
+### 4. Simple enough to use, extensible enough to grow
+
+The first implementation of a lab may use simplified dynamics, bulk microphysics, or approximate rendering. The architecture should allow improved physics to replace or augment those pieces without rewriting the product.
+
+### 5. Solver, renderer, UI, and diagnostics stay separate
+
+The durable rule:
+
+> Solver outputs physical fields. Renderer turns fields into views. UI controls experiments. Diagnostics explain behavior. Documentation explains assumptions. Tests protect the science.
+
+### 6. Local-first
+
+The first product should run locally on a Mac through a browser UI. Avoid requiring paid cloud compute or complicated infrastructure before the core experience works.
+
+### 7. Capture broadly, build selectively
+
+Many good ideas belong in the roadmap. Focused implementation should be driven by labs, not by novelty or feature accumulation.
+
+## The Two Product Layers
+
+Cloud Lab has two layers that must grow together.
+
+### User-facing cloud lab
+
+This is what the user experiences:
+
+- guided labs
+- scenario presets
+- meaningful controls
+- beautiful scientific and cloud-like visualizations
+- probes and diagnostics
+- saved runs
+- comparison
+- parameter exploration
+
+### Science framework underneath
+
+This is the architecture that lets Cloud Lab become more serious over time:
+
+- lab/scenario contracts
+- physics-core interfaces
+- frame/output schemas
+- diagnostic contracts
+- validation suites
+- renderer contracts
+- documented assumptions
+
+The project should not become a toy. But it also should not let hard-core modeling ambitions prevent the app from becoming useful and enjoyable now.
+
+## Core Labs
+
+The product should be organized around labs. See `docs/lab-roadmap.md` for the detailed lab roadmap.
+
+Near-term core labs:
+
+1. Fair-Weather Cumulus Lab
+2. Cloud Optics / Beauty Lab
+3. Evolving Boundary Layer Lab
+4. Layered Atmosphere Lab
+5. Orographic / Terrain Cloud Lab
+6. Warm Rain / Droplet Growth Lab
+7. Fog / Stratus Lab
+8. Mixed-Phase / Ice Cloud Lab later
+
+## Target Experience
+
+A good early version of Cloud Lab should let the user:
+
+1. Open the app and choose a lab.
+2. Pick a scenario such as fair-weather cumulus, dry failed cumulus, ridge lift, fog/stratus, or warm-rain parcel.
+3. Adjust a small set of physical controls relevant to that lab.
+4. Run the simulation locally.
+5. Watch the cloud evolve in a scientific 2-D view.
+6. Switch to a beautiful cloud appearance or 2.5-D view.
+7. Inspect diagnostics such as LCL, cloud base, cloud top, RH profile, max updraft, first cloud time, rain indicator, or droplet distribution depending on the lab.
+8. Save the run.
+9. Compare it with another run.
+10. Vary one control and learn what changed.
+
+## Visualization Philosophy
+
+Cloud Lab should support several kinds of views.
 
 ### Scientific views
 
-Scientific views explain what is happening. They should show fields and diagnostics clearly:
+Scientific views show the actual model fields and diagnostics:
 
 - water vapor
 - relative humidity
@@ -123,162 +152,68 @@ Scientific views explain what is happening. They should show fields and diagnost
 - rain water
 - temperature perturbation
 - buoyancy
-- horizontal and vertical velocity
-- condensation and evaporation regions
-- droplet-size distribution
-- parcel/pathline behavior
+- velocity
+- LCL / cloud base
+- cloud top
+- mixed-layer depth
+- droplet-size distribution when available
 
-### Pretty views
+### Cloud appearance views
 
-Pretty views make the cloud look like a cloud. They should be visually satisfying but honest about what is physically modeled versus approximated.
+Cloud appearance views make the fields look more like clouds. They may use bulk optical approximations, assumed droplet radius, sun angle, shadowing, edge brightening, and cloud-base darkening.
 
-Future pretty rendering should include:
+These views should be beautiful, but clearly labeled as rendering interpretations when they are not direct solver fields.
 
-- cloud opacity from liquid water and droplet properties
-- sun angle and camera controls
-- optical depth approximation
-- single scattering approximation
-- forward scattering and bright cloud edges
-- silver lining near the sun angle
-- self-shadowing and darker cloud bases
-- rain shaft visibility
-- haze/background atmosphere interaction
+### 2.5-D views
 
-The product should clearly distinguish physically meaningful outputs from cinematic or illustrative enhancement.
+A 2.5-D view can render the existing 2-D vertical slice as a shallow visual extrusion with camera and perspective controls. This gives spatial payoff without claiming true 3-D atmospheric motion.
 
-## Cloud optics direction
+### Future advanced rendering
 
-Cloud optics should eventually become a major feature track.
+Later versions may add volumetric rendering, droplet-aware optics, approximate multiple scattering, cinematic export, and more sophisticated camera/light controls.
 
-The renderer should estimate visual appearance from solver outputs such as cloud liquid water, rain water, droplet size distribution, and geometry. The solver should not include rendering logic. The renderer should not alter physical simulation state.
+## Science Roadmap Relationship
 
-A reasonable staged path:
+The scientific roadmap should serve the labs. Physics additions should answer:
 
-### Phase 1 — Cheap but effective
+- What lab does this enable?
+- What physical question does it help answer?
+- What controls does it support?
+- What fields does it output?
+- What diagnostics validate it?
+- What assumptions must the UI disclose?
 
-- opacity as a function of cloud liquid water
-- directional light shading
-- simple shadowing
-- camera controls
-- sun angle controls
-- optical appearance controls such as assumed effective radius, extinction strength, edge brightening, and cloud-base darkening
+If a physics addition cannot answer those questions, it is probably premature.
 
-This phase may use bulk cloud liquid water plus an assumed effective radius as a bulk optical approximation. It should be labeled that way. Droplet-aware optics wait for droplet-size or effective-radius outputs, but PySDM is not a prerequisite for first cloud opacity, lighting, or shadow improvements.
+## Clean-Slate Frontend Direction
 
-### Phase 2 — Physically informed
+The current frontend should be treated as a working prototype that proved capabilities, not as the final product architecture.
 
-- optical depth approximation
-- forward scattering bias
-- edge brightening
-- cloud-base darkening
-- visual distinction between thin and dense cloud regions
+Workbench v2 should be lab-driven:
 
-### Phase 3 — Microphysics-aware
+```text
+Lab Picker → Lab Workbench → Run/Inspect/Save/Compare
+```
 
-- droplet size influences brightness, opacity, and scattering behavior
-- rain shafts become visible through attenuation and fall streaks
-- aerosol/haze interactions become possible
+The product should not open into a wall of controls or a development dashboard. It should open into a focused lab experience.
 
-Near-term rain visualization may use bulk rain-water fields and simple autoconversion or sedimentation indicators. That is useful for scenario feedback and rain-shaft visualization, but it must not be described as droplet-resolved precipitation formation. PySDM collision/coalescence remains the later path for more credible rain initiation.
+See:
 
-### Phase 4 — Advanced rendering
+- `docs/workbench-v2-product-spec.md`
+- `docs/workbench-v2-architecture.md`
+- `docs/architecture-decisions/ADR-001-lab-driven-product.md`
 
-- volumetric rendering
-- approximate multiple scattering
-- cinematic export mode
-- scientific versus cinematic rendering toggle
+## What Cloud Lab Should Not Become
 
-## Diagnostics that make the app special
+Cloud Lab should not become:
 
-Cloud Lab should eventually help users understand why a cloud behaved the way it did.
+- a pile of unrelated simulation features
+- a solver-mode selector with a UI wrapped around it
+- a dashboard full of panels with equal visual weight
+- a cloud rendering toy with hidden fake physics
+- a full mesoscale weather model
+- a research codebase that never becomes usable
 
-Useful diagnostics include:
+The product should remain clear:
 
-- local field probe
-- expected / observed / status summaries for built-in scenarios
-- time-history plots
-- parcel/pathline visualization
-- entrainment indicators
-- condensation and evaporation overlays
-- rain initiation indicators
-- droplet-size distribution histograms
-- simple sounding/profile extraction
-- post-run experiment summary
-
-A future post-run summary might say something like:
-
-> Cloud initiated over the heated patch, but dry-air entrainment near 1.7 km evaporated cloud water before collision/coalescence could produce precipitation.
-
-This kind of explanation would make Cloud Lab feel like a scientific assistant, not just an animation. Deterministic diagnostics should come before AI-generated summaries.
-
-## Roadmap buckets
-
-### V1 foundation
-
-- Repo scaffold, docs, tests, and CI
-- Simulation data model, units, and frame schema
-- Minimal 2-D vertical-slice solver
-- Live simulation streaming
-- First scientific visualization dashboard
-- Interactive controls and fair-weather cumulus preset
-- Field probe diagnostics
-- Next physics-core decision document
-- Isolated PySDM evaluation prototype
-
-### V1.5 / near-future
-
-- Canvas-first workbench UI
-- Scenario expected / observed / status diagnostics
-- Scenario-aware setup controls with tooltips and relevance rules
-- Saved scenarios and replay
-- Saved run artifacts
-- Time scrubbing
-- Painted surface heating maps
-- Painted moisture fields
-- Initial pretty cloud rendering mode and optical controls
-- Side-by-side scenario/run comparison
-- Microphysics lab solver mode
-- Droplet-size distribution visualization
-- Condensation/evaporation overlays
-- Bulk rain indicator and rain-shaft visualization
-- Terrain/orographic lift prototype
-- Terrain/orographic validation cases
-- Boulder foothills upslope preset
-
-### Later science upgrades
-
-- PySDM integration if evaluation supports it
-- Collision/coalescence
-- Bulk rain sedimentation and evaporation
-- Aerosol/CCN controls
-- Better fluid dynamics options
-- Turbulence parameterization exploration
-- Numerical validation suite
-- Benchmark/reference-case library
-
-### Later visualization upgrades
-
-- 2.5-D visualization
-- Volumetric rendering
-- physically informed cloud optics
-- camera and lighting controls
-- cinematic export
-- side-by-side scenario comparison
-
-### Research workflow upgrades
-
-- NetCDF export/import
-- Jupyter integration
-- run metadata and reproducibility records
-- saved simulation artifacts
-- parameter sweeps
-
-## Key architecture warning
-
-This project can become messy quickly if physics, rendering, UI state, and scenario configuration are allowed to blend together.
-
-The durable rule:
-
-> Solver outputs physical fields. Renderer turns fields into views. UI controls scenarios. Documentation explains assumptions. Tests protect behavior.
-
-That is the core architecture discipline for Cloud Lab.
+> beautiful, interactive cloud experiments grounded in real atmospheric physics, with a science framework that can grow toward more serious modeling over time.
