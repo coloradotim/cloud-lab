@@ -13,10 +13,47 @@ Cloud Lab should not grow by adding isolated features, panels, or solver modes.
 It should grow by adding coherent labs:
 
 ```text
-Lab question → lab spec → scenarios → controls → model needs → diagnostics → visualization → implementation issues
+Lab question → lab spec → review → implementation issues → Codex implementation
 ```
 
 This keeps the product understandable and prevents the backlog from becoming a feature pile.
+
+## Human / ChatGPT / Codex Split
+
+Lab design is product/science architecture work. Implementation is coding work.
+
+Use this split:
+
+### ChatGPT / human design work
+
+Use ChatGPT and human review for:
+
+- defining the lab's physical question
+- deciding what the lab should teach
+- deciding which controls belong in the lab
+- deciding what is honest to claim
+- deciding what physics is needed now vs later
+- drafting the dedicated lab spec
+- decomposing the lab into implementation issues
+- setting acceptance criteria and validation expectations
+
+### Codex implementation work
+
+Use Codex for:
+
+- implementing scoped issues created from approved lab specs
+- frontend/backend code changes
+- tests
+- refactors
+- wiring UI to APIs
+- updating docs that are directly affected by implementation
+- opening PRs and running the documented checks
+
+### Rule
+
+Do not hand a new lab design issue to Codex cold and ask it to decide the lab's product/science direction.
+
+Codex may help edit or implement a lab spec after the direction is clear, but the first real lab spec should be drafted and reviewed through ChatGPT/human product-science discussion.
 
 ## Lab Sequence
 
@@ -82,7 +119,7 @@ Do not skip sections because implementation is not ready. If the answer is unkno
 
 ## Step-by-Step Process
 
-### Step 1 — Design the lab spec
+### Step 1 — Draft the lab spec in ChatGPT / human review
 
 Create or update the dedicated lab spec under `docs/labs/`.
 
@@ -99,9 +136,24 @@ The spec should answer:
 - What approximations must be labeled?
 - What scenarios make the lab useful?
 
-### Step 2 — Identify implementation slices
+The first draft of a lab spec should be reviewed by the user before implementation issues are created.
 
-After the lab spec exists, split implementation into small issues.
+### Step 2 — Approve or revise the lab spec
+
+After the first draft, review the lab spec for:
+
+- product fit
+- scientific honesty
+- physical plausibility
+- scope control
+- implementation feasibility
+- whether it advances the current roadmap sequence
+
+Do not create detailed implementation issues until the lab spec is directionally approved.
+
+### Step 3 — Identify implementation slices
+
+After the lab spec exists and is approved, split implementation into small issues.
 
 Typical issue slices:
 
@@ -115,7 +167,13 @@ Typical issue slices:
 
 Not every lab needs every slice immediately.
 
-### Step 3 — Implement the smallest coherent lab version
+### Step 4 — Codex implements scoped issues
+
+Codex should work the implementation issues created from the approved lab spec.
+
+Each issue should be specific enough that Codex does not need to invent the lab's product or science direction.
+
+### Step 5 — Implement the smallest coherent lab version
 
 The first implementation should make the lab usable, not complete.
 
@@ -128,7 +186,7 @@ A v1 lab should have:
 - clear limitations
 - tests for the core contract
 
-### Step 4 — Validate before expanding
+### Step 6 — Validate before expanding
 
 Before adding more controls or visual polish, verify that the lab's core behavior is not misleading.
 
@@ -140,7 +198,7 @@ Ask:
 - Do diagnostics explain what happened?
 - Are we adding features because they serve the lab, or because they are interesting?
 
-### Step 5 — Add richer views or physics
+### Step 7 — Add richer views or physics
 
 Only after the v1 lab is coherent should additional physics, rendering, or workflow features be added.
 
