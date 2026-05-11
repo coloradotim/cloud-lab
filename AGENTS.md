@@ -17,11 +17,11 @@ The current backend, solvers, validation tools, and frontend components are usef
 Build Cloud Lab as a collection of guided phenomenon labs:
 
 1. Fair-Weather Cumulus
-2. Evolving Boundary Layer
-3. Layered Atmosphere
-4. Orographic / Terrain Clouds
-5. Warm Rain / Droplet Growth
-6. Cloud Optics / Beauty
+2. Cloud Optics / Beauty
+3. Evolving Boundary Layer
+4. Layered Atmosphere
+5. Orographic / Terrain Clouds
+6. Warm Rain / Droplet Growth
 7. Fog / Stratus
 8. Mixed-Phase / Ice later
 
@@ -37,16 +37,43 @@ Each lab should define:
 
 Do not organize new product work around solver modes or accumulated panels. Solvers support labs; they do not define the product.
 
+## Lab Design Ownership
+
+Lab design specs are product/science architecture work and should be drafted through ChatGPT plus human review before Codex implements them.
+
+Codex should not independently decide the product/science direction for a new lab.
+
+Use this split:
+
+- ChatGPT / human review: lab question, user promise, controls, physics scope, diagnostics, honesty labels, lab spec, implementation issue decomposition.
+- Codex: scoped implementation issues created from approved lab specs, code changes, tests, refactors, UI/API wiring, implementation-linked docs, PRs.
+
+Before implementing lab-specific features, confirm that the dedicated lab spec exists under `docs/labs/` and that the issue is derived from that spec.
+
+See:
+
+- `docs/lab-development-process.md`
+- `docs/lab-contract-template.md`
+- `docs/labs/README.md`
+
 ## Required Reading For Agents
 
 Before substantial product, UI, simulation, or roadmap work, read:
 
 - `docs/product-vision.md`
 - `docs/lab-roadmap.md`
+- `docs/current-phase-plan.md`
 - `docs/workbench-v2-product-spec.md`
 - `docs/workbench-v2-architecture.md`
 - `docs/architecture-decisions/ADR-001-lab-driven-product.md`
 - the issue being implemented
+
+For lab design or lab-specific implementation, also read:
+
+- `docs/lab-development-process.md`
+- `docs/lab-contract-template.md`
+- `docs/labs/README.md`
+- the relevant `docs/labs/*.md` spec, if it exists
 
 For physics, validation, or scenario work, also read:
 
@@ -161,6 +188,10 @@ Required strategic docs:
 - `README.md` for setup and project overview.
 - `docs/product-vision.md` for product identity and north star.
 - `docs/lab-roadmap.md` for the lab-driven product roadmap.
+- `docs/lab-development-process.md` for repeatable lab design and implementation workflow.
+- `docs/lab-contract-template.md` for required lab spec structure.
+- `docs/labs/README.md` for lab spec index.
+- `docs/current-phase-plan.md` for current executable issue order.
 - `docs/workbench-v2-product-spec.md` for the clean-slate product shell.
 - `docs/workbench-v2-architecture.md` for frontend/product architecture.
 - `docs/architecture-decisions/ADR-001-lab-driven-product.md` for the lab-driven architecture decision.
@@ -176,20 +207,21 @@ When the user asks to work an issue, treat that as instruction to implement the 
 
 1. Read `AGENTS.md` and the issue.
 2. Check whether the issue is consistent with the lab-driven product direction. If not, stop and report the conflict.
-3. Check out `main`.
-4. Pull latest `origin/main`.
-5. Create a feature branch named for the issue, using the `codex/` prefix unless the user requests a different name.
-6. Make the requested changes.
-7. Consider whether documentation needs to be updated.
-8. Consider whether tests need to be updated.
-9. Run the documented Tier 1 quick checks plus any Tier 2 targeted checks relevant to the changed files.
-10. Run frontend test/lint/build commands when frontend code changed, or when the PR affects shared contracts consumed by the frontend.
-11. Commit changes to the feature branch.
-12. Push the branch.
-13. Open a PR that links the issue.
-14. If the repository allows auto-merge, enable auto-merge on the PR.
-15. If all required checks pass and branch protection allows it, allow the PR to merge through the protected-branch/auto-merge path.
-16. If auto-merge or merge is blocked, report the exact blocker.
+3. For lab-specific implementation, confirm a dedicated lab spec exists under `docs/labs/` or that the issue explicitly creates one.
+4. Check out `main`.
+5. Pull latest `origin/main`.
+6. Create a feature branch named for the issue, using the `codex/` prefix unless the user requests a different name.
+7. Make the requested changes.
+8. Consider whether documentation needs to be updated.
+9. Consider whether tests need to be updated.
+10. Run the documented Tier 1 quick checks plus any Tier 2 targeted checks relevant to the changed files.
+11. Run frontend test/lint/build commands when frontend code changed, or when the PR affects shared contracts consumed by the frontend.
+12. Commit changes to the feature branch.
+13. Push the branch.
+14. Open a PR that links the issue.
+15. If the repository allows auto-merge, enable auto-merge on the PR.
+16. If all required checks pass and branch protection allows it, allow the PR to merge through the protected-branch/auto-merge path.
+17. If auto-merge or merge is blocked, report the exact blocker.
 
 Before finishing any change:
 
@@ -254,6 +286,7 @@ If an area is affected, update it in the same PR unless the issue explicitly say
 - Do not optimize prematurely before correctness and structure are clear.
 - Do not let notebooks become the only source of truth for production simulation behavior.
 - Do not preserve old frontend/dashboard patterns merely for code reuse if they conflict with Workbench V2.
+- Do not let Codex invent a lab's product/science direction when a lab spec is missing.
 
 ## Important Files
 
@@ -261,6 +294,10 @@ Strategic direction:
 
 - `docs/product-vision.md`
 - `docs/lab-roadmap.md`
+- `docs/lab-development-process.md`
+- `docs/lab-contract-template.md`
+- `docs/labs/`
+- `docs/current-phase-plan.md`
 - `docs/workbench-v2-product-spec.md`
 - `docs/workbench-v2-architecture.md`
 - `docs/architecture-decisions/ADR-001-lab-driven-product.md`
