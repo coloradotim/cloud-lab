@@ -69,7 +69,8 @@ The main app layout is organized around the visualization rather than a long
 stacked page. The workbench has three regions:
 
 - setup: collapsible scenario/config controls
-- stage: the scientific canvas plus replay/playback controls
+- stage: the scientific canvas plus replay/playback controls and saved run
+  artifacts
 - inspector: collapsible Profile, Probe, Diagnostics, and Microphysics tabs
 
 On wide screens setup and inspector can flank the canvas. On narrower screens
@@ -96,6 +97,13 @@ limitations, then shows basic controls, atmosphere/moisture controls,
 surface/motion forcing, saved experiments, and collapsed advanced model
 settings. Scenario selection and run controls remain in the top action bar so
 they are not hidden inside the drawer.
+
+The stage also owns saved run artifacts. This keeps run-specific evidence near
+the replay timeline: users can save the current buffered run with optional
+notes, load a sampled replay snapshot, or inspect the saved diagnostics summary
+without opening setup or developer panels. Saved run artifacts are distinct from
+saved experiments; experiments describe how to run a setup again, while run
+artifacts describe what happened in one run.
 
 ## Developer / System Drawer
 

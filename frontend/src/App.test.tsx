@@ -1,9 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { DeveloperDrawer, SimulationControls, TopActionBar } from "./App";
+import { DeveloperDrawer, SavedRunArtifactsPanel, SimulationControls, TopActionBar } from "./App";
 import { BUILT_IN_SCENARIOS, normalizeConfig } from "./simulationControls";
 import type { SavedScenario } from "./savedScenarios";
+import type { SavedRunArtifact } from "./savedRuns";
 import type { SimulationConfig, SolverDescriptor } from "./simulationTypes";
 
 const baseConfig: SimulationConfig = normalizeConfig({
@@ -56,6 +57,53 @@ const savedScenario: SavedScenario = {
   updated_at: "2026-05-10T12:00:00.000Z",
   config_schema_version: "sim-config-v1",
   config: baseConfig,
+};
+
+const savedRunArtifact: SavedRunArtifact = {
+  schema_version: "saved-run-artifact-v1",
+  id: "run-1",
+  kind: "run_artifact",
+  name: "Saved cumulus run",
+  notes: "Clouds formed near the expected level.",
+  created_at: "2026-05-10T12:00:00.000Z",
+  scenario: { slug: "fair-weather-moderate-base", name: "Fair-weather cumulus" },
+  config_schema_version: "sim-config-v1",
+  frame_schema_version: "sim-frame-v1",
+  solver_type: "boussinesq_2d",
+  app_version: "local-browser",
+  backend_version: "0.1.0",
+  config: baseConfig,
+  run: {
+    duration_seconds: 1_200,
+    frame_count: 80,
+    final_time_seconds: 1_200,
+    displayed_time_seconds: 1_200,
+  },
+  diagnostics: {
+    scenario_status: "plausible",
+    scenario_status_label: "Plausible",
+    expected: "Delayed fair-weather cloud.",
+    observed: "Cloud formed after lifting.",
+    notes: [],
+    first_cloud_time_seconds: 660,
+    first_cloud_height_m: 1_100,
+    max_cloud_liquid_water_kg_per_kg: 0.0002,
+    max_cloud_time_seconds: 900,
+    cloud_top_height_m: 1_800,
+    max_updraft_m_per_s: 1.1,
+    first_rain_time_seconds: null,
+    max_rain_water_kg_per_kg: 0,
+    estimated_lcl_m: 1_050,
+    microphysics_total_water_drift_concerning: null,
+  },
+  replay: {
+    storage: "sampled_frames",
+    total_frame_count: 80,
+    stored_frame_count: 40,
+    sample_stride: 2,
+    frames_truncated: true,
+  },
+  sampled_frames: [],
 };
 
 describe("SimulationControls", () => {
@@ -220,6 +268,55 @@ describe("workbench system controls", () => {
     expect(html).toContain("sim-frame-v1");
     expect(html).toContain("Public solvers");
     expect(html).toContain("http://localhost:8000");
+  });
+});
+
+describe("SavedRunArtifactsPanel", () => {
+  it("distinguishes saved runs from saved scenarios and disables saving without buffered frames", () => {
+    const html = renderToStaticMarkup(
+      <SavedRunArtifactsPanel
+        savedRuns={[]}
+        selectedSavedRunId=""
+        saveRunName=""
+        saveRunNotes=""
+        canSaveRun={false}
+        onSaveRunNameChange={vi.fn()}
+        onSaveRunNotesChange={vi.fn()}
+        onSaveCurrentRun={vi.fn()}
+        onLoadRunArtifact={vi.fn()}
+        onDeleteRunArtifact={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Saved run artifacts");
+    expect(html).toContain(
+      "Saved runs preserve the config, diagnostics, and sampled replay frames",
+    );
+    expect(html).toContain("Saved scenarios remain reusable setup recipes");
+    expect(html).toContain("disabled");
+  });
+
+  it("renders selected artifact replay metadata and diagnostics", () => {
+    const html = renderToStaticMarkup(
+      <SavedRunArtifactsPanel
+        savedRuns={[savedRunArtifact]}
+        selectedSavedRunId="run-1"
+        saveRunName=""
+        saveRunNotes=""
+        canSaveRun
+        onSaveRunNameChange={vi.fn()}
+        onSaveRunNotesChange={vi.fn()}
+        onSaveCurrentRun={vi.fn()}
+        onLoadRunArtifact={vi.fn()}
+        onDeleteRunArtifact={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Saved cumulus run");
+    expect(html).toContain("40 sampled frames of 80");
+    expect(html).toContain("Delayed fair-weather cloud.");
+    expect(html).toContain("Cloud formed after lifting.");
+    expect(html).toContain("1.100 m/s");
   });
 });
 

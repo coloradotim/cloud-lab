@@ -32,6 +32,14 @@ import {
   updateSavedScenario,
 } from "./savedScenarios";
 import type { SavedScenario } from "./savedScenarios";
+import {
+  createSavedRunArtifact,
+  deleteSavedRun,
+  loadSavedRuns,
+  persistSavedRuns,
+  saveRunArtifact,
+} from "./savedRuns";
+import type { SavedRunArtifact } from "./savedRuns";
 import { replayEventTargets, replayStatus } from "./replay";
 import { evaluateScenarioRun } from "./scenarioDiagnostics";
 import type { ScenarioDiagnostics } from "./scenarioDiagnostics";
@@ -200,6 +208,10 @@ export function App() {
   const [solvers, setSolvers] = useState<SolverDescriptor[]>([]);
   const [simulationConfig, setSimulationConfig] = useState<SimulationConfig | null>(null);
   const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>([]);
+  const [savedRuns, setSavedRuns] = useState<SavedRunArtifact[]>([]);
+  const [selectedSavedRunId, setSelectedSavedRunId] = useState("");
+  const [saveRunName, setSaveRunName] = useState("");
+  const [saveRunNotes, setSaveRunNotes] = useState("");
   const [configMessage, setConfigMessage] = useState<string | null>(null);
   const [playback, setPlayback] = useState<PlaybackState>({
     status: "idle",
@@ -308,6 +320,7 @@ export function App() {
 
   useEffect(() => {
     setSavedScenarios(loadSavedScenarios());
+    setSavedRuns(loadSavedRuns());
   }, []);
 
   useEffect(() => {
@@ -503,6 +516,70 @@ export function App() {
     persistSavedScenarios(nextScenarios);
   }
 
+  function saveCurrentRunArtifact() {
+    if (!simulationConfig || frames.length === 0) {
+      setConfigMessage("Run artifacts need a completed or buffered run to save.");
+      return;
+    }
+
+    const artifact = createSavedRunArtifact({
+      name: saveRunName,
+      notes: saveRunNotes,
+      scenario: activeScenario,
+      config: simulationConfig,
+      frames,
+      displayedFrameIndex,
+      diagnostics: scenarioDiagnostics,
+      backendVersion: health.status === "online" ? health.version : null,
+    });
+    const nextRuns = saveRunArtifact(savedRuns, artifact);
+    setSavedRuns(nextRuns);
+    persistSavedRuns(nextRuns);
+    setSelectedSavedRunId(artifact.id);
+    setSaveRunName("");
+    setSaveRunNotes("");
+    setConfigMessage(`Saved run artifact: ${artifact.name}`);
+  }
+
+  function loadRunArtifact(artifactId: string) {
+    setSelectedSavedRunId(artifactId);
+    const artifact = savedRuns.find((candidate) => candidate.id === artifactId);
+    if (!artifact) {
+      return;
+    }
+
+    applySimulationConfig(artifact.config);
+    setSelectedScenarioSlug(artifact.scenario?.slug ?? "");
+    setFrames(artifact.sampled_frames);
+    setDisplayedFrameIndex(Math.max(0, artifact.sampled_frames.length - 1));
+    setIsPaused(true);
+    setPlayback({
+      status: artifact.sampled_frames.length > 0 ? "complete" : "idle",
+      runId: artifact.id,
+      framesReceived: artifact.replay.stored_frame_count,
+      durationSeconds: artifact.run.duration_seconds,
+      currentTimeSeconds: artifact.run.final_time_seconds,
+      frameRate: 0,
+      maxCloudWater: artifact.diagnostics.max_cloud_liquid_water_kg_per_kg ?? 0,
+      maxUpdraft: artifact.diagnostics.max_updraft_m_per_s ?? 0,
+      message:
+        artifact.sampled_frames.length > 0
+          ? "Loaded sampled saved-run frames for inspection."
+          : "Loaded saved-run summary; replay frames were not stored.",
+    });
+    setConfigMessage(`Loaded saved run artifact: ${artifact.name}`);
+  }
+
+  function deleteRunArtifact(artifactId: string) {
+    const nextRuns = deleteSavedRun(savedRuns, artifactId);
+    setSavedRuns(nextRuns);
+    persistSavedRuns(nextRuns);
+    if (selectedSavedRunId === artifactId) {
+      setSelectedSavedRunId("");
+    }
+    setConfigMessage("Deleted saved run artifact.");
+  }
+
   function handleStreamMessage(message: StreamMessage) {
     if (message.type === "metadata") {
       setPlayback((current) => ({
@@ -662,6 +739,21 @@ export function App() {
               onReset={resetPlayback}
             />
           </section>
+
+          <SavedRunArtifactsPanel
+            savedRuns={savedRuns}
+            selectedSavedRunId={selectedSavedRunId}
+            saveRunName={saveRunName}
+            saveRunNotes={saveRunNotes}
+            canSaveRun={
+              frames.length > 0 && playback.status !== "starting" && playback.status !== "running"
+            }
+            onSaveRunNameChange={setSaveRunName}
+            onSaveRunNotesChange={setSaveRunNotes}
+            onSaveCurrentRun={saveCurrentRunArtifact}
+            onLoadRunArtifact={loadRunArtifact}
+            onDeleteRunArtifact={deleteRunArtifact}
+          />
         </section>
 
         {isInspectorOpen ? (
@@ -1956,4 +2048,205 @@ function PlaybackControls({
       {playback.message ? <p className="playback-message">{playback.message}</p> : null}
     </div>
   );
+}
+
+export function SavedRunArtifactsPanel({
+  savedRuns,
+  selectedSavedRunId,
+  saveRunName,
+  saveRunNotes,
+  canSaveRun,
+  onSaveRunNameChange,
+  onSaveRunNotesChange,
+  onSaveCurrentRun,
+  onLoadRunArtifact,
+  onDeleteRunArtifact,
+}: {
+  savedRuns: SavedRunArtifact[];
+  selectedSavedRunId: string;
+  saveRunName: string;
+  saveRunNotes: string;
+  canSaveRun: boolean;
+  onSaveRunNameChange: (value: string) => void;
+  onSaveRunNotesChange: (value: string) => void;
+  onSaveCurrentRun: () => void;
+  onLoadRunArtifact: (artifactId: string) => void;
+  onDeleteRunArtifact: (artifactId: string) => void;
+}) {
+  const selectedRun =
+    savedRuns.find((artifact) => artifact.id === selectedSavedRunId) ?? savedRuns[0] ?? null;
+  const selectedValue = selectedRun?.id ?? "";
+
+  return (
+    <details className="saved-runs-panel">
+      <summary>Saved run artifacts</summary>
+      <div className="saved-runs-layout">
+        <section className="saved-run-card" aria-labelledby="save-run-title">
+          <div>
+            <p className="eyebrow">This run</p>
+            <h3 id="save-run-title">Save artifact</h3>
+            <p>
+              Saved runs preserve the config, diagnostics, and sampled replay frames from one
+              specific run. Saved scenarios remain reusable setup recipes.
+            </p>
+          </div>
+          <label className="text-control">
+            <span>Name</span>
+            <input
+              type="text"
+              value={saveRunName}
+              placeholder="Use scenario name and timestamp"
+              onChange={(event) => onSaveRunNameChange(event.target.value)}
+            />
+          </label>
+          <label className="text-control">
+            <span>Notes</span>
+            <textarea
+              value={saveRunNotes}
+              rows={3}
+              placeholder="What looked interesting in this run?"
+              onChange={(event) => onSaveRunNotesChange(event.target.value)}
+            />
+          </label>
+          <button type="button" disabled={!canSaveRun} onClick={onSaveCurrentRun}>
+            Save current run
+          </button>
+        </section>
+
+        <section className="saved-run-card" aria-labelledby="load-run-title">
+          <div>
+            <p className="eyebrow">Artifacts</p>
+            <h3 id="load-run-title">Load inspection snapshot</h3>
+          </div>
+          {savedRuns.length > 0 ? (
+            <>
+              <label className="select-control">
+                <span>Saved run</span>
+                <small>Loading applies the saved config and sampled replay frames.</small>
+                <select
+                  value={selectedValue}
+                  onChange={(event) => onLoadRunArtifact(event.target.value)}
+                >
+                  {savedRuns.map((artifact) => (
+                    <option key={artifact.id} value={artifact.id}>
+                      {artifact.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="button-row compact">
+                <button
+                  type="button"
+                  disabled={!selectedRun}
+                  onClick={() => onLoadRunArtifact(selectedValue)}
+                >
+                  Load sampled replay
+                </button>
+                <button
+                  type="button"
+                  disabled={!selectedRun}
+                  onClick={() => onDeleteRunArtifact(selectedValue)}
+                >
+                  Delete
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="empty-saved-runs">No saved run artifacts yet.</p>
+          )}
+        </section>
+
+        {selectedRun ? <SavedRunArtifactSummary artifact={selectedRun} /> : null}
+      </div>
+    </details>
+  );
+}
+
+function SavedRunArtifactSummary({ artifact }: { artifact: SavedRunArtifact }) {
+  const replayLabel =
+    artifact.replay.stored_frame_count > 0
+      ? `${artifact.replay.stored_frame_count} sampled frames of ${artifact.replay.total_frame_count}`
+      : "summary only; frames were not stored";
+
+  return (
+    <section className="saved-run-card saved-run-summary" aria-label="Selected saved run summary">
+      <div>
+        <p className="eyebrow">Selected artifact</p>
+        <h3>{artifact.name}</h3>
+        <p>{artifact.notes || "No notes saved for this run."}</p>
+      </div>
+      <dl className="saved-run-detail-grid">
+        <div>
+          <dt>Scenario</dt>
+          <dd>{artifact.scenario?.name ?? "Custom"}</dd>
+        </div>
+        <div>
+          <dt>Solver</dt>
+          <dd>{artifact.solver_type}</dd>
+        </div>
+        <div>
+          <dt>Created</dt>
+          <dd>{formatSavedRunDate(artifact.created_at)}</dd>
+        </div>
+        <div>
+          <dt>Replay</dt>
+          <dd>{replayLabel}</dd>
+        </div>
+        <div>
+          <dt>Final time</dt>
+          <dd>{formatOptionalSeconds(artifact.run.final_time_seconds)}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{artifact.diagnostics.scenario_status_label}</dd>
+        </div>
+        <div>
+          <dt>First cloud</dt>
+          <dd>{formatOptionalSeconds(artifact.diagnostics.first_cloud_time_seconds)}</dd>
+        </div>
+        <div>
+          <dt>Cloud base</dt>
+          <dd>{formatOptionalMeters(artifact.diagnostics.first_cloud_height_m)}</dd>
+        </div>
+        <div>
+          <dt>Max cloud water</dt>
+          <dd>{formatOptionalScientific(artifact.diagnostics.max_cloud_liquid_water_kg_per_kg)}</dd>
+        </div>
+        <div>
+          <dt>Max updraft</dt>
+          <dd>{formatOptionalVelocity(artifact.diagnostics.max_updraft_m_per_s)}</dd>
+        </div>
+      </dl>
+      <div className="saved-run-interpretation">
+        <h4>Expected</h4>
+        <p>{artifact.diagnostics.expected}</p>
+        <h4>Observed</h4>
+        <p>{artifact.diagnostics.observed}</p>
+      </div>
+    </section>
+  );
+}
+
+function formatSavedRunDate(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleString();
+}
+
+function formatOptionalSeconds(value: number | null): string {
+  return value === null ? "not observed" : `${value.toFixed(0)} s`;
+}
+
+function formatOptionalMeters(value: number | null): string {
+  return value === null ? "not observed" : `${value.toFixed(0)} m`;
+}
+
+function formatOptionalScientific(value: number | null): string {
+  return value === null ? "not observed" : value.toExponential(2);
+}
+
+function formatOptionalVelocity(value: number | null): string {
+  return value === null ? "not observed" : `${value.toFixed(3)} m/s`;
 }
