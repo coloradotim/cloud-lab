@@ -31,6 +31,11 @@ Run the API locally:
 uvicorn app.main:app --reload
 ```
 
+The browser workbench keeps detailed system/debug information in the `System`
+drawer. Use it to confirm backend health, API base URL, sample frame schema,
+sample run output, and public solver catalog details without putting those
+developer panels in the normal scenario/canvas workflow.
+
 ## Frontend Workflow
 
 ```bash

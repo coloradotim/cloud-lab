@@ -190,6 +190,7 @@ export function App() {
   );
   const [isSetupOpen, setIsSetupOpen] = useState(true);
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [isDeveloperDrawerOpen, setIsDeveloperDrawerOpen] = useState(false);
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>("diagnostics");
   const [activeProbe, setActiveProbe] = useState<ProbeResult | null>(null);
   const [isProbePinned, setIsProbePinned] = useState(false);
@@ -581,12 +582,15 @@ export function App() {
         selectedScenarioSlug={selectedScenarioSlug}
         playback={playback}
         canStart={simulationConfig !== null}
+        health={health}
         isSetupOpen={isSetupOpen}
         isInspectorOpen={isInspectorOpen}
+        isDeveloperDrawerOpen={isDeveloperDrawerOpen}
         hasPinnedInspectorContext={profileColumnIndex !== null || isProbePinned}
         onScenarioChange={applyBuiltInScenario}
         onSetupToggle={() => setIsSetupOpen((current) => !current)}
         onInspectorToggle={() => setIsInspectorOpen((current) => !current)}
+        onDeveloperDrawerToggle={() => setIsDeveloperDrawerOpen((current) => !current)}
         onStart={startPlayback}
         onStop={stopPlayback}
         onReset={resetPlayback}
@@ -681,34 +685,15 @@ export function App() {
         ) : null}
       </section>
 
-      <section className="developer-strip" aria-label="Developer status">
-        <section className="status-panel" aria-labelledby="status-title">
-          <div>
-            <p className="eyebrow">Backend</p>
-            <h2 id="status-title">Connection status</h2>
-          </div>
-
-          <StatusBadge health={health} />
-        </section>
-
-        <section className="schema-panel" aria-labelledby="schema-title">
-          <div>
-            <p className="eyebrow">Frame schema</p>
-            <h2 id="schema-title">Sample output</h2>
-          </div>
-
-          <SampleFrameSummary sampleFrame={sampleFrame} />
-        </section>
-
-        <section className="schema-panel" aria-labelledby="run-title">
-          <div>
-            <p className="eyebrow">Solver</p>
-            <h2 id="run-title">Sample run</h2>
-          </div>
-
-          <SampleRunSummary sampleRun={sampleRun} />
-        </section>
-      </section>
+      {isDeveloperDrawerOpen ? (
+        <DeveloperDrawer
+          health={health}
+          sampleFrame={sampleFrame}
+          sampleRun={sampleRun}
+          solvers={solvers}
+          apiBaseUrl={apiBaseUrl}
+        />
+      ) : null}
     </main>
   );
 }
@@ -835,16 +820,19 @@ function ProbeInspectorPanel({
   );
 }
 
-function TopActionBar({
+export function TopActionBar({
   selectedScenarioSlug,
   playback,
   canStart,
+  health,
   isSetupOpen,
   isInspectorOpen,
+  isDeveloperDrawerOpen,
   hasPinnedInspectorContext,
   onScenarioChange,
   onSetupToggle,
   onInspectorToggle,
+  onDeveloperDrawerToggle,
   onStart,
   onStop,
   onReset,
@@ -852,12 +840,15 @@ function TopActionBar({
   selectedScenarioSlug: string;
   playback: PlaybackState;
   canStart: boolean;
+  health: HealthState;
   isSetupOpen: boolean;
   isInspectorOpen: boolean;
+  isDeveloperDrawerOpen: boolean;
   hasPinnedInspectorContext: boolean;
   onScenarioChange: (scenarioSlug: string) => void;
   onSetupToggle: () => void;
   onInspectorToggle: () => void;
+  onDeveloperDrawerToggle: () => void;
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
@@ -906,12 +897,107 @@ function TopActionBar({
         >
           {isInspectorOpen ? "Hide inspector" : "Inspector"}
         </button>
+        <button type="button" onClick={onDeveloperDrawerToggle} aria-pressed={isDeveloperDrawerOpen}>
+          System
+        </button>
       </div>
 
       <div className="top-run-status" aria-live="polite">
         <span className={`run-status-dot run-status-${playback.status}`} />
         <span>{playback.status}</span>
         <strong>{progress.toFixed(0)}%</strong>
+      </div>
+
+      <div className="top-backend-status" aria-live="polite">
+        <span className={`backend-status-dot backend-status-${health.status}`} />
+        <span>{compactHealthLabel(health)}</span>
+      </div>
+    </section>
+  );
+}
+
+function compactHealthLabel(health: HealthState): string {
+  if (health.status === "checking") {
+    return "Backend checking";
+  }
+  if (health.status === "offline") {
+    return "Backend offline";
+  }
+  return `Backend online v${health.version}`;
+}
+
+export function DeveloperDrawer({
+  health,
+  sampleFrame,
+  sampleRun,
+  solvers,
+  apiBaseUrl,
+}: {
+  health: HealthState;
+  sampleFrame: SampleFrameState;
+  sampleRun: SampleRunState;
+  solvers: SolverDescriptor[];
+  apiBaseUrl: string;
+}) {
+  return (
+    <section className="developer-drawer" aria-labelledby="developer-drawer-title">
+      <div className="developer-drawer-header">
+        <div>
+          <p className="eyebrow">System</p>
+          <h2 id="developer-drawer-title">Developer details</h2>
+        </div>
+        <p className="control-note">Debug information for local development and troubleshooting.</p>
+      </div>
+
+      <div className="developer-grid">
+        <section className="status-panel" aria-labelledby="status-title">
+          <div>
+            <p className="eyebrow">Backend</p>
+            <h3 id="status-title">Connection status</h3>
+          </div>
+
+          <StatusBadge health={health} />
+          <dl className="schema-summary">
+            <div>
+              <dt>API base</dt>
+              <dd>{apiBaseUrl}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section className="schema-panel" aria-labelledby="schema-title">
+          <div>
+            <p className="eyebrow">Frame schema</p>
+            <h3 id="schema-title">Sample output</h3>
+          </div>
+
+          <SampleFrameSummary sampleFrame={sampleFrame} />
+        </section>
+
+        <section className="schema-panel" aria-labelledby="run-title">
+          <div>
+            <p className="eyebrow">Solver</p>
+            <h3 id="run-title">Sample run</h3>
+          </div>
+
+          <SampleRunSummary sampleRun={sampleRun} />
+        </section>
+
+        <section className="schema-panel" aria-labelledby="solver-catalog-title">
+          <div>
+            <p className="eyebrow">Catalog</p>
+            <h3 id="solver-catalog-title">Public solvers</h3>
+          </div>
+
+          <ul className="solver-catalog-list">
+            {solvers.map((solver) => (
+              <li key={solver.solver_type}>
+                <strong>{solver.name}</strong>
+                <span>{solver.status}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </section>
   );

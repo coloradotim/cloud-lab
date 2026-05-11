@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
-import { SimulationControls } from "./App";
+import { DeveloperDrawer, SimulationControls, TopActionBar } from "./App";
 import { BUILT_IN_SCENARIOS, normalizeConfig } from "./simulationControls";
 import type { SavedScenario } from "./savedScenarios";
 import type { SimulationConfig, SolverDescriptor } from "./simulationTypes";
@@ -125,6 +125,101 @@ describe("SimulationControls", () => {
     expect(html).toContain("Save copy");
     expect(html).toContain("Update");
     expect(html).toContain("Delete");
+  });
+});
+
+describe("workbench system controls", () => {
+  const idlePlayback = {
+    status: "idle" as const,
+    message: null,
+    runId: null,
+    currentTimeSeconds: 0,
+    durationSeconds: 1_200,
+    framesReceived: 0,
+    frameRate: 0,
+    maxCloudWater: 0,
+    maxUpdraft: 0,
+  };
+
+  it("shows compact backend status in the top bar", () => {
+    const html = renderToStaticMarkup(
+      <TopActionBar
+        selectedScenarioSlug="fair-weather-moderate-base"
+        playback={idlePlayback}
+        canStart
+        health={{ status: "online", service: "cloud-lab-api", version: "0.1.0" }}
+        isSetupOpen
+        isInspectorOpen
+        isDeveloperDrawerOpen={false}
+        hasPinnedInspectorContext={false}
+        onScenarioChange={vi.fn()}
+        onSetupToggle={vi.fn()}
+        onInspectorToggle={vi.fn()}
+        onDeveloperDrawerToggle={vi.fn()}
+        onStart={vi.fn()}
+        onStop={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Backend online v0.1.0");
+    expect(html).toContain("System");
+  });
+
+  it("keeps offline backend state visible in the top bar", () => {
+    const html = renderToStaticMarkup(
+      <TopActionBar
+        selectedScenarioSlug="fair-weather-moderate-base"
+        playback={idlePlayback}
+        canStart
+        health={{ status: "offline", message: "Connection refused" }}
+        isSetupOpen
+        isInspectorOpen
+        isDeveloperDrawerOpen={false}
+        hasPinnedInspectorContext={false}
+        onScenarioChange={vi.fn()}
+        onSetupToggle={vi.fn()}
+        onInspectorToggle={vi.fn()}
+        onDeveloperDrawerToggle={vi.fn()}
+        onStart={vi.fn()}
+        onStop={vi.fn()}
+        onReset={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Backend offline");
+  });
+
+  it("renders schema and sample-run details inside the developer drawer", () => {
+    const html = renderToStaticMarkup(
+      <DeveloperDrawer
+        health={{ status: "online", service: "cloud-lab-api", version: "0.1.0" }}
+        sampleFrame={{
+          status: "ready",
+          schemaVersion: "sim-frame-v1",
+          columns: 4,
+          rows: 3,
+          fieldCount: 6,
+          units: ["K", "m/s"],
+        }}
+        sampleRun={{
+          status: "ready",
+          frameCount: 5,
+          finalTimeSeconds: 120,
+          maxCloudWater: 0.001,
+          maxUpdraft: 1.25,
+        }}
+        solvers={solvers}
+        apiBaseUrl="http://localhost:8000"
+      />,
+    );
+
+    expect(html).toContain("Developer details");
+    expect(html).toContain("Sample output");
+    expect(html).toContain("Sample run");
+    expect(html).toContain("sim-frame-v1");
+    expect(html).toContain("Public solvers");
+    expect(html).toContain("http://localhost:8000");
   });
 });
 
