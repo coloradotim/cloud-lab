@@ -1,172 +1,150 @@
 # Cloud Lab Scenarios
 
-Cloud Lab scenarios are user-facing experiments, not just validation fixtures.
-Each built-in scenario should answer: what physical setup is being represented,
-what behavior is expected, and what caveats should the user keep in mind?
+Cloud Lab scenarios are lab-specific experiments.
 
-Reference cases remain separate. They are for regression tests and scientific
-guardrails. A built-in scenario may borrow from a reference case, but the UI
-should read like an experiment catalog rather than a test harness.
+A lab defines the physical question. A scenario defines one concrete setup inside that lab.
 
-Scenario contracts are tested according to the
-[testing and validation plan](testing-and-validation.md). That plan defines
-which scenario expectations are hard failures, which remain diagnostics, and how
-to update tests when scenario assumptions change.
+For the full lab-driven roadmap, see `docs/lab-roadmap.md`. For the clean-slate workbench product model, see `docs/workbench-v2-product-spec.md`.
+
+## Scenario Role
+
+Scenarios are user-facing experiments, not just validation fixtures and not just saved config blobs.
+
+Each built-in scenario should answer:
+
+- which lab it belongs to
+- what physical setup is represented
+- what behavior is expected
+- what the user can vary
+- what diagnostics explain the result
+- what caveats apply
+
+Reference cases remain separate. They are for regression tests and scientific guardrails. A built-in scenario may borrow from a reference case, but the UI should read like a lab experiment catalog rather than a test harness.
+
+## Relationship To Labs
+
+Workbench V2 should present scenarios inside labs.
+
+Example:
+
+```text
+Fair-Weather Cumulus Lab
+  - moderate cloud base
+  - dry failed cumulus
+  - multi-thermal cumulus field
+  - dry cap / suppressed cumulus
+
+Warm Rain / Droplet Growth Lab
+  - lifted humid parcel
+  - no-lift control
+  - rain-threshold stress case
+```
+
+The scenario system should not be the top-level product architecture. It supports the lab architecture.
 
 ## Expected / Observed Diagnostics
 
-The browser shows a compact scenario check for the selected built-in scenario.
-It compares scenario metadata against deterministic observations from the
-buffered frames:
+The browser can show a compact scenario check for the selected built-in scenario. It compares scenario metadata against deterministic observations from the buffered frames:
 
 - expected behavior from the scenario description and diagnostic expectations
-- observed cloud onset, cloud base/top, cloud region count, boundary cloud
-  fraction, vertical motion, rain onset, and microphysics water-budget signals
+- observed cloud onset, cloud base/top, cloud region count, boundary cloud fraction, vertical motion, rain onset, and microphysics water-budget signals
 - status: `plausible`, `warning`, `failed_expectation`, or `not_evaluated`
 - notes explaining which contract or diagnostic drove the status
 
-This panel is not an AI summary and not a quality score. It is a deterministic
-run interpretation layer meant to make scenario contracts visible while keeping
-the solver and renderer unchanged.
+This panel is not an AI summary and not a quality score. It is a deterministic run interpretation layer meant to make scenario contracts visible while keeping the solver and renderer unchanged.
 
 ## Scenario-Aware Controls
 
-Scenario selection also drives control relevance. Built-in scenarios declare the
-solver they use, and the setup UI uses a central control metadata model to decide
-whether each control is basic, advanced, disabled, hidden, or legacy.
+Scenario selection drives control relevance. Built-in scenarios declare the lab/solver they use, and the setup UI uses a central control metadata model to decide whether each control is basic, advanced, disabled, hidden, or legacy.
 
-The setup drawer presents scenario meaning before raw controls. For a built-in
-scenario, it shows the name, intended phenomenon, thermodynamic assumptions,
-forcing setup, expected outcome, diagnostic expectations, and known
-limitations. For a custom experiment, it states that no predefined scenario
-contract exists and leaves interpretation to the current control values.
+Workbench V2 should use lab definitions first, then scenario definitions, then control metadata. The UI should expose physical controls that matter for the selected lab and scenario.
 
-Examples:
-
-- Fair-weather and dry-failed Boussinesq scenarios emphasize heating strength,
-  heating pattern, source-layer RH, free-atmosphere RH, lapse rate, source-layer
-  depth, boundary-layer depth, runtime, and model size.
-- `microphysics_lab` scenarios emphasize parcel/source RH, prescribed lift, and
-  runtime while hiding Boussinesq surface-heating geometry.
-- Weak-random heating hides direct patch center/width controls because the seed
-  and pattern own the placement.
-- Direct grid, timestep, frame cadence, and seed controls live in Advanced
-  model settings. Saved experiments have their own collapsible section.
-
-The UI should not expose a generic pile of sliders for every solver. If a
-control would imply a capability that the selected solver does not have, hide it.
-If a user may reasonably wonder why a meaningful setting is unavailable, disable
-it with an explanation.
+The UI should not expose a generic pile of sliders for every solver. If a control would imply a capability that the selected solver/lab does not have, hide it. If a user may reasonably wonder why a meaningful setting is unavailable, disable it with an explanation.
 
 ## Built-In Scenario Catalog
 
+The current built-in scenario catalog supports early Fair-Weather Cumulus and Warm Rain / Microphysics Lab behavior. These should eventually be organized under lab definitions.
+
 ### Fair-weather cumulus — moderate cloud base
 
+- Lab: Fair-Weather Cumulus
 - Solver: `boussinesq_2d`
 - Purpose: classic shallow cumulus from localized surface heating.
-- Thermodynamics: surface-moist source layer, moderate RH, finite LCL above
-  the first model levels, drier free air aloft.
+- Thermodynamics: surface-moist source layer, moderate RH, finite LCL above the first model levels, drier free air aloft.
 - Forcing: single heated patch.
-- Expected behavior: thermal circulation develops first; cloud water appears
-  later near a finite cloud base rather than immediately at the surface.
-- Diagnostics: finite LCL, low below-LCL cloud fraction, cloud base more
-  clustered than cloud top.
-- Limitation: qualitative Boussinesq prototype, simplified entrainment and
-  turbulence.
+- Expected behavior: thermal circulation develops first; cloud water appears later near a finite cloud base rather than immediately at the surface.
+- Diagnostics: finite LCL, low below-LCL cloud fraction, cloud base more clustered than cloud top.
+- Limitation: qualitative Boussinesq prototype, simplified entrainment and turbulence.
 
-The backend `fair-weather-cumulus` preset follows the same science contract but
-uses paired warm patches so automated tests can verify delayed cloud formation
-and separated cloud regions by the configured runtime. A fair-weather cumulus
-scenario that produces no cloud by its configured runtime is considered
-mislabeled or misconfigured, not an acceptable zero-cloud outcome.
+The backend `fair-weather-cumulus` preset follows the same science contract but uses paired warm patches so automated tests can verify delayed cloud formation and separated cloud regions by the configured runtime. A fair-weather cumulus scenario that produces no cloud by its configured runtime is considered mislabeled or misconfigured, not an acceptable zero-cloud outcome.
 
 ### Multi-thermal cumulus field
 
+- Lab: Fair-Weather Cumulus
 - Solver: `boussinesq_2d`
 - Purpose: multiple thermals/clouds from structured surface heating.
 - Thermodynamics: shared moderately humid source layer with drier air aloft.
 - Forcing: two heated patches.
-- Expected behavior: distinct thermal responses should remain visible for a
-  useful part of the run before diffusion, wind, or merger changes the field.
-- Diagnostics: delayed cloud onset, multiple cloud regions, low early cloud
-  shield coverage.
+- Expected behavior: distinct thermal responses should remain visible for a useful part of the run before diffusion, wind, or merger changes the field.
+- Diagnostics: delayed cloud onset, multiple cloud regions, low early cloud shield coverage.
+- Limitation: not sufficient by itself to make a rich product; this is a controlled shallow-cumulus experiment, not the whole cloud-lab vision.
 
 ### Dry failed cumulus
 
+- Lab: Fair-Weather Cumulus
 - Solver: `boussinesq_2d`
 - Purpose: show buoyant motion without cloud formation.
 - Thermodynamics: lower RH and higher effective LCL.
 - Forcing: localized heating similar to the fair-weather case.
-- Expected behavior: thermal/updraft structure appears while cloud liquid water
-  stays negligible.
+- Expected behavior: thermal/updraft structure appears while cloud liquid water stays negligible.
 
 ### Humid low-cloud boundary layer
 
+- Lab: Fog / Stratus or Layered Atmosphere, depending on future organization
 - Solver: `boussinesq_2d`
 - Purpose: intentionally show very-low-LCL behavior.
 - Thermodynamics: near-saturated mixed layer.
 - Forcing: weak uneven heating.
-- Expected behavior: low cloud or broad deck behavior may appear. This is not
-  labeled as classic fair-weather cumulus.
+- Expected behavior: low cloud or broad deck behavior may appear. This is not labeled as classic fair-weather cumulus.
 
 ### Dry cap / suppressed cumulus
 
+- Lab: Fair-Weather Cumulus / Evolving Boundary Layer
 - Solver: `boussinesq_2d`
 - Purpose: show inhibition from a dry/stable layer aloft.
-- Thermodynamics: moist lower source layer with a drier cap near the
-  boundary-layer top.
+- Thermodynamics: moist lower source layer with a drier cap near the boundary-layer top.
 - Forcing: moderate localized heating.
-- Expected behavior: thermals lift but cloud development is delayed, limited,
-  or suppressed.
+- Expected behavior: thermals lift but cloud development is delayed, limited, or suppressed.
 
 ### Microphysics lab — lifted humid parcel
 
+- Lab: Warm Rain / Droplet Growth
 - Solver: `microphysics_lab`
-- Purpose: controlled parcel/box condensation behavior independent of resolved
-  Boussinesq dynamics.
+- Purpose: controlled parcel/box condensation behavior independent of resolved Boussinesq dynamics.
 - Thermodynamics: high but not saturated RH.
 - Forcing: prescribed upward motion.
-- Expected behavior: parcel cools during lift; vapor decreases once cloud water
-  forms; rain indicator may appear if cloud water exceeds the bulk threshold.
+- Expected behavior: parcel cools during lift; vapor decreases once cloud water forms; rain indicator may appear if cloud water exceeds the bulk threshold.
 
 ### Microphysics lab — no-lift control
 
+- Lab: Warm Rain / Droplet Growth
 - Solver: `microphysics_lab`
 - Purpose: sanity baseline for controlled microphysics.
 - Thermodynamics: sub-saturated parcel/box.
 - Forcing: zero prescribed vertical velocity and no heating.
 - Expected behavior: no cloud or rain water should appear.
 
-## Saved Experiments
+## Saved Experiments And Saved Runs
 
-Saved experiments are reusable setup recipes stored in `localStorage`. They
-answer "how do I run this again?" and contain:
+Saved experiments are reusable setup recipes. They answer:
 
-- a user-facing name
-- created/updated timestamps
-- the config schema version
-- a normalized `SimulationConfig`
+> How do I run this setup again?
 
-Built-in scenarios are read-only. Loading a built-in scenario and saving it
-creates a user scenario copy that can be updated or deleted locally.
+Saved run artifacts are observation records. They answer:
 
-Saved run artifacts are separate local records. They answer "what happened in
-this specific run?" and store the normalized config alongside run diagnostics,
-scenario expected/observed text, replay metadata, optional user notes, and a
-sampled subset of emitted frames for later inspection. Loading a saved run
-artifact applies its config and, when sampled frames are present, restores those
-frames into the replay view. It does not create or update a saved experiment.
+> What happened in this specific run?
 
-Side-by-side comparison builds on both concepts. Built-in scenarios can be run
-as A/B experiments with matched model size and runtime, while saved run
-artifacts can be compared later using their sampled replay frames and stored
-diagnostics. Comparisons are most meaningful when both sides use compatible
-solvers, domains, and frame fields; different solvers can still be inspected,
-but shared field scales and diagnostics should be interpreted cautiously.
-
-This storage is intentionally local only. Future work may add JSON export,
-replay files, parameter sweeps, and stronger comparison persistence, but no
-database or auth is required for the initial scenario system.
+Workbench V2 should expose saved scenarios and saved runs as part of the lab workbench, not as default panels competing with the visualization.
 
 ## Sounding/Profile View
 
@@ -175,11 +153,19 @@ The vertical profile panel shows the current displayed frame as either:
 - the pinned probe column, when a probe is pinned in the 2-D field, or
 - a domain-average profile when no probe is pinned.
 
-It reports temperature, derived relative humidity, water vapor, cloud water, and
-vertical velocity where the frame emits those fields. The panel also marks the
-estimated LCL, boundary-layer top, and moist-source depth when config metadata is
-available.
+It reports temperature, derived relative humidity, water vapor, cloud water, and vertical velocity where the frame emits those fields. The panel also marks the estimated LCL, boundary-layer top, and moist-source depth when config metadata is available.
 
-For `microphysics_lab`, fields are spatially uniform parcel/box values broadcast
-over the shared 2-D frame grid. The profile view calls this out explicitly so
-users do not interpret the profile as resolved dynamics.
+For `microphysics_lab`, fields are spatially uniform parcel/box values broadcast over the shared 2-D frame grid. The profile view should call this out explicitly so users do not interpret the profile as resolved dynamics.
+
+## Future Scenario Organization
+
+Future scenarios should be added under labs, not as a flat catalog.
+
+Before adding a new scenario, answer:
+
+1. Which lab does it belong to?
+2. What physical question does it help explore?
+3. What controls should be visible by default?
+4. What expected behavior should diagnostics protect?
+5. What visualization mode best shows the result?
+6. What limitation must be disclosed?
