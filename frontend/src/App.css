@@ -555,6 +555,11 @@ h2 {
   padding: 7px 10px;
 }
 
+.workbench-actions button:disabled,
+.timeline-actions button:disabled {
+  opacity: 0.7;
+}
+
 .workbench-grid {
   display: grid;
   grid-template-columns: minmax(250px, 320px) minmax(360px, 1fr) minmax(250px, 320px);
@@ -602,6 +607,44 @@ h2 {
   margin: 0;
   color: #344541;
   line-height: 1.5;
+}
+
+.setup-expectation {
+  border-left: 4px solid #95b8ad;
+  padding-left: 10px;
+}
+
+.workbench-control-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.workbench-control-grid .control-group {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.workbench-control-grid .control-group span {
+  color: #153137;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.workbench-control-grid input,
+.workbench-control-grid select,
+.setup-region > .control-group select {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid #b6c7c0;
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: #153137;
+  background: #ffffff;
+}
+
+.workbench-control-grid small {
+  color: #5a6d68;
 }
 
 .stage-placeholder {
@@ -667,6 +710,72 @@ h2 {
   background: #f7f1e7;
   font-size: 0.82rem;
   font-weight: 800;
+}
+
+.stage-stats,
+.diagnostic-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.stage-stats div,
+.diagnostic-list div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid #dbe5e0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fbf8;
+}
+
+.stage-stats dt,
+.diagnostic-list dt {
+  color: #4f6f68;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.stage-stats dd,
+.diagnostic-list dd {
+  margin: 0;
+  color: #153137;
+  font-weight: 800;
+}
+
+.diagnostic-list {
+  grid-template-columns: 1fr;
+}
+
+.diagnostic-status {
+  justify-self: start;
+  border: 1px solid #b6c7c0;
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: #153137;
+  background: #eff6f2;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.diagnostic-status-warning {
+  background: #f7f1e7;
+}
+
+.diagnostic-status-failed_expectation,
+.diagnostic-status-error {
+  color: #5e241e;
+  background: #f9e7e4;
+}
+
+.workbench-message {
+  border: 1px solid #cbd8d1;
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: #f8fbf8;
+  color: #344541;
+  font-weight: 700;
 }
 
 .inspector-region ul {
