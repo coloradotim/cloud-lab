@@ -40,9 +40,19 @@ describe("Workbench V2 lab picker", () => {
   it("marks planned labs as visibly non-functional", () => {
     const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
 
-    expect(html).toContain("Planned for later");
-    expect(html).toContain("disabled=\"\"");
+    expect(html).toContain("Coming next");
+    expect(html).toContain("Future labs");
+    expect(html).toContain("Not open yet");
+    expect(html).toContain("aria-disabled=\"true\"");
     expect(selectLabForWorkbench("cloud-optics-beauty")).toEqual({ view: "lab-picker" });
+  });
+
+  it("features Fair-Weather Cumulus as the guided start-here lab", () => {
+    const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
+
+    expect(html).toContain("Start here");
+    expect(html).toContain("featured-lab-card");
+    expect(html).toContain("Open Fair-Weather Cumulus");
   });
 
   it("selects Fair-Weather Cumulus as the first functional lab", () => {
@@ -97,7 +107,7 @@ describe("Workbench V2 shell", () => {
   it("makes the new lab picker the default app entry point without the old giant hero", () => {
     const html = renderToStaticMarkup(<App />);
 
-    expect(html).toContain("Choose a cloud lab");
+    expect(html).toContain("Start with a focused cloud lab");
     expect(html).toContain("Fair-Weather Cumulus");
     expect(html).not.toContain("Run a seeded fair-weather cumulus slice");
     expect(html).not.toContain("Watch the sample plume");
