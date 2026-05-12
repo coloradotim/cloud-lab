@@ -26,12 +26,19 @@ import {
   type WorkbenchControlId,
   type WorkbenchState,
 } from "./workbenchRunLoop";
+import {
+  availableScientificFields,
+  buildScientificFieldViewModel,
+  defaultScientificFieldKey,
+  normalizeScientificFieldSelection,
+} from "./scientificFieldView";
 
 type WorkbenchMode = "single" | "saved-runs" | "compare" | "sweep";
 
 type LabWorkbenchProps = {
   lab: LabDefinition;
   mode?: WorkbenchMode;
+  initialInspectorOpen?: boolean;
   onBackToLabs: () => void;
   runClient?: WorkbenchRunClient;
 };
@@ -39,12 +46,15 @@ type LabWorkbenchProps = {
 export function LabWorkbench({
   lab,
   mode = "single",
+  initialInspectorOpen = true,
   onBackToLabs,
   runClient = defaultWorkbenchRunClient,
 }: LabWorkbenchProps) {
   const [workbench, setWorkbench] = useState<WorkbenchState>(() =>
     createInitialWorkbenchState(lab),
   );
+  const [selectedFieldKey, setSelectedFieldKey] = useState(defaultScientificFieldKey(null));
+  const [inspectorOpen, setInspectorOpen] = useState(initialInspectorOpen);
   const cleanupRef = useRef<RunStreamCleanup | null>(null);
   const scenario = selectedLabScenario(lab, workbench);
   const currentFrame = displayedFrame(workbench);
@@ -53,6 +63,7 @@ export function LabWorkbench({
 
   useEffect(() => {
     setWorkbench(createInitialWorkbenchState(lab));
+    setSelectedFieldKey(defaultScientificFieldKey(null));
     return () => cleanupRef.current?.();
   }, [lab]);
 
@@ -115,13 +126,26 @@ export function LabWorkbench({
         onStartRun={handleStartRun}
         onStopRun={handleStopRun}
         onResetRun={handleResetRun}
+        inspectorOpen={inspectorOpen}
+        onToggleInspector={() => setInspectorOpen((current) => !current)}
         onSaveRun={() => setWorkbench((current) => saveRunPlaceholder(current))}
       />
 
-      <section className="workbench-grid" aria-label="Workbench regions">
+      <section
+        className={`workbench-grid${inspectorOpen ? "" : " inspector-collapsed"}`}
+        aria-label="Workbench regions"
+      >
         <LabSetupPanel lab={lab} workbench={workbench} setWorkbench={setWorkbench} />
-        <VisualizationStage lab={lab} frame={currentFrame} workbench={workbench} />
-        <InspectorPanel lab={lab} summary={inspector} saveMessage={workbench.saveMessage} />
+        <VisualizationStage
+          lab={lab}
+          frame={currentFrame}
+          workbench={workbench}
+          selectedFieldKey={selectedFieldKey}
+          onSelectedFieldKeyChange={setSelectedFieldKey}
+        />
+        {inspectorOpen ? (
+          <InspectorPanel lab={lab} summary={inspector} saveMessage={workbench.saveMessage} />
+        ) : null}
       </section>
 
       <TimelinePanel
@@ -139,10 +163,12 @@ function WorkbenchTopBar({
   mode,
   runStatus,
   isRunning,
+  inspectorOpen,
   onBackToLabs,
   onStartRun,
   onStopRun,
   onResetRun,
+  onToggleInspector,
   onSaveRun,
 }: {
   lab: LabDefinition;
@@ -150,10 +176,12 @@ function WorkbenchTopBar({
   mode: WorkbenchMode;
   runStatus: string;
   isRunning: boolean;
+  inspectorOpen: boolean;
   onBackToLabs: () => void;
   onStartRun: () => void;
   onStopRun: () => void;
   onResetRun: () => void;
+  onToggleInspector: () => void;
   onSaveRun: () => void;
 }) {
   return (
@@ -177,6 +205,9 @@ function WorkbenchTopBar({
           Reset
         </button>
         <span className={`run-state run-state-${runStatus}`}>{runStatusLabel(runStatus)}</span>
+        <button type="button" onClick={onToggleInspector} aria-pressed={inspectorOpen}>
+          Inspector
+        </button>
         <button type="button" onClick={onSaveRun}>
           Save
         </button>
@@ -378,17 +409,18 @@ function VisualizationStage({
   lab,
   frame,
   workbench,
+  selectedFieldKey,
+  onSelectedFieldKeyChange,
 }: {
   lab: LabDefinition;
   frame: SimulationFrame | null;
   workbench: WorkbenchState;
+  selectedFieldKey: string;
+  onSelectedFieldKeyChange: (fieldKey: string) => void;
 }) {
-  const cloudMax = frame
-    ? maxFrameField(frame, "cloud_liquid_water_kg_per_kg")
-    : workbench.run.maxCloudWater;
-  const updraftMax = frame
-    ? maxFrameField(frame, "vertical_velocity_m_per_s")
-    : workbench.run.maxUpdraft;
+  const normalizedFieldKey = normalizeScientificFieldSelection(frame, selectedFieldKey);
+  const fieldOptions = availableScientificFields(frame);
+  const viewModel = buildScientificFieldViewModel(frame, normalizedFieldKey);
 
   return (
     <section
@@ -406,12 +438,64 @@ function VisualizationStage({
             : "Start a run to stream Fair-Weather fields into the stage."}
         </p>
       </div>
-      <div className="stage-placeholder" aria-label={`${lab.name} visualization placeholder`}>
-        <div className="thermal-column" style={{ opacity: Math.min(1, updraftMax * 4 + 0.2) }} />
-        <div className="cloud-puff one" style={{ opacity: Math.min(0.95, cloudMax * 350_000 + 0.12) }} />
-        <div className="cloud-puff two" style={{ opacity: Math.min(0.75, cloudMax * 220_000 + 0.08) }} />
-        <div className="ground-heating" />
+      <div className="stage-toolbar">
+        <label className="field-selector">
+          <span>Field</span>
+          <select
+            aria-label="Scientific field"
+            value={normalizedFieldKey}
+            onChange={(event) => onSelectedFieldKeyChange(event.currentTarget.value)}
+          >
+            {fieldOptions.map((field) => (
+              <option key={field.key} value={field.key}>
+                {field.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="frame-readout" aria-label="Displayed frame readout">
+          <span>Frame {frame ? workbench.displayedFrameIndex + 1 : 0} / {workbench.frames.length}</span>
+          <strong>{formatSeconds(frame?.time_seconds)}</strong>
+        </div>
       </div>
+
+      {viewModel ? (
+        <div className="scientific-field-shell">
+          <svg
+            className="scientific-field-view"
+            viewBox={`0 0 ${viewModel.columns} ${viewModel.rows}`}
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`${viewModel.summary.truth.label}: ${viewModel.field.metadata.display_name} at ${formatSeconds(
+              viewModel.frame.time_seconds,
+            )}`}
+          >
+            <title>{viewModel.field.metadata.display_name}</title>
+            {viewModel.cells.map((cell) => (
+              <rect
+                key={`${cell.row}-${cell.column}`}
+                x={cell.column}
+                y={viewModel.rows - cell.row - 1}
+                width="1"
+                height="1"
+                fill={cell.color}
+                data-field-key={viewModel.fieldKey}
+                data-value={cell.displayValue}
+              />
+            ))}
+          </svg>
+          <div className="field-legend" aria-label="Field legend">
+            <span>{formatLegendValue(viewModel.range.min, viewModel.summary.unit)}</span>
+            <span className="legend-ramp" />
+            <span>{formatLegendValue(viewModel.range.max, viewModel.summary.unit)}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="stage-empty-state" aria-label={`${lab.name} no-frame state`}>
+          <strong>No frame displayed yet.</strong>
+          <p>Run Fair-Weather Cumulus to stream solver fields into this scientific 2-D view.</p>
+        </div>
+      )}
       <dl className="stage-stats">
         <div>
           <dt>Frames</dt>
@@ -422,15 +506,22 @@ function VisualizationStage({
           <dd>{formatSeconds(frame?.time_seconds)}</dd>
         </div>
         <div>
-          <dt>Max cloud water</dt>
-          <dd>{cloudMax.toExponential(2)} kg/kg</dd>
+          <dt>{viewModel?.summary.label ?? "Field max"}</dt>
+          <dd>
+            {viewModel ? `${viewModel.summary.value} ${viewModel.summary.unit}` : "unavailable"}
+          </dd>
         </div>
         <div>
-          <dt>Max updraft</dt>
-          <dd>{updraftMax.toFixed(2)} m/s</dd>
+          <dt>Scaling</dt>
+          <dd>{viewModel ? `${viewModel.scaling.scale} / ${viewModel.scaling.range}` : "unavailable"}</dd>
         </div>
       </dl>
-      <p className="truth-label">Experimental 2-D dynamics · qualitative cloud experiment</p>
+      {viewModel?.summary.helper ? <p className="stage-helper">{viewModel.summary.helper}</p> : null}
+      <div className="truth-label-row" aria-label="Truth and approximation labels">
+        <span className="truth-label">{viewModel?.truth.label ?? "Solver output"}</span>
+        <span className="truth-label">{viewModel?.solverTruth.label ?? "Experimental"} 2-D dynamics</span>
+        <span className="truth-label">Simplified warm-cloud condensation</span>
+      </div>
       {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
     </section>
   );
@@ -453,6 +544,7 @@ function InspectorPanel({
       <span className={`diagnostic-status diagnostic-status-${summary.diagnostics.status}`}>
         {summary.diagnostics.statusLabel}
       </span>
+      <p className="truth-label">Derived diagnostic</p>
       <ul>
         {summary.diagnostics.notes.map((note) => (
           <li key={note}>{note}</li>
@@ -461,6 +553,37 @@ function InspectorPanel({
 
       <h3>Profile / sounding</h3>
       <p>{summary.profileSummary}</p>
+      {summary.profileRows.length > 0 ? (
+        <table className="profile-table">
+          <thead>
+            <tr>
+              <th>Height</th>
+              <th>Temp</th>
+              <th>Vapor</th>
+              <th>Cloud</th>
+              <th>W</th>
+            </tr>
+          </thead>
+          <tbody>
+            {summary.profileRows.map((row) => (
+              <tr key={row.heightM}>
+                <td>{formatMeters(row.heightM)}</td>
+                <td>{formatNullable(row.temperatureC, "deg C")}</td>
+                <td>{formatNullable(row.waterVaporKgPerKg, "kg/kg")}</td>
+                <td>{formatNullable(row.cloudWaterKgPerKg, "kg/kg")}</td>
+                <td>{formatNullable(row.verticalVelocityMPerS, "m/s")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <p className="empty-diagnostic">Profile / sounding unavailable until a frame is displayed.</p>
+      )}
+
+      <h3>Probe</h3>
+      <p className="empty-diagnostic">
+        Probe values are unavailable until Workbench V2 supports selecting a point in the field.
+      </p>
 
       <dl className="diagnostic-list">
         <div>
@@ -478,11 +601,22 @@ function InspectorPanel({
           <dd>{formatMeters(summary.cloudTopM)}</dd>
         </div>
         <div>
+          <dt>Actual cloud-base height</dt>
+          <dd>{formatMeters(summary.actualCloudBaseM)}</dd>
+        </div>
+        <div>
           <dt>Max updraft</dt>
           <dd>
             {summary.maxUpdraftMPerS === null
               ? "unavailable"
               : `${summary.maxUpdraftMPerS.toFixed(2)} m/s`}
+          </dd>
+        </div>
+        <div>
+          <dt>Integrated / max cloud water</dt>
+          <dd>
+            {formatNullable(summary.integratedCloudWaterKgPerKg, "kg/kg")} /{" "}
+            {formatNullable(summary.maxCloudWaterKgPerKg, "kg/kg")}
           </dd>
         </div>
         <div>
@@ -492,6 +626,14 @@ function InspectorPanel({
             {formatFraction(summary.nearLclCloudFraction)} /{" "}
             {formatFraction(summary.aboveLclCloudFraction)}
           </dd>
+        </div>
+        <div>
+          <dt>Boundary cloud fraction</dt>
+          <dd>{formatFraction(summary.boundaryCloudFraction)}</dd>
+        </div>
+        <div>
+          <dt>Return-flow warning</dt>
+          <dd>{summary.returnFlowWarning}</dd>
         </div>
         <div>
           <dt>Dry-failed-cloud outcome</dt>
@@ -580,28 +722,34 @@ function TimelinePanel({
   );
 }
 
-function maxFrameField(frame: SimulationFrame, fieldKey: string): number {
-  const field = frame.fields[fieldKey];
-  if (!field) {
-    return 0;
-  }
-
-  if (field.values.length === 0) {
-    return 0;
-  }
-
-  return field.values.reduce(
-    (currentMax, row) => Math.max(currentMax, ...row),
-    Number.NEGATIVE_INFINITY,
-  );
-}
-
 function formatFraction(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
     return "unavailable";
   }
 
   return `${Math.round(value * 100)}%`;
+}
+
+function formatNullable(value: number | null, unit: string): string {
+  if (value === null || !Number.isFinite(value)) {
+    return "unavailable";
+  }
+
+  const formatted = Math.abs(value) >= 0.01 && Math.abs(value) < 1_000
+    ? value.toFixed(2)
+    : value.toExponential(2);
+  return `${formatted} ${unit}`;
+}
+
+function formatLegendValue(value: number, unit: string): string {
+  if (!Number.isFinite(value)) {
+    return `unavailable ${unit}`;
+  }
+
+  const formatted = Math.abs(value) >= 0.01 && Math.abs(value) < 1_000
+    ? value.toFixed(2)
+    : value.toExponential(2);
+  return `${formatted} ${unit}`;
 }
 
 function runStatusLabel(status: string): string {

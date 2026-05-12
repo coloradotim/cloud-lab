@@ -50,15 +50,29 @@ export type WorkbenchInspectorSummary = {
   diagnostics: ScenarioDiagnostics;
   profileAvailable: boolean;
   profileSummary: string;
+  profileRows: WorkbenchProfileRow[];
   expectedLclM: number | null;
   firstCloudTimeSeconds: number | null;
   firstCloudHeightM: number | null;
+  actualCloudBaseM: number | null;
   cloudTopM: number | null;
   maxUpdraftMPerS: number | null;
+  integratedCloudWaterKgPerKg: number | null;
+  maxCloudWaterKgPerKg: number | null;
   belowLclCloudFraction: number | null;
   nearLclCloudFraction: number | null;
   aboveLclCloudFraction: number | null;
+  boundaryCloudFraction: number | null;
+  returnFlowWarning: string;
   dryFailedOutcome: string;
+};
+
+export type WorkbenchProfileRow = {
+  heightM: number;
+  temperatureC: number | null;
+  waterVaporKgPerKg: number | null;
+  cloudWaterKgPerKg: number | null;
+  verticalVelocityMPerS: number | null;
 };
 
 const DEFAULT_MODEL_SIZE_SLUG = "medium";
@@ -356,6 +370,7 @@ export function buildWorkbenchInspectorSummary(
   const lclBands = frame && expectedLclM !== null
     ? cloudWaterFractionsByLclBand(frame, expectedLclM)
     : { below: null, near: null, above: null };
+  const frameCloudStats = frame ? cloudWaterStats(frame) : null;
 
   return {
     diagnostics,
@@ -363,14 +378,20 @@ export function buildWorkbenchInspectorSummary(
     profileSummary: frame
       ? `Profile available at ${formatSeconds(frame.time_seconds)} from ${frame.grid.rows} vertical levels.`
       : "Profile unavailable until at least one frame is streamed.",
+    profileRows: frame ? profileRowsForFrame(frame) : [],
     expectedLclM,
     firstCloudTimeSeconds: observations?.firstCloudTimeSeconds ?? null,
     firstCloudHeightM: observations?.firstCloudBaseM ?? null,
+    actualCloudBaseM: frameCloudStats?.cloudBaseM ?? null,
     cloudTopM: observations?.maxCloudTopM ?? null,
     maxUpdraftMPerS: observations?.maxUpdraftMPerS ?? null,
-    belowLclCloudFraction: observations?.belowLclCloudFraction ?? null,
+    integratedCloudWaterKgPerKg: frameCloudStats?.integratedCloudWaterKgPerKg ?? null,
+    maxCloudWaterKgPerKg: observations?.maxCloudLiquidWaterKgPerKg ?? frameCloudStats?.maxCloudWaterKgPerKg ?? null,
+    belowLclCloudFraction: lclBands.below ?? observations?.belowLclCloudFraction ?? null,
     nearLclCloudFraction: lclBands.near,
     aboveLclCloudFraction: lclBands.above,
+    boundaryCloudFraction: observations?.boundaryCloudFraction ?? null,
+    returnFlowWarning: returnFlowWarningText(frame),
     dryFailedOutcome: dryFailedOutcomeText(state.selectedScenarioId, diagnostics),
   };
 }
@@ -479,6 +500,102 @@ function cloudWaterFractionsByLclBand(
   }
 
   return { below: below / total, near: near / total, above: above / total };
+}
+
+function cloudWaterStats(frame: SimulationFrame): {
+  cloudBaseM: number | null;
+  integratedCloudWaterKgPerKg: number;
+  maxCloudWaterKgPerKg: number;
+} {
+  const cloud = frame.fields.cloud_liquid_water_kg_per_kg?.values;
+  if (!cloud) {
+    return {
+      cloudBaseM: null,
+      integratedCloudWaterKgPerKg: 0,
+      maxCloudWaterKgPerKg: 0,
+    };
+  }
+
+  let cloudBaseM: number | null = null;
+  let integratedCloudWaterKgPerKg = 0;
+  let maxCloudWaterKgPerKg = 0;
+
+  cloud.forEach((row, rowIndex) => {
+    const rowHasCloud = row.some((value) => value > 1e-8);
+    if (rowHasCloud && cloudBaseM === null) {
+      cloudBaseM = frame.grid.z_coordinates_m[rowIndex] ?? null;
+    }
+
+    row.forEach((value) => {
+      integratedCloudWaterKgPerKg += Math.max(0, value);
+      maxCloudWaterKgPerKg = Math.max(maxCloudWaterKgPerKg, value);
+    });
+  });
+
+  return { cloudBaseM, integratedCloudWaterKgPerKg, maxCloudWaterKgPerKg };
+}
+
+function profileRowsForFrame(frame: SimulationFrame): WorkbenchProfileRow[] {
+  const rows = frame.grid.rows;
+  const sampleRows = rows <= 6
+    ? Array.from({ length: rows }, (_, index) => index)
+    : [0, Math.floor(rows * 0.25), Math.floor(rows * 0.5), Math.floor(rows * 0.75), rows - 1];
+
+  return sampleRows.map((rowIndex) => ({
+    heightM: frame.grid.z_coordinates_m[rowIndex] ?? rowIndex,
+    temperatureC: rowMean(frame.fields.temperature_k?.values[rowIndex]),
+    waterVaporKgPerKg: rowMean(frame.fields.water_vapor_kg_per_kg?.values[rowIndex]),
+    cloudWaterKgPerKg: rowMean(frame.fields.cloud_liquid_water_kg_per_kg?.values[rowIndex]),
+    verticalVelocityMPerS: rowMean(frame.fields.vertical_velocity_m_per_s?.values[rowIndex]),
+  })).map((row) => ({
+    ...row,
+    temperatureC: row.temperatureC === null ? null : row.temperatureC - 273.15,
+  }));
+}
+
+function rowMean(row: number[] | undefined): number | null {
+  if (!row || row.length === 0) {
+    return null;
+  }
+
+  return row.reduce((sum, value) => sum + value, 0) / row.length;
+}
+
+function returnFlowWarningText(frame: SimulationFrame | null): string {
+  if (!frame) {
+    return "Unavailable until frames are streamed.";
+  }
+
+  const cloud = frame.fields.cloud_liquid_water_kg_per_kg?.values;
+  const verticalVelocity = frame.fields.vertical_velocity_m_per_s?.values;
+  if (!cloud || !verticalVelocity) {
+    return "Unavailable: cloud water and vertical velocity fields are both required.";
+  }
+
+  let lowLevelCloudMass = 0;
+  let sinkingLowLevelCloudMass = 0;
+  const lowLevelRows = Math.max(1, Math.floor(frame.grid.rows / 3));
+  for (let rowIndex = 0; rowIndex < lowLevelRows; rowIndex += 1) {
+    cloud[rowIndex].forEach((value, columnIndex) => {
+      if (value <= 1e-8) {
+        return;
+      }
+
+      lowLevelCloudMass += value;
+      if ((verticalVelocity[rowIndex]?.[columnIndex] ?? 0) < 0) {
+        sinkingLowLevelCloudMass += value;
+      }
+    });
+  }
+
+  if (lowLevelCloudMass <= 0) {
+    return "No low-level return-flow cloud water detected in the displayed frame.";
+  }
+
+  const sinkingFraction = sinkingLowLevelCloudMass / lowLevelCloudMass;
+  return sinkingFraction > 0.25
+    ? "Low-level cloud water appears in sinking return flow; inspect as a prototype dynamics warning."
+    : "Low-level cloud water is not dominated by sinking return flow in the displayed frame.";
 }
 
 function dryFailedOutcomeText(scenarioId: string, diagnostics: ScenarioDiagnostics): string {

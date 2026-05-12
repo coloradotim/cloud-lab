@@ -6,9 +6,15 @@ import type { WorkbenchRunClient } from "../simulation/runClient";
 import type { SimulationFrame } from "../simulationTypes";
 import { LabWorkbench } from "./LabWorkbench";
 import {
+  availableScientificFields,
+  buildScientificFieldViewModel,
+  normalizeScientificFieldSelection,
+} from "./scientificFieldView";
+import {
   applyWorkbenchStreamMessage,
   buildWorkbenchInspectorSummary,
   createInitialWorkbenchState,
+  displayedFrame,
   saveRunPlaceholder,
   selectWorkbenchScenario,
   setWorkbenchDisplayedFrame,
@@ -101,6 +107,58 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(displayedFirst.isReplayPaused).toBe(true);
   });
 
+  it("scientific visualization stage renders a no-frame state and field selector", () => {
+    const html = renderToStaticMarkup(
+      <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
+    );
+
+    expect(html).toContain("No frame displayed yet");
+    expect(html).toContain("Scientific field");
+    expect(html).toContain("Cloud liquid water");
+  });
+
+  it("scientific view model renders the selected field from a frame", () => {
+    const frame = frameAt(600, { cloudRow: 2, updraft: 0.24 });
+    const viewModel = buildScientificFieldViewModel(frame, "cloud_liquid_water_kg_per_kg");
+
+    expect(viewModel?.fieldKey).toBe("cloud_liquid_water_kg_per_kg");
+    expect(viewModel?.summary.truth.label).toBe("Solver output");
+    expect(viewModel?.cells).toHaveLength(9);
+    expect(viewModel?.cells.some((cell) => cell.value === 2e-6)).toBe(true);
+  });
+
+  it("field selector options and selection change the displayed field model", () => {
+    const frame = frameAt(600, { cloudRow: 2, updraft: 0.24 });
+    const options = availableScientificFields(frame).map((field) => field.key);
+    const selected = normalizeScientificFieldSelection(frame, "vertical_velocity_m_per_s");
+    const viewModel = buildScientificFieldViewModel(frame, selected);
+
+    expect(options).toContain("cloud_liquid_water_kg_per_kg");
+    expect(options).toContain("vertical_velocity_m_per_s");
+    expect(viewModel?.fieldKey).toBe("vertical_velocity_m_per_s");
+    expect(viewModel?.summary.truth.label).toBe("Solver output");
+  });
+
+  it("timeline/displayed frame changes the scientific visualization input", () => {
+    const initial = createInitialWorkbenchState(fairWeatherLab);
+    const withFrames = [
+      frameAt(0, { cloudRow: null, updraft: 0.08 }),
+      frameAt(600, { cloudRow: 2, updraft: 0.24 }),
+    ].reduce(
+      (state, frame) =>
+        applyWorkbenchStreamMessage(state, { type: "frame", run_id: "run-1", frame }),
+      initial,
+    );
+
+    const displayedFirst = setWorkbenchDisplayedFrame(withFrames, 0);
+    const displayedFinal = setWorkbenchDisplayedFrame(withFrames, 1);
+
+    expect(buildScientificFieldViewModel(displayedFrame(displayedFirst), "cloud_liquid_water_kg_per_kg")?.summary.value)
+      .toBe("0.00e+0");
+    expect(buildScientificFieldViewModel(displayedFrame(displayedFinal), "cloud_liquid_water_kg_per_kg")?.summary.value)
+      .toBe("2.00e-6");
+  });
+
   it("inspector handles unavailable and available diagnostics", () => {
     const initial = createInitialWorkbenchState(fairWeatherLab);
     const unavailable = buildWorkbenchInspectorSummary(initial);
@@ -109,6 +167,8 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(unavailable.diagnostics.status).toBe("not_evaluated");
     expect(unavailable.expectedLclM).toBeGreaterThan(0);
     expect(unavailable.firstCloudTimeSeconds).toBeNull();
+    expect(unavailable.profileRows).toHaveLength(0);
+    expect(unavailable.returnFlowWarning).toContain("Unavailable");
 
     const withFrame = applyWorkbenchStreamMessage(initial, {
       type: "frame",
@@ -122,6 +182,37 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(available.firstCloudTimeSeconds).toBe(600);
     expect(available.cloudTopM).toBeGreaterThan(0);
     expect(available.maxUpdraftMPerS).toBe(0.24);
+    expect(available.actualCloudBaseM).toBe(1_000);
+    expect(available.integratedCloudWaterKgPerKg).toBeGreaterThan(0);
+    expect(available.maxCloudWaterKgPerKg).toBe(2e-6);
+    expect(available.profileRows.length).toBeGreaterThan(0);
+    expect(available.returnFlowWarning).toContain("low-level return-flow");
+  });
+
+  it("inspector profile/probe empty states and truth labels render cleanly", () => {
+    const html = renderToStaticMarkup(
+      <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
+    );
+
+    expect(html).toContain("Profile / sounding unavailable");
+    expect(html).toContain("Probe values are unavailable");
+    expect(html).toContain("Solver output");
+    expect(html).toContain("Derived diagnostic");
+    expect(html).toContain("Experimental 2-D dynamics");
+    expect(html).toContain("Simplified warm-cloud condensation");
+  });
+
+  it("visualization stage remains mounted when the inspector is closed", () => {
+    const html = renderToStaticMarkup(
+      <LabWorkbench
+        lab={fairWeatherLab}
+        initialInspectorOpen={false}
+        onBackToLabs={vi.fn()}
+      />,
+    );
+
+    expect(html).toContain("Scientific 2-D field view");
+    expect(html).not.toContain("inspector-region");
   });
 
   it("save-run placeholder is clean and does not expose old saved-run manager panels", () => {
