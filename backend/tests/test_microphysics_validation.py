@@ -1,3 +1,5 @@
+import pytest
+
 from app.sim.microphysics_validation import (
     CLOUD_PRESENCE_THRESHOLD_KG_PER_KG,
     RAIN_PRESENCE_THRESHOLD_KG_PER_KG,
@@ -7,6 +9,8 @@ from app.sim.microphysics_validation import (
     run_microphysics_validation,
     validate_microphysics_case,
 )
+
+pytestmark = [pytest.mark.microphysics, pytest.mark.science, pytest.mark.validation]
 
 
 def test_microphysics_validation_summary_reports_all_cases_passing() -> None:

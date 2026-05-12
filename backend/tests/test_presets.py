@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -43,6 +44,9 @@ def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
     assert preset["config"]["seed"] == 3
 
 
+@pytest.mark.science
+@pytest.mark.slow
+@pytest.mark.validation
 def test_fair_weather_cumulus_preset_produces_reproducible_cloud_water() -> None:
     config = fair_weather_cumulus_preset().config
 

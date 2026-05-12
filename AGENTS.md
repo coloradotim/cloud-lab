@@ -258,10 +258,15 @@ If an area is affected, update it in the same PR unless the issue explicitly say
 ## CI And Workflow Rules
 
 - CI should run on pushes and pull requests to `main`.
-- PR CI should run fast backend tests, backend lint/formatting/type checks, frontend tests, frontend build, and frontend lint where configured.
-- Slower science validation should be grouped separately and run manually or on a schedule unless a PR explicitly needs it.
+- PR CI should use the lightest path that matches the files changed:
+  - frontend-only changes run frontend quick checks: lint, tests, and build.
+  - backend/API/schema changes run backend quick checks: fast non-science pytest, ruff format, ruff lint, and mypy.
+  - solver/science/validation changes also run targeted solver/science checks.
+  - docs-only changes may run only the lightweight required CI summary job.
+- Slower science validation should be grouped separately and run manually, on a schedule, or for explicit solver/science work. It should not block routine UI/docs/config PRs.
 - Prefer small branches with descriptive names.
 - PR descriptions should include what changed, which validation tier was run, and any scientific/numerical assumptions introduced.
+- PR verification summaries should state which tiers ran and why. If a tier did not run, say why it was not relevant.
 
 ## Visualization Rules
 

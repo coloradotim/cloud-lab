@@ -221,6 +221,9 @@ def test_humid_seeded_run_condenses_cloud_water() -> None:
     assert all(value >= 0.0 for row in final_cloud for value in row)
 
 
+@pytest.mark.science
+@pytest.mark.slow
+@pytest.mark.validation
 def test_stronger_fair_weather_heating_produces_stronger_response_and_cloud() -> None:
     preset = fair_weather_cumulus_preset()
     weak_config = preset.config.model_copy(
@@ -256,6 +259,9 @@ def test_stronger_fair_weather_heating_produces_stronger_response_and_cloud() ->
         assert strong_thermo.first_cloud_time_seconds <= weak_thermo.first_cloud_time_seconds
 
 
+@pytest.mark.science
+@pytest.mark.slow
+@pytest.mark.validation
 def test_lifted_humid_plume_condenses_in_interior_by_thirty_minutes() -> None:
     preset = fair_weather_cumulus_preset()
     config = preset.config.model_copy(
@@ -288,6 +294,9 @@ def test_lifted_humid_plume_condenses_in_interior_by_thirty_minutes() -> None:
     assert diagnostics.boundary_cloud_fraction < 0.10
 
 
+@pytest.mark.science
+@pytest.mark.slow
+@pytest.mark.validation
 def test_top_boundary_sponge_limits_lid_cloud_water_relative_to_main_plume() -> None:
     preset = fair_weather_cumulus_preset()
     config = preset.config.model_copy(
@@ -310,6 +319,8 @@ def test_top_boundary_sponge_limits_lid_cloud_water_relative_to_main_plume() -> 
     assert interior_cloud_max > top_cloud_max * 100
 
 
+@pytest.mark.slow
+@pytest.mark.validation
 def test_long_interactive_educational_run_stays_bounded() -> None:
     config = _small_config().model_copy(
         update={

@@ -34,6 +34,7 @@ markers = [
   "science: scientific validation checks that are valuable but slower than the default PR path",
   "slow: long-running checks reserved for full or heavy validation tiers",
   "boussinesq: checks for the Boussinesq 2-D solver and its diagnostics",
+  "microphysics: checks for the microphysics lab solver and warm-cloud comparison tools",
   "pysdm: optional PySDM evaluation smoke checks",
   "validation: reference-case or benchmark validation checks",
 ]

@@ -412,6 +412,16 @@ Tests should not require:
 
 ## CI / Test Tier Policy
 
+CI is path-aware. The workflow keeps a stable `CI required` summary job for branch protection, while purpose-specific jobs run or skip based on changed files.
+
+Expected PR paths:
+
+- UI-only: `Frontend quick` only, plus `CI required`.
+- Backend/API/schema: `Backend quick` only, plus `CI required`.
+- Solver/science/validation: `Backend quick`, `Targeted solver/science`, plus `CI required`.
+- Docs-only: `CI required` only unless workflow/code paths changed.
+- Scheduled/manual: quick jobs plus `Science validation`.
+
 ### Fast PR CI
 
 Should include:
