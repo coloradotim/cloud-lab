@@ -28,12 +28,12 @@ describe("Workbench V2 lab picker", () => {
       "Why do puffy cumulus clouds form on some warm afternoons and not others?",
     );
     expect(html).toContain("Prototype / first reference lab");
-    expect(html).toContain("surface heating");
+    expect(html).toContain("surface sensible heating");
     expect(html).toContain("buoyant thermals");
     expect(html).toContain("source-layer moisture");
-    expect(html).toContain("LCL / cloud base");
-    expect(html).toContain("stability");
-    expect(html).toContain("dry failed cloud controls");
+    expect(html).toContain("lifted condensation level / cloud base");
+    expect(html).toContain("atmospheric stability and lapse rate");
+    expect(html).toContain("dry failed cumulus");
     expect(html).toContain("Qualitative 2-D Boussinesq prototype");
   });
 
