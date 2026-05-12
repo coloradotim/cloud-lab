@@ -26,7 +26,7 @@ Related docs:
 - [Microphysics lab](microphysics-lab.md)
 - [Microphysics comparison](microphysics-comparison.md)
 - [Simulation data model](simulation-data-model.md)
-- [Visualization and workbench views](visualization-dashboard.md)
+- [Visualization and workbench views](visualization-and-workbench-views.md)
 
 ## Purpose
 

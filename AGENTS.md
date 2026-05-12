@@ -321,11 +321,16 @@ Backend and simulation:
 - `backend/app/sim/streaming.py`
 - `backend/tests/`
 
-Frontend prototype/current implementation:
+Frontend Workbench V2/current implementation:
 
 - `frontend/src/`
 - `frontend/src/App.tsx`
-- `frontend/src/ScientificDashboard.tsx`
+- `frontend/src/app/CloudLabApp.tsx`
+- `frontend/src/workbench/LabPicker.tsx`
+- `frontend/src/workbench/LabWorkbench.tsx`
+- `frontend/src/workbench/scientificFieldView.ts`
+- `frontend/src/workbench/workbenchRunLoop.ts`
+- `frontend/src/labs/labCatalog.ts`
 - `frontend/src/simulationControls.ts`
 - `frontend/src/visualization.ts`
 

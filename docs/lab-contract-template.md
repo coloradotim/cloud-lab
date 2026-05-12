@@ -250,5 +250,5 @@ When implementing this lab, update:
 - `docs/scientific-roadmap.md`, if physics direction changes
 - `docs/testing-and-validation.md`, if validation policy changes
 - `docs/simulation-data-model.md`, if schema/config changes
-- `docs/visualization-dashboard.md`, if visualization behavior changes
+- `docs/visualization-and-workbench-views.md`, if visualization or workbench view behavior changes
 - `AGENTS.md`, only if durable agent guidance changes
