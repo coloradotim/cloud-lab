@@ -244,11 +244,12 @@ function LabSetupPanel({
         <span>Scenario</span>
         <select
           value={workbench.selectedScenarioId}
-          onChange={(event) =>
+          onChange={(event) => {
+            const scenarioId = event.currentTarget.value;
             setWorkbench((current) =>
-              selectWorkbenchScenario(current, lab, event.currentTarget.value),
-            )
-          }
+              selectWorkbenchScenario(current, lab, scenarioId),
+            );
+          }}
         >
           {lab.scenarios.map((candidate) => (
             <option key={candidate.id} value={candidate.id}>
@@ -364,9 +365,10 @@ function NumberControl({
         min={min}
         max={max}
         step={step}
-        onChange={(event) =>
-          setWorkbench((current) => updateWorkbenchControl(current, id, Number(event.currentTarget.value)))
-        }
+        onChange={(event) => {
+          const nextValue = Number(event.currentTarget.value);
+          setWorkbench((current) => updateWorkbenchControl(current, id, nextValue));
+        }}
       />
       <small>{suffix}</small>
     </label>
@@ -391,9 +393,10 @@ function SelectControl({
       <span>{label}</span>
       <select
         value={value}
-        onChange={(event) =>
-          setWorkbench((current) => updateWorkbenchControl(current, id, event.currentTarget.value))
-        }
+        onChange={(event) => {
+          const nextValue = event.currentTarget.value;
+          setWorkbench((current) => updateWorkbenchControl(current, id, nextValue));
+        }}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -671,11 +674,12 @@ function TimelinePanel({
         value={workbench.displayedFrameIndex}
         readOnly={workbench.frames.length === 0}
         aria-label="Replay timeline"
-        onChange={(event) =>
+        onChange={(event) => {
+          const frameIndex = Number(event.currentTarget.value);
           setWorkbench((current) =>
-            setWorkbenchDisplayedFrame(current, Number(event.currentTarget.value)),
-          )
-        }
+            setWorkbenchDisplayedFrame(current, frameIndex),
+          );
+        }}
       />
       <div className="timeline-actions" aria-label="Replay actions">
         <button
