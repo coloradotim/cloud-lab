@@ -223,7 +223,7 @@ For solver changes, update the relevant solver or validation docs when assumptio
 
 For streaming changes, update `docs/live-streaming.md` when run lifecycle, message types, cancellation behavior, frame cadence, or scaling assumptions change.
 
-For visualization changes, update `docs/visualization-dashboard.md` when field rendering, frame buffering, canvas behavior, accessibility, approximation labels, or performance assumptions change.
+For visualization changes, update `docs/visualization-and-workbench-views.md` when field rendering, frame buffering, workbench visualization behavior, accessibility, approximation labels, or performance assumptions change.
 
 For lab/product changes, update `docs/lab-roadmap.md`, `docs/workbench-v2-product-spec.md`, or `docs/product-vision.md` as appropriate.
 

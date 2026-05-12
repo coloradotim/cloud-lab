@@ -93,6 +93,31 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Timeline / replay");
   });
 
+  it("supports the Fair-Weather reference flow from lab contract controls to run actions", () => {
+    const html = renderToStaticMarkup(
+      <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
+    );
+
+    expect(html).toContain("Scenario");
+    expect(html).toContain("Moderate cloud base");
+    expect(html).toContain("Dry failed cumulus");
+    expect(html).toContain("Dry cap / suppressed cumulus");
+    expect(html).toContain("Surface heating strength");
+    expect(html).toContain("Surface heating pattern");
+    expect(html).toContain("Source-layer humidity");
+    expect(html).toContain("Free-atmosphere humidity");
+    expect(html).toContain("Stability / lapse rate");
+    expect(html).toContain("Boundary-layer depth / cap height");
+    expect(html).toContain("Model size / runtime");
+    expect(html).toContain(">Run<");
+    expect(html).toContain(">Stop<");
+    expect(html).toContain(">Reset<");
+    expect(html).toContain("Scientific 2-D field view");
+    expect(html).toContain("Expected LCL / cloud base");
+    expect(html).toContain("Simplified warm-cloud condensation");
+    expect(html).toContain("Qualitative 2-D Boussinesq prototype");
+  });
+
   it("keeps saved runs and comparison out of large default panels", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
@@ -102,13 +127,20 @@ describe("Workbench V2 shell", () => {
     expect(html).not.toContain("comparison-panel");
     expect(html).not.toContain("Saved run artifacts");
     expect(html).not.toContain("Scenario comparison");
+    expect(html).not.toContain("Developer details");
+    expect(html).not.toContain("Sample output");
   });
 
   it("makes the new lab picker the default app entry point without the old giant hero", () => {
     const html = renderToStaticMarkup(<App />);
 
     expect(html).toContain("Start with a focused cloud lab");
+    expect(html).toContain("Open Fair-Weather Cumulus");
     expect(html).toContain("Fair-Weather Cumulus");
+    expect(html).not.toContain("workbench-shell");
+    expect(html).not.toContain("dashboard-panel");
+    expect(html).not.toContain("saved-runs-panel");
+    expect(html).not.toContain("comparison-panel");
     expect(html).not.toContain("Run a seeded fair-weather cumulus slice");
     expect(html).not.toContain("Watch the sample plume");
   });
