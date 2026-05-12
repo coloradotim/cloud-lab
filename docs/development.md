@@ -87,6 +87,16 @@ CI should pass before a PR is merged. Do not bypass failing tests, lint checks, 
 
 Use the [testing and validation plan](testing-and-validation.md) as the governing plan for model-development tests. It defines contract tests, numerical sanity tests, physics relationship tests, lab/scenario contract tests, reference validation, diagnostic warnings, and the rules for updating expectations when model assumptions change.
 
+CI uses path-aware quick jobs so every PR does not pay for every subsystem:
+
+- Frontend-only PRs run `Frontend quick` plus the lightweight `CI required` summary.
+- Backend/API/schema PRs run `Backend quick` plus `CI required`.
+- Solver/science/validation PRs run `Backend quick`, `Targeted solver/science`, and `CI required`.
+- Docs-only PRs may run only `CI required` unless they touch workflow files or code.
+- Pushes to `main`, scheduled runs, and manual workflow dispatches run the full quick set; scheduled/manual runs also run science validation.
+
+The stable check for branch protection should be `CI required`. The purpose-specific jobs are still visible so reviewers can see which path actually ran.
+
 ## Validation Tiers
 
 Use the lightest tier that honestly covers the change. Every PR description should say which tier ran and why.
@@ -95,15 +105,7 @@ Use the lightest tier that honestly covers the change. Every PR description shou
 
 Default before most PRs. Target runtime is roughly under 1-2 minutes locally.
 
-```bash
-cd backend
-pytest -m "not slow and not science"
-ruff format --check .
-ruff check .
-mypy app tests
-```
-
-For frontend changes, also run:
+For UI-only changes:
 
 ```bash
 cd frontend
@@ -112,14 +114,30 @@ npm run test
 npm run build
 ```
 
+For backend/API/schema changes:
+
+```bash
+cd backend
+pytest -m "not slow and not science and not validation and not pysdm"
+ruff format --check .
+ruff check .
+mypy app tests
+```
+
+Do not run backend checks for UI-only changes unless the PR also touches backend code, API/schema/shared contracts, CI workflow behavior, or scripts that affect backend execution.
+
 ### Tier 2: Targeted Validation
 
 Run when the PR touches a specific subsystem.
 
 ```bash
-# Boussinesq smoke and short benchmark checks
+# Boussinesq smoke and short checks
 cd backend
 pytest -m "boussinesq and not slow"
+
+# Microphysics smoke and validation checks
+cd backend
+pytest -m "microphysics and not slow"
 
 # Boussinesq reference validation checks
 cd backend
@@ -160,6 +178,25 @@ cd backend
 python -m pip install -e ".[pysdm-eval]"
 pytest -m pysdm
 python -m app.sim.pysdm_evaluation --json
+```
+
+## PR Verification Summaries
+
+Every PR should say which path ran and why. Examples:
+
+```text
+Verification:
+- Frontend quick checks: passed (`npm run lint`, `npm run test`, `npm run build`)
+- Backend checks: not run; PR changes are UI-only and do not touch API/schema/shared contracts
+- Full validation: not run; not required for scoped UI change
+```
+
+```text
+Verification:
+- Backend quick checks: passed (`pytest -m "not slow and not science and not validation and not pysdm"`, ruff, mypy)
+- Targeted Boussinesq checks: passed (`pytest -m "boussinesq and not slow"`)
+- Frontend checks: not run; no frontend or shared contract changes
+- Full validation: not run; scheduled/manual validation unchanged
 ```
 
 ## Adding Simulation Features Responsibly

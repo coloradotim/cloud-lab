@@ -1,4 +1,8 @@
+import pytest
+
 from app.sim.microphysics_comparison import run_microphysics_comparison
+
+pytestmark = [pytest.mark.microphysics]
 
 
 def test_microphysics_comparison_produces_expected_structure() -> None:
