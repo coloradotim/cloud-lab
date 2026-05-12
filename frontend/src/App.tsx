@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
 import "./App.css";
+import { CloudLabApp } from "./app/CloudLabApp";
 import { MicrophysicsDiagnosticsPanel } from "./MicrophysicsDiagnosticsPanel";
 import { ScenarioComparisonPanel } from "./ScenarioComparisonPanel";
 import { ScientificDashboard } from "./ScientificDashboard";
@@ -188,6 +189,10 @@ async function fetchSampleRun(signal: AbortSignal): Promise<SampleRunState> {
 }
 
 export function App() {
+  return <CloudLabApp />;
+}
+
+export function PrototypeDashboard() {
   const [health, setHealth] = useState<HealthState>({ status: "checking" });
   const [sampleFrame, setSampleFrame] = useState<SampleFrameState>({ status: "checking" });
   const [sampleRun, setSampleRun] = useState<SampleRunState>({ status: "checking" });
