@@ -1,16 +1,21 @@
-# Fair-Weather Cumulus Lab
+# Lower Atmosphere Cloud Basics Lab
 
 ## Lab Name
 
-Fair-Weather Cumulus
+Lower Atmosphere Cloud Basics
+
+> Legacy/internal id note: the current implementation still uses the internal lab id
+> `fair-weather-cumulus` to avoid route and saved-config churn. That id is not the
+> user-facing lab name. Fair-weather cumulus is now a scenario/scenario family inside
+> Lower Atmosphere Cloud Basics.
 
 ## Physical Question
 
-Why do puffy cumulus clouds form on some warm afternoons and not others?
+How do heating, moisture, and stability shape basic warm-cloud formation near the ground?
 
 ## User Promise
 
-Users can vary surface heating, moisture, stability, boundary-layer structure, and runtime to see whether shallow cumulus forms, when it forms, where cloud base and top appear, and why a similar-looking setup may fail to produce cloud.
+Users can vary surface heating, moisture, stability, boundary-layer structure, and runtime to see whether basic lower-atmosphere warm cloud forms, when it forms, where cloud base and top appear, and why a similar-looking setup may fail to produce cloud.
 
 This lab should help users build physically correct intuition around:
 
@@ -18,7 +23,7 @@ This lab should help users build physically correct intuition around:
 - moist source-layer air rising toward saturation
 - lifted condensation level / expected cloud base
 - cloud tops responding to thermal strength, stability, and dry air aloft
-- dry or capped cases producing motion but little or no cloud
+- dry, capped, multi-thermal, or low-cloud contrast cases that clarify what the current model can and cannot claim
 
 The lab should be visually engaging, but the first version should stay scientifically honest: it is a qualitative shallow-cloud experiment using an experimental 2-D Boussinesq-style physics core, not a quantitative cloud forecast or research-grade CFD model.
 
@@ -40,7 +45,9 @@ The lab should be visually engaging, but the first version should stay scientifi
 
 `prototype`
 
-Fair-Weather Cumulus is the first reference lab for Workbench V2. It is partly supported by the current `boussinesq_2d` physics core, scenario diagnostics, streamed frames, profile/probe tooling, and scientific 2-D visualization.
+Lower Atmosphere Cloud Basics is the first reference lab for Workbench V2. It is partly supported by the current `boussinesq_2d` physics core, scenario diagnostics, streamed frames, profile/probe tooling, and scientific 2-D visualization.
+
+Fair-weather cumulus is one scenario family inside this lab, not the lab identity.
 
 The lab is not yet a polished product experience. Workbench V2 should make it the first complete end-to-end lab: choose scenario, adjust key controls, run, watch, inspect, and compare/save later.
 
@@ -48,7 +55,7 @@ The lab is not yet a polished product experience. Workbench V2 should make it th
 
 ### Primary Controls
 
-These should be visible by default in the Fair-Weather Cumulus setup panel.
+These should be visible by default in the Lower Atmosphere Cloud Basics setup panel.
 
 | Control | Meaning | Expected effect | Units / type |
 | --- | --- | --- | --- |
@@ -102,7 +109,7 @@ Painted heating and moisture maps are future improvements. They should eventuall
 
 ## Expected Behavior
 
-A plausible Fair-Weather Cumulus run should generally show:
+A plausible fair-weather cumulus baseline scenario inside this lab should generally show:
 
 - thermal circulation or vertical motion developing before cloud water appears
 - cloud water appearing after lifted source-layer air approaches saturation
@@ -120,8 +127,11 @@ Failure cases are important to the lab because they teach the physical limits of
 
 The v1 lab should include no-cloud or weak-cloud scenarios such as:
 
+- fair-weather cumulus / baseline shallow cloud: single-patch shallow cloud formation
 - dry failed cumulus: buoyant motion develops, but cloud water remains negligible
-- dry cap / suppressed cumulus: thermals lift but cloud is delayed, shallow, or limited
+- capped / suppressed cloud: thermals lift but cloud is delayed, shallow, or limited
+- multi-thermal cloud field: paired or structured heating creates multiple thermal responses
+- humid low-cloud contrast: very low LCL or broad low-cloud behavior, not classic fair-weather cumulus
 - overly stable profile: heating produces weak or shallow response
 - low source-layer humidity: LCL is too high or cloud onset occurs too late for the configured runtime
 
@@ -229,7 +239,7 @@ V1 requires existing `sim-frame-v1` fields:
 - `vertical_velocity_m_per_s`
 - grid metadata and coordinates
 
-No new frame schema is required for the first Fair-Weather Cumulus Workbench V2 implementation.
+No new frame schema is required for the first Lower Atmosphere Cloud Basics Workbench V2 implementation.
 
 Future enhancements may need:
 
@@ -266,12 +276,13 @@ Suggested plain-language limitation:
 
 | Scenario | Purpose | Expected result | Key controls |
 | --- | --- | --- | --- |
-| Moderate cloud base | Baseline shallow cumulus case. | Thermal develops first; cloud forms later near expected LCL; cloud top grows with heating/stability. | heating, source-layer RH, lapse rate, runtime |
+| Fair-weather cumulus / baseline shallow cloud | Single-patch baseline shallow cumulus case. | Thermal develops first; cloud forms later near expected LCL; cloud top grows with heating/stability. | heating, source-layer RH, lapse rate, runtime |
 | Dry failed cumulus | Negative control. | Motion/updraft develops, but cloud water remains negligible. | low source-layer RH, heating |
-| Dry cap / suppressed cumulus | Shows inhibition from dry/stable layer aloft. | Thermals lift but cloud is delayed, shallow, limited, or suppressed. | free-atmosphere RH, cap/inversion, lapse rate |
-| Multi-thermal field | Shows multiple thermal responses. | Multiple plume/cloud regions may appear before merger/diffusion. | heating pattern, heating strength, humidity |
+| Capped / suppressed cloud | Shows inhibition from dry/stable layer aloft. | Thermals lift but cloud is delayed, shallow, limited, or suppressed. | free-atmosphere RH, cap/inversion, lapse rate |
+| Multi-thermal cloud field | Shows multiple thermal responses from paired or structured heating. | Multiple plume/cloud regions may appear before merger/diffusion. | heating pattern, heating strength, humidity |
+| Humid low-cloud contrast | Shows very-low-LCL or broad low-cloud behavior. | Low cloud or deck-like behavior may appear; this is not classic fair-weather cumulus. | source-layer RH, humidity profile, weak uneven heating |
 
-The multi-thermal scenario is useful, but it should not define the product vision. Fair-Weather Cumulus is about the physical relationship between heating, moisture, stability, and cloud formation, not merely drawing multiple hot patches.
+The multi-thermal scenario is useful, but it should not define the product vision. Lower Atmosphere Cloud Basics is about the physical relationship between heating, moisture, stability, and cloud formation, not merely drawing multiple hot patches.
 
 ## Comparison Ideas
 
@@ -346,7 +357,7 @@ These comparisons should eventually support saved runs, side-by-side views, and 
 
 When implementing or changing this lab, update:
 
-- `docs/labs/fair-weather-cumulus.md`
+- `docs/labs/lower-atmosphere-cloud-basics.md`
 - `docs/scenarios.md`
 - `docs/lab-roadmap.md` if priority/scope changes
 - `docs/current-phase-plan.md` if execution order changes
@@ -360,8 +371,8 @@ When implementing or changing this lab, update:
 This lab spec should guide issues:
 
 - `#107` — Workbench V2 shell and Lab Picker
-- `#108` — lab catalog and Fair-Weather Cumulus lab definition
-- `#109` — Fair-Weather run/replay/inspect flow
+- `#108` — lab catalog and Lower Atmosphere Cloud Basics lab definition
+- `#109` — Lower Atmosphere Cloud Basics run/replay/inspect flow
 - `#110` — scientific visualization stage and inspector
 - `#111` — retire old dashboard as default UI
 

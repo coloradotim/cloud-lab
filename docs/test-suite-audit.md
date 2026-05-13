@@ -235,7 +235,7 @@ Suspected only; no tests were changed.
 - Frontend saved-run/comparison tests remain useful for secondary workflows, but
   they no longer represent default Workbench V2 panels.
 - Cloud Optics frontend tests protect a concept-shell/renderer path, not the
-  Fair-Weather Cumulus physics lab. They should stay out of Fair-Weather science
+  Lower Atmosphere Cloud Basics physics lab. They should stay out of lower-atmosphere science
   conclusions.
 
 ## Suspected Duplicate or Redundant Tests

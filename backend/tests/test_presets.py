@@ -14,7 +14,7 @@ from app.sim import (
 pytestmark = [pytest.mark.contract, pytest.mark.lab]
 
 
-def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
+def test_presets_endpoint_returns_multi_thermal_lower_atmosphere_config() -> None:
     client = TestClient(app)
 
     response = client.get("/simulations/presets")
@@ -23,8 +23,8 @@ def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
     presets = response.json()["presets"]
     assert len(presets) == 1
     preset = presets[0]
-    assert preset["slug"] == "fair-weather-cumulus"
-    assert preset["name"] == "Fair-weather cumulus over heated ground"
+    assert preset["slug"] == "multi-thermal-cumulus-field"
+    assert preset["name"] == "Multi-thermal cloud field"
     assert preset["category"] == "user-facing scenario"
     assert preset["intended_phenomenon"]
     assert preset["thermodynamic_assumptions"]
@@ -49,7 +49,7 @@ def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
 @pytest.mark.science
 @pytest.mark.slow
 @pytest.mark.validation
-def test_fair_weather_cumulus_preset_produces_reproducible_cloud_water() -> None:
+def test_multi_thermal_preset_produces_reproducible_cloud_water() -> None:
     config = fair_weather_cumulus_preset().config
 
     first_run = run_simulation(config)

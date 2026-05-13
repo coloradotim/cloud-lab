@@ -258,7 +258,7 @@ negative moisture
 non-finite fields
 ```
 
-The current run is physically bounded and numerically sane, but it is not satisfying the old "peak cloud water at boundary-layer top" validation idea. That expectation should remain xfailed until the project decides whether Fair-Weather Cumulus wants cloud placement relative to LCL, cloud depth, boundary-layer top, or a more nuanced scenario contract.
+The current run is physically bounded and numerically sane, but it is not satisfying the old "peak cloud water at boundary-layer top" validation idea. That expectation should remain xfailed until the project decides whether Lower Atmosphere Cloud Basics wants cloud placement relative to LCL, cloud depth, boundary-layer top, or a more nuanced scenario contract.
 
 ## Recommended Remediation
 

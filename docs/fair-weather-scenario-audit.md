@@ -2,7 +2,9 @@
 
 Issue: #153
 
-This audit reviews the current Fair-Weather Cumulus scenarios and adjacent Boussinesq presets against their physical intent. It is documentation only: it does not change solver physics, scenario defaults, validation thresholds, diagnostics, or visualization behavior.
+This audit reviews the current lower-atmosphere cloud scenarios and adjacent Boussinesq presets against their physical intent. It is documentation only: it does not change solver physics, scenario defaults, validation thresholds, diagnostics, or visualization behavior.
+
+Post-#163 naming status: the user-facing lab is now **Lower Atmosphere Cloud Basics**. Fair-weather cumulus is a baseline scenario/scenario family inside that lab. The legacy internal lab id remains `fair-weather-cumulus`, and the paired backend API preset is now exposed as `multi-thermal-cumulus-field` so it does not imply the single-patch baseline.
 
 ## Scope And Sources
 
@@ -16,7 +18,7 @@ Audited user-facing or Workbench V2 scenarios:
 
 Audited backend preset and validation/reference cases:
 
-- `fair-weather-cumulus` backend API preset
+- `multi-thermal-cumulus-field` backend API preset, exposed through a legacy internal helper
 - `isolated-fair-weather-cumulus`
 - `dry-thermal-bubble`
 - `humid-cloud-deck`
@@ -29,7 +31,7 @@ Main source files:
 - `frontend/src/workbench/workbenchRunLoop.ts`
 - `backend/app/sim/presets.py`
 - `backend/app/sim/validation.py`
-- `docs/labs/fair-weather-cumulus.md`
+- `docs/labs/lower-atmosphere-cloud-basics.md`
 - `docs/scenarios.md`
 - `docs/boussinesq-validation.md`
 - `docs/test-suite-review-and-solver-trust.md`
@@ -42,7 +44,7 @@ Validation evidence used:
 
 ## Current Trust Context
 
-The current `boussinesq_2d` trust decision is Yellow. It is useful as a constrained experimental dynamics scaffold for Fair-Weather Cumulus and controlled visual experiments, but it is not broadly trusted as quantitative atmospheric dynamics or research-grade CFD.
+The current `boussinesq_2d` trust decision is Yellow. It is useful as a constrained experimental dynamics scaffold for Lower Atmosphere Cloud Basics and controlled visual experiments, but it is not broadly trusted as quantitative atmospheric dynamics or research-grade CFD.
 
 For this audit, that means scenario contracts should be qualitative, diagnostic-rich, and honest about limitations. A suspicious scenario result should first be classified as one of:
 
@@ -56,12 +58,12 @@ For this audit, that means scenario contracts should be qualitative, diagnostic-
 
 | Scenario or preset | Current role | Physical intent | Current config summary | Expected LCL range | Expected cloud behavior | Recommendation |
 | --- | --- | --- | --- | --- | --- | --- |
-| `fair-weather-moderate-base` | Workbench V2 Fair-Weather default scenario | Classic shallow fair-weather cumulus over localized heating | 10 km x 3 km, 36 x 24 grid, 20 min, RH 0.85 source layer, free RH 0.55, source layer 800 m, BL top 1500 m, 0.024 K/s single patch, 0.15 m/s wind, seed 17 | Roughly 250-350 m by current diagnostic LCL method | Delayed cloud onset, finite cloud base above surface, modest cloud water, no boundary-dominated cloud | Keep, but adjust/review in follow-on because current heating is strong enough to trigger generic "very strong heating" warnings and LCL is low for a scenario called "moderate cloud base" |
-| `fair-weather-cumulus` backend preset | API preset, currently user-facing scenario category | Same contract as baseline, with paired warm patches for separated cloud-region tests | 10 km x 3 km, 36 x 24 grid, 20 min, RH 0.85, free RH 0.55, source layer 800 m, BL top 1500 m, 0.024 K/s two patches, 0.25 m/s wind, seed 3 | Roughly 250-350 m | No initial cloud; delayed shallow cloud over heated regions by runtime | Keep as backend/reference-facing preset, but align naming with frontend multi-thermal/baseline split in a follow-on metadata issue |
-| `multi-thermal-cumulus-field` | Workbench Fair-Weather scenario, visualization-oriented | Multiple thermals/cloud cells from structured heating | Same thermodynamics as baseline; 0.024 K/s two-patch heating, 0.15 m/s wind, seed 17 | Roughly 250-350 m | Multiple plume/cloud regions after delayed onset; cells may merge with diffusion/wind | Keep, but move or label as controlled multi-thermal / visualization stress scenario rather than core default; requires region-count diagnostics to avoid becoming just a renderer stress test |
-| `dry-failed-cumulus` | Workbench negative-control scenario | Buoyant motion without condensation | 10 km x 3 km, 36 x 24 grid, 20 min inherited, RH 0.35, free RH 0.25, source layer 500 m, BL top 1000 m, 0.012 K/s single patch, no wind, seed 13 | Roughly 1200-1400 m by current diagnostic LCL method | Nonzero vertical motion; cloud liquid water zero or negligible | Keep. It is physically coherent and matches the existing dry thermal reference pattern; add a backend Fair-Weather scenario contract test in a follow-on if not already explicit enough |
+| `fair-weather-moderate-base` | Workbench V2 lower-atmosphere baseline scenario | Classic shallow fair-weather cumulus over localized heating | 10 km x 3 km, 36 x 24 grid, 20 min, RH 0.85 source layer, free RH 0.55, source layer 800 m, BL top 1500 m, 0.024 K/s single patch, 0.15 m/s wind, seed 17 | Roughly 250-350 m by current diagnostic LCL method | Delayed cloud onset, finite cloud base above surface, modest cloud water, no boundary-dominated cloud | Keep, but adjust/review in follow-on because current heating is strong enough to trigger generic "very strong heating" warnings and LCL is low for a scenario called "moderate cloud base" |
+| `multi-thermal-cumulus-field` backend preset | API preset, user-facing scenario category | Paired warm patches for separated cloud-region tests | 10 km x 3 km, 36 x 24 grid, 20 min, RH 0.85, free RH 0.55, source layer 800 m, BL top 1500 m, 0.024 K/s two patches, 0.25 m/s wind, seed 3 | Roughly 250-350 m | No initial cloud; delayed shallow cloud over heated regions by runtime | Naming aligned in #163; the legacy helper function name may remain internal to avoid broad import churn |
+| `multi-thermal-cumulus-field` | Workbench lower-atmosphere scenario, visualization-oriented | Multiple thermals/cloud cells from structured heating | Same thermodynamics as baseline; 0.024 K/s two-patch heating, 0.15 m/s wind, seed 17 | Roughly 250-350 m | Multiple plume/cloud regions after delayed onset; cells may merge with diffusion/wind | Keep, but label as controlled multi-thermal / visualization stress scenario rather than core default; requires region-count diagnostics to avoid becoming just a renderer stress test |
+| `dry-failed-cumulus` | Workbench negative-control scenario | Buoyant motion without condensation | 10 km x 3 km, 36 x 24 grid, 20 min inherited, RH 0.35, free RH 0.25, source layer 500 m, BL top 1000 m, 0.012 K/s single patch, no wind, seed 13 | Roughly 1200-1400 m by current diagnostic LCL method | Nonzero vertical motion; cloud liquid water zero or negligible | Keep. It is physically coherent and matches the existing dry thermal reference pattern; add a backend lower-atmosphere scenario contract test in a follow-on if not already explicit enough |
 | `dry-cap-suppressed-cumulus` | Workbench inhibition scenario | Moist lower layer with dry/stable cap limiting cloud | 10 km x 3 km, 36 x 24 grid, 20 min inherited, RH 0.82, free RH 0.35, dry-cap profile, source layer 700 m, BL/cap 1200 m, lapse 0.0045 K/m, 0.018 K/s single patch, 0.1 m/s wind, seed 31 | Roughly 300-450 m, but dry-cap profile makes a single surface-parcel LCL incomplete | Delayed, shallow, limited, or suppressed cloud relative to comparable no-cap setup | Keep as concept, but needs paired no-cap comparison and explicit stable/capped suppression validation under #156 before thresholds are hard-failed |
-| `humid-low-cloud-boundary-layer` | Built-in Boussinesq contrast, not classic Fair-Weather | Near-saturated low-LCL / low-cloud boundary-layer behavior | 10 km x 3 km, 36 x 24 grid, 20 min inherited, uniform RH 0.98, free RH 0.98, source layer 1000 m, BL top 1000 m, 0.05 K/s weak-random heating, 0.25 m/s wind, seed 23 | Near surface, roughly 0-75 m by current diagnostic LCL method | Low cloud or broad deck may appear; not evaluated as classic fair-weather failure | Rename or move out of Fair-Weather user-facing flow once Fog/Stratus or Layered Atmosphere owns it; keep as diagnostic contrast until then |
+| `humid-low-cloud-boundary-layer` | Built-in Boussinesq contrast, not classic fair-weather cumulus | Near-saturated low-LCL / low-cloud boundary-layer behavior | 10 km x 3 km, 36 x 24 grid, 20 min inherited, uniform RH 0.98, free RH 0.98, source layer 1000 m, BL top 1000 m, 0.05 K/s weak-random heating, 0.25 m/s wind, seed 23 | Near surface, roughly 0-75 m by current diagnostic LCL method | Low cloud or broad deck may appear; not evaluated as classic fair-weather failure | Rename or move out of lower-atmosphere user-facing flow once Fog/Stratus or Layered Atmosphere owns it; keep as diagnostic contrast until then |
 | `isolated-fair-weather-cumulus` | Backend Boussinesq scenario validation case | Paired thermals should form separated shallow clouds | 20 min, RH 0.85, free RH 0.55, source layer 800 m, BL top 1500 m, 0.024 K/s two patches, 0.15 m/s wind, seed 17 | Reported 272 m | Current validation reports two cloud regions, cloud top 688 m, max cloud water about `1.05e-4 kg kg-1`, status `warn` because thermodynamic diagnostics warn | Keep as validation/reference case, but do not present it as fully trusted polished behavior while thermodynamic warnings remain |
 | `dry-thermal-bubble` | Backend dry reference case | Dry buoyant circulation without cloud | 15 min, RH 0.45, 0.016 K/s heating, lapse 0.0075 K/m, no wind, seed 13 | Reported 1289 m | Cloud-free dry thermal with resolved circulation | Keep as reference, not a polished user scenario. It supports the dry-failed control but should remain named as a benchmark/reference |
 | `humid-cloud-deck` | Backend validation contrast | Broad deck-prone humid case | 20 min, RH 0.98 uniform, 0.05 K/s weak-random heating, 0.25 m/s wind, seed 23 | Reported 34 m | Expected broad deck-prone behavior, but scenario validation reported only 0.015 cloud coverage and warned it did not produce a broad cloud field | Needs review: likely preset/expectation mismatch or diagnostic-threshold mismatch before using as a deck/stratus scenario |
@@ -79,14 +81,14 @@ For this audit, that means scenario contracts should be qualitative, diagnostic-
 - Warning: LCL lower than the scenario name implies, broad cloud shield, return-flow or boundary cloud water.
 - Recommended action: keep, with follow-on review of whether "moderate cloud base" should be renamed or adjusted after #154/#155 clarify LCL thermodynamics.
 
-### `fair-weather-cumulus` backend preset
+### `multi-thermal-cumulus-field` backend preset
 
-- User-facing promise: a reproducible Fair-Weather Cumulus starting point through the API preset endpoint.
+- User-facing promise: a reproducible multi-thermal lower-atmosphere cloud starting point through the API preset endpoint.
 - Physical regime: paired thermals in the same source-layer setup as the baseline.
 - Required diagnostics: no initial cloud, delayed positive cloud water, separated regions not dominated by boundary artifacts.
-- Red flag as preset issue: frontend default says single-patch baseline while backend preset uses paired patches under a broad fair-weather name.
+- Red flag resolved in #163: frontend default remains the single-patch baseline, while the backend API preset public slug/name identifies the paired-patch multi-thermal setup.
 - Red flag as solver issue: paired thermals fail to rise, moisture goes negative, or cloud appears in thermodynamically impossible regions.
-- Recommended action: keep, but clarify in a follow-on whether the API preset should be named as paired/multi-thermal or whether the frontend baseline and backend preset should share the same forcing pattern.
+- Recommended action: keep the internal helper name only as a legacy implementation detail unless a future cleanup can remove it without migration churn.
 
 ### `dry-failed-cumulus`
 
@@ -123,9 +125,9 @@ For this audit, that means scenario contracts should be qualitative, diagnostic-
 
 - User-facing promise: near-saturated boundary layers can produce very low cloud or deck-like behavior.
 - Physical regime: uniform very high RH with low diagnostic LCL.
-- Required diagnostics: low expected LCL, low cloud is not classified as a Fair-Weather failure, cloud coverage/deck tendency is reported honestly.
+- Required diagnostics: low expected LCL, low cloud is not classified as a fair-weather cumulus failure, cloud coverage/deck tendency is reported honestly.
 - Red flag as preset issue: currently uses very strong heating (`0.05 K/s`) and may be conflating fog/stratus, deck, and strong thermal forcing.
-- Red flag as solver issue: low-cloud behavior appears in dry or moderate Fair-Weather setups without a low LCL or appropriate diagnostics.
+- Red flag as solver issue: low-cloud behavior appears in dry or moderate lower-atmosphere setups without a low LCL or appropriate diagnostics.
 - Recommended action: rename/move under a future Fog/Stratus or Layered Atmosphere lab; keep only as a diagnostic contrast until that lab exists.
 
 ## Recommended Preset / Metadata Changes
@@ -134,8 +136,8 @@ These are recommendations only. They should be implemented in follow-on issues, 
 
 1. Clarify baseline versus paired-thermal naming.
    - The frontend `fair-weather-moderate-base` scenario uses a single patch.
-   - The backend `fair-weather-cumulus` preset uses paired patches.
-   - Recommendation: either rename the backend preset to make the paired forcing explicit, or align its forcing with the frontend baseline and create a separate paired-thermal preset.
+   - The backend paired preset now exposes `multi-thermal-cumulus-field`.
+   - Recommendation: do not treat the legacy helper name as the product contract.
 
 2. Revisit "moderate cloud base" wording.
    - Current diagnostic LCL estimates for RH 0.85 at 25 C are around 270 m, which is finite and above the surface but arguably low for "moderate cloud base."
@@ -149,8 +151,8 @@ These are recommendations only. They should be implemented in follow-on issues, 
    - Its physical lesson is important, but the current audit cannot prove suppression is caused by cap/stability rather than other config differences.
    - Recommendation: #156 should use paired capped/uncapped configs with only stability/cap changed.
 
-5. Move `humid-low-cloud-boundary-layer` out of Fair-Weather defaults when a better lab exists.
-   - It is explicitly not classic Fair-Weather Cumulus.
+5. Move `humid-low-cloud-boundary-layer` out of default fair-weather cumulus placement when a better lab exists.
+   - It is explicitly not classic fair-weather cumulus.
    - Recommendation: future Fog/Stratus or Layered Atmosphere work should own this scenario or replace it.
 
 ## Scenario Issues That Are Actually Solver Issues
@@ -160,7 +162,7 @@ These should not be solved by silently tuning scenario values in #153.
 - Humid cloud-water placement and cloud-base trust remain Yellow because the humid reference has known thermodynamic structure concerns.
 - Pressure-aware saturation and LCL thermodynamics belong to #155.
 - If comparable capped/uncapped runs do not show directional suppression, that belongs to #156 and possibly solver remediation.
-- If moderate domain/resolution changes alter qualitative Fair-Weather outcomes, that belongs to #158.
+- If moderate domain/resolution changes alter qualitative lower-atmosphere outcomes, that belongs to #158.
 - If stabilizers or safety caps materially determine normal scenario outcomes, that belongs to #159.
 - If the Yellow status persists after remediation, successor dynamics design belongs to #160.
 
@@ -177,7 +179,9 @@ These are issue drafts for future work. They are not implemented here.
 
 ### Align Fair-Weather baseline and backend preset naming
 
-Goal: clarify whether the backend `fair-weather-cumulus` preset is the single-patch baseline or a paired/multi-thermal preset.
+Status: addressed by #163. The backend API preset public slug/name is `multi-thermal-cumulus-field`; frontend `fair-weather-moderate-base` remains the single-patch baseline.
+
+Original goal: clarify whether the backend `fair-weather-cumulus` preset is the single-patch baseline or a paired/multi-thermal preset.
 
 Scope:
 
@@ -198,7 +202,7 @@ Scope:
 - either rename scenario copy or create a preset-change issue
 - preserve the baseline's delayed-cloud contract
 
-### Add backend Fair-Weather scenario contract coverage for dry failed cumulus
+### Add backend lower-atmosphere scenario contract coverage for dry failed cumulus
 
 Goal: make the dry-failed scenario contract explicit outside frontend diagnostics.
 
@@ -210,7 +214,7 @@ Scope:
 
 ### Decide final home for humid low-cloud boundary-layer scenario
 
-Goal: move or rename the contrast scenario so it does not read as classic Fair-Weather Cumulus.
+Goal: move or rename the contrast scenario so it does not read as classic fair-weather cumulus.
 
 Scope:
 

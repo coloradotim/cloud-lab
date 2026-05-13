@@ -65,7 +65,7 @@ Diagnostic / warning
 Visualization / rendering interpretation
 ```
 
-A lab contract is broader than a scenario. For example, the Fair-Weather Cumulus Lab includes the expectation that moisture, heating, stability, and LCL/cloud-base diagnostics help users understand shallow cumulus formation. Individual scenarios such as dry failed cumulus or multi-thermal cumulus field are specific experiments inside that lab.
+A lab contract is broader than a scenario. For example, the Lower Atmosphere Cloud Basics Lab includes the expectation that moisture, heating, stability, and LCL/cloud-base diagnostics help users understand shallow cloud formation. Individual scenarios such as fair-weather cumulus / baseline shallow cloud, dry failed cumulus, or multi-thermal cloud field are specific experiments inside that lab.
 
 ## Test Categories
 
@@ -124,7 +124,7 @@ Confirm that a lab still supports the physical question it claims to explore.
 
 Examples:
 
-- Fair-Weather Cumulus Lab supports cloud formation, failed-cloud controls, LCL/cloud-base diagnostics, and source-layer moisture/stability controls.
+- Lower Atmosphere Cloud Basics Lab supports cloud formation, failed-cloud controls, LCL/cloud-base diagnostics, and source-layer moisture/stability controls.
 - Warm Rain / Droplet Growth Lab separates cloud water from rain and does not imply droplet-resolved precipitation when only bulk behavior exists.
 - Cloud Optics / Beauty Lab labels optical appearance and 2.5-D views as visual approximations unless richer physics exists.
 - Orographic / Terrain Cloud Lab includes flat/dry/moist controls before terrain results are treated as meaningful.
@@ -366,7 +366,7 @@ Do not keep tests that only preserve obsolete toy-model expectations.
 Role:
 
 - public/default 2-D cloud dynamics scaffold
-- supports selected labs such as Fair-Weather Cumulus
+- supports selected labs such as Lower Atmosphere Cloud Basics
 - not quantitative CFD
 
 Tests should protect:

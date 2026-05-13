@@ -16,7 +16,7 @@ describe("Workbench V2 lab picker", () => {
   it("renders the initial lab cards from the lab roadmap", () => {
     const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
 
-    expect(html).toContain("Fair-Weather Cumulus");
+    expect(html).toContain("Lower Atmosphere Cloud Basics");
     expect(html).toContain("Clouds, Light, and Shadow");
     expect(html).toContain("Evolving Boundary Layer");
     expect(html).toContain("Layered Atmosphere");
@@ -26,13 +26,13 @@ describe("Workbench V2 lab picker", () => {
     expect(html).toContain("Mixed-Phase / Ice");
   });
 
-  it("reflects the Fair-Weather Cumulus lab spec on the card", () => {
+  it("reflects the Lower Atmosphere Cloud Basics lab spec on the card", () => {
     const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
 
     expect(html).toContain(
-      "Why do puffy cumulus clouds form on some warm afternoons and not others?",
+      "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
-    expect(html).toContain("Prototype / first reference lab");
+    expect(html).toContain("Experimental 2-D warm-cloud model");
     expect(html).toContain("surface sensible heating");
     expect(html).toContain("buoyant thermals");
     expect(html).toContain("source-layer moisture");
@@ -65,15 +65,15 @@ describe("Workbench V2 lab picker", () => {
     });
   });
 
-  it("features Fair-Weather Cumulus as the guided start-here lab", () => {
+  it("features Lower Atmosphere Cloud Basics as the guided start-here lab", () => {
     const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
 
     expect(html).toContain("Start here");
     expect(html).toContain("featured-lab-card");
-    expect(html).toContain("Open Fair-Weather Cumulus");
+    expect(html).toContain("Open Lower Atmosphere Cloud Basics");
   });
 
-  it("selects Fair-Weather Cumulus as the first functional lab", () => {
+  it("selects the legacy internal id for the first functional lab", () => {
     expect(FAIR_WEATHER_CUMULUS_LAB_ID).toBe("fair-weather-cumulus");
     expect(selectLabForWorkbench("fair-weather-cumulus")).toEqual({
       view: "workbench",
@@ -150,7 +150,7 @@ describe("Workbench V2 shell", () => {
   const fairWeatherLab = labById("fair-weather-cumulus");
 
   if (!fairWeatherLab) {
-    throw new Error("Missing Fair-Weather Cumulus lab");
+    throw new Error("Missing Lower Atmosphere Cloud Basics lab");
   }
 
   it("renders lab identity in the top bar", () => {
@@ -159,8 +159,8 @@ describe("Workbench V2 shell", () => {
     );
 
     expect(html).toContain("Cloud Lab");
-    expect(html).toContain("Fair-Weather Cumulus");
-    expect(html).toContain("Moderate cloud base");
+    expect(html).toContain("Lower Atmosphere Cloud Basics");
+    expect(html).toContain("Fair-weather cumulus / baseline shallow cloud");
     expect(html).toContain("Ready");
   });
 
@@ -175,15 +175,15 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Timeline / replay");
   });
 
-  it("supports the Fair-Weather reference flow from lab contract controls to run actions", () => {
+  it("supports the lower-atmosphere reference flow from lab contract controls to run actions", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
     expect(html).toContain("Scenario");
-    expect(html).toContain("Moderate cloud base");
+    expect(html).toContain("Fair-weather cumulus / baseline shallow cloud");
     expect(html).toContain("Dry failed cumulus");
-    expect(html).toContain("Dry cap / suppressed cumulus");
+    expect(html).toContain("Capped / suppressed cloud");
     expect(html).toContain("Surface heating strength");
     expect(html).toContain("Surface heating pattern");
     expect(html).toContain("Source-layer humidity");
@@ -221,8 +221,8 @@ describe("Workbench V2 shell", () => {
     const html = renderToStaticMarkup(<App />);
 
     expect(html).toContain("Start with a focused cloud lab");
-    expect(html).toContain("Open Fair-Weather Cumulus");
-    expect(html).toContain("Fair-Weather Cumulus");
+    expect(html).toContain("Open Lower Atmosphere Cloud Basics");
+    expect(html).toContain("Lower Atmosphere Cloud Basics");
     expect(html).not.toContain("workbench-shell");
     expect(html).not.toContain("dashboard-panel");
     expect(html).not.toContain("saved-runs-panel");

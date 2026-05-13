@@ -13,10 +13,10 @@ The current phase is not about adding more feature panels. It is about making th
 Build Workbench V2 and the first complete reference lab:
 
 ```text
-Lab Picker → Fair-Weather Cumulus Lab → Run / Watch / Inspect
+Lab Picker → Lower Atmosphere Cloud Basics Lab → Run / Watch / Inspect
 ```
 
-The phase is successful when Cloud Lab opens into a clear lab-driven experience, Fair-Weather Cumulus works as the first usable lab, and the old dashboard is no longer the default product model.
+The phase is successful when Cloud Lab opens into a clear lab-driven experience, Lower Atmosphere Cloud Basics works as the first usable lab, and the old dashboard is no longer the default product model.
 
 ## Authoritative Product Docs
 
@@ -34,11 +34,12 @@ For visualization work, also read:
 
 - `docs/visualization-and-workbench-views.md`
 
-For Fair-Weather Cumulus science and diagnostics, also read:
+For Lower Atmosphere Cloud Basics science and diagnostics, also read:
 
 - `docs/scenarios.md`
 - `docs/boussinesq-solver.md`
 - `docs/boussinesq-validation.md`
+- `docs/labs/lower-atmosphere-cloud-basics.md`
 
 ## Open Issues In This Phase
 
@@ -53,8 +54,8 @@ This remains open because iteration speed matters. It may be worked whenever tes
 Work in this order:
 
 1. `#107` — Build Workbench V2 shell and lab picker
-2. `#108` — Implement lab catalog and Fair-Weather Cumulus lab definition
-3. `#109` — Wire Fair-Weather Cumulus Lab to run, replay, inspect, and save flow
+2. `#108` — Implement lab catalog and Lower Atmosphere Cloud Basics lab definition
+3. `#109` — Wire Lower Atmosphere Cloud Basics Lab to run, replay, inspect, and save flow
 4. `#110` — Build Workbench V2 scientific visualization stage and inspector
 5. `#111` — Retire old dashboard as default and complete Workbench V2 reference flow
 
@@ -65,7 +66,7 @@ Work after, or in parallel only if implementation is not being disrupted:
 6. `#112` — Design Cloud Optics / Beauty Lab v1
 7. `#113` — Design Evolving Boundary Layer Lab and profile-evolution model
 
-These are design issues, not implementation issues. They should produce docs and next-step implementation issues only after Workbench V2 and the Fair-Weather reference lab direction are clear.
+These are design issues, not implementation issues. They should produce docs and next-step implementation issues only after Workbench V2 and the Lower Atmosphere Cloud Basics reference lab direction are clear.
 
 ## Execution Rules
 
@@ -84,11 +85,11 @@ Do not preserve:
 
 ### Rule 2 — Build one complete reference lab first
 
-The first complete lab is Fair-Weather Cumulus.
+The first complete lab is Lower Atmosphere Cloud Basics.
 
 It should answer:
 
-> Why do puffy cumulus clouds form on some warm afternoons and not others?
+> How do heating, moisture, and stability shape basic warm-cloud formation near the ground?
 
 The first reference lab should establish the reusable pattern for:
 
@@ -122,7 +123,7 @@ Those belong to later lab-specific work.
 
 User-facing UI should say things like:
 
-- Fair-Weather Cumulus
+- Lower Atmosphere Cloud Basics
 - source-layer humidity
 - surface heating
 - cloud base
@@ -150,13 +151,13 @@ Do not build partial terrain/rain/ice/optics controls into the main workflow bef
 At the end of issues `#107` through `#111`, the app should provide:
 
 - Lab Picker as the default product entry point.
-- Fair-Weather Cumulus as the first usable lab.
+- Lower Atmosphere Cloud Basics as the first usable lab.
 - Lab-specific scenario selection.
-- A small set of meaningful Fair-Weather controls.
+- A small set of meaningful lower-atmosphere controls.
 - Run/Stop/Reset through existing backend streaming.
 - Scientific 2-D visualization in the center stage.
 - Timeline/replay tied to displayed frames.
-- Inspector with available Fair-Weather diagnostics.
+- Inspector with available lower-atmosphere / fair-weather scenario diagnostics.
 - Honest labels for solver output, derived diagnostics, and experimental Boussinesq behavior.
 - Old dashboard no longer serving as the default user experience.
 
@@ -183,8 +184,8 @@ Prefer one PR per issue unless two issues are inseparable in the code.
 Expected PR sequence:
 
 1. Workbench V2 shell and Lab Picker.
-2. Lab catalog and Fair-Weather lab definition.
-3. Run/replay/control integration for Fair-Weather.
+2. Lab catalog and Lower Atmosphere Cloud Basics lab definition.
+3. Run/replay/control integration for Lower Atmosphere Cloud Basics.
 4. Scientific visualization stage and inspector.
 5. Old dashboard retirement/default routing cleanup.
 
@@ -213,7 +214,7 @@ This phase is done when:
 
 - `#107` through `#111` are complete.
 - Workbench V2 is the default product UI.
-- Fair-Weather Cumulus is usable end-to-end.
+- Lower Atmosphere Cloud Basics is usable end-to-end.
 - The old dashboard is removed, quarantined, or clearly secondary.
 - Docs and tests describe the new product structure.
 - The next implementation stage can be planned from `#112` and `#113` without reopening old feature-first issues.

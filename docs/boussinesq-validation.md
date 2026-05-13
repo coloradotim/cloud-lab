@@ -4,7 +4,7 @@ This document defines the current validation gate for the `boussinesq_2d` protot
 
 It answers a narrow question:
 
-> Is this physics core stable and qualitatively plausible enough to support selected labs, especially Fair-Weather Cumulus, without misleading the user?
+> Is this physics core stable and qualitatively plausible enough to support selected labs, especially Lower Atmosphere Cloud Basics, without misleading the user?
 
 It does not prove atmospheric realism. The solver still uses simple transport, fixed-iteration streamfunction inversion, warm-cloud saturation adjustment, damping, and safety caps.
 
@@ -18,7 +18,7 @@ For product direction, see `docs/lab-roadmap.md`.
 
 Current best uses:
 
-- Fair-Weather Cumulus Lab
+- Lower Atmosphere Cloud Basics Lab
 - controlled shallow-cloud visual experiments
 - reference-case validation
 - scenario diagnostics
@@ -32,7 +32,7 @@ Current non-uses:
 - claiming true turbulence/entrainment closure
 - claiming research-grade CFD
 
-Improvements should be driven by lab needs. For example, if Fair-Weather Cumulus produces cloud bases or cloud onset that are physically misleading, that is a good reason to improve Boussinesq thermodynamics or transport. Improving the solver in the abstract without a lab question is not the priority.
+Improvements should be driven by lab needs. For example, if the fair-weather cumulus baseline inside Lower Atmosphere Cloud Basics produces cloud bases or cloud onset that are physically misleading, that is a good reason to improve Boussinesq thermodynamics or transport. Improving the solver in the abstract without a lab question is not the priority.
 
 ## How to Run
 
@@ -102,7 +102,7 @@ The evidence does not support treating it as a quantitatively credible CFD core:
 - the humid reference case still places peak cloud water below the boundary-layer top
 - the model uses strong prototype stabilizers, simple saturation adjustment, and a diagnostic boundary extrapolation because emitted frames do not carry ghost cells
 
-Recommendation: use `boussinesq_2d` where it supports labs, especially Fair-Weather Cumulus and possibly early Orographic/Terrain Clouds. Do not integrate advanced microphysics on top of it as though the dynamics are solved. Thermodynamic placement of cloud water remains a science gate.
+Recommendation: use `boussinesq_2d` where it supports labs, especially Lower Atmosphere Cloud Basics and possibly early Orographic/Terrain Clouds. Do not integrate advanced microphysics on top of it as though the dynamics are solved. Thermodynamic placement of cloud water remains a science gate.
 
 ## Stabilizers And Guardrails
 
@@ -218,7 +218,7 @@ The prototype is credible enough for controlled visual experiments and for compa
 
 The next Boussinesq work should be driven by labs:
 
-- Fair-Weather Cumulus if cloud-base/onset behavior misleads the user
+- Lower Atmosphere Cloud Basics if cloud-base/onset behavior misleads the user
 - Evolving Boundary Layer if the solver needs to consume time-evolving profiles
 - Orographic / Terrain Clouds if terrain forcing reveals boundary or transport artifacts
 

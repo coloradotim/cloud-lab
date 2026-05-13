@@ -48,7 +48,7 @@ export function LabPicker({ labs, onSelectLab }: LabPickerProps) {
               type="button"
               onClick={() => onSelectLab(primaryLab.id)}
             >
-              Open Fair-Weather Cumulus
+              Open {primaryLab.name}
             </button>
           </article>
         </section>

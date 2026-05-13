@@ -32,12 +32,12 @@ Cloud Lab is currently in two overlapping modes:
 
 1. **Workbench V2 / reference-lab implementation**
    - Build the lab-driven app shell.
-   - Make Fair-Weather Cumulus the first usable reference lab.
+   - Make Lower Atmosphere Cloud Basics the first usable reference lab.
    - Retire the old dashboard as the default product model.
 
 2. **Solver-trust remediation planning for Boussinesq-dependent work**
    - `boussinesq_2d` is Yellow: useful as a constrained experimental dynamics scaffold, but not broadly trusted as a foundation for polished cloud-resolving labs.
-   - Fair-Weather Cumulus can continue only with honest experimental labels and tighter validation.
+   - Lower Atmosphere Cloud Basics can continue only with honest experimental labels and tighter validation. Fair-weather cumulus is a scenario family inside it, not the lab name.
    - Future Boussinesq-dependent labs should remain prototype-only or pause until trust gaps are resolved or explicitly accepted.
 
 ## Read First
@@ -50,14 +50,14 @@ Before doing repo work, read:
 4. `docs/doc-index.md`
 5. `docs/product-vision.md`
 
-For Workbench V2 / Fair-Weather work, also read:
+For Workbench V2 / Lower Atmosphere Cloud Basics work, also read:
 
 6. `docs/workbench-v2-product-spec.md`
 7. `docs/workbench-v2-architecture.md`
-8. `docs/labs/fair-weather-cumulus.md`
+8. `docs/labs/lower-atmosphere-cloud-basics.md`
 9. the issue being implemented
 
-For Boussinesq/Fair-Weather trust remediation, also read:
+For Boussinesq / Lower Atmosphere Cloud Basics trust remediation, also read:
 
 6. `docs/test-suite-review-and-solver-trust.md`
 7. `docs/test-suite-audit.md`
@@ -76,8 +76,8 @@ The main Workbench V2 implementation sequence is:
 ```
 
 - `#107` — Build Workbench V2 shell and lab picker
-- `#108` — Implement lab catalog and Fair-Weather Cumulus lab definition
-- `#109` — Wire Fair-Weather Cumulus Lab to run, replay, inspect, and save flow
+- `#108` — Implement lab catalog and Lower Atmosphere Cloud Basics lab definition
+- `#109` — Wire Lower Atmosphere Cloud Basics Lab to run, replay, inspect, and save flow
 - `#110` — Build Workbench V2 scientific visualization stage and inspector
 - `#111` — Retire old dashboard as default and complete Workbench V2 reference flow
 
@@ -85,9 +85,9 @@ Important current UX note from review of #107:
 
 - The individual lab/workbench page was directionally acceptable for the shell.
 - The Lab Picker/home page needed revision because it looked like a card dump.
-- Fair-Weather Cumulus should be a featured `Start here` card.
+- Lower Atmosphere Cloud Basics should be a featured `Start here` card.
 - Planned labs should be quieter and grouped into `Coming next` / `Future labs`.
-- The Fair-Weather card must not be clipped.
+- The Lower Atmosphere Cloud Basics card must not be clipped.
 
 ## Current Design / Future Lab Issues
 
@@ -120,7 +120,7 @@ Important distinction:
 
 Do not turn `#100` into `#120`.
 
-## Boussinesq / Fair-Weather Trust Status
+## Boussinesq / Lower Atmosphere Trust Status
 
 Current trust decision:
 
@@ -132,7 +132,7 @@ Why Yellow:
 
 - useful as constrained experimental dynamics scaffold
 - not broadly trusted as atmospheric dynamics
-- Fair-Weather Cumulus can continue only with honest experimental labels and tighter validation
+- Lower Atmosphere Cloud Basics can continue only with honest experimental labels and tighter validation
 - future Boussinesq-dependent labs should pause or remain prototype-only until trust gaps are resolved
 - do not live-couple Evolving Boundary Layer into Boussinesq yet
 
@@ -163,7 +163,7 @@ Recommended remediation order:
 
 Boussinesq-dependent work gate:
 
-- Continue Fair-Weather Cumulus only with honest experimental labels.
+- Continue Lower Atmosphere Cloud Basics only with honest experimental labels.
 - Do not treat `boussinesq_2d` as a broadly trusted dynamics foundation.
 - Do not build polished future Boussinesq-dependent labs until trust gaps are resolved or explicitly accepted.
 - Do not live-couple Evolving Boundary Layer into Boussinesq yet.
@@ -210,4 +210,4 @@ Use the current open issue state to decide, but as of this handoff:
 
 - If Workbench V2 is the active product track, continue `#107 → #108 → #109 → #110 → #111`.
 - If CI/test runtime is blocking product iteration, work `#100` without broadening into `#120`.
-- If Boussinesq/Fair-Weather trust remediation is the active track, begin with `#153` and work the remediation backlog in order.
+- If Boussinesq / Lower Atmosphere Cloud Basics trust remediation is the active track, begin with `#153` and work the remediation backlog in order.

@@ -2,7 +2,7 @@
 
 `boussinesq_2d` is Cloud Lab's current experimental 2-D dynamics physics core.
 
-It is useful for selected labs, especially Fair-Weather Cumulus, but it is not the product architecture and not the final hard-core cloud model.
+It is useful for selected labs, especially Lower Atmosphere Cloud Basics, but it is not the product architecture and not the final hard-core cloud model.
 
 For validation status and science gates, see `docs/boussinesq-validation.md`.
 
@@ -12,7 +12,7 @@ For the lab-driven product direction, see `docs/lab-roadmap.md` and `docs/archit
 
 Current best uses:
 
-- Fair-Weather Cumulus Lab
+- Lower Atmosphere Cloud Basics Lab
 - controlled shallow-cloud visual experiments
 - source-layer moisture and cloud-base diagnostics
 - early layered-atmosphere experiments where limitations are clear
@@ -128,7 +128,7 @@ These are stability, relationship, and lab-support checks. They do not prove atm
 
 Improve this core when a lab exposes a specific need:
 
-- Fair-Weather Cumulus cloud base or onset is misleading.
+- Lower Atmosphere Cloud Basics cloud base or onset is misleading.
 - Evolving Boundary Layer needs time-varying profiles coupled into 2-D dynamics.
 - Orographic / Terrain Clouds reveal boundary or transport artifacts.
 - Validation diagnostics show physically wrong relationships in controlled scenarios.

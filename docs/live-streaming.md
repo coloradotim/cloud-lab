@@ -8,7 +8,7 @@ Streaming is infrastructure for labs. It should serve the product loop:
 Choose lab → choose scenario → adjust physical controls → run → watch → inspect → save/compare → vary → learn
 ```
 
-The streaming layer should not know whether a run belongs to Fair-Weather Cumulus, Warm Rain, Orographic Clouds, or a future lab. It should accept a validated configuration, stream versioned frames, and leave interpretation to diagnostics, visualization, saved-run artifacts, and comparison workflows.
+The streaming layer should not know whether a run belongs to Lower Atmosphere Cloud Basics, Warm Rain, Orographic Clouds, or a future lab. It should accept a validated configuration, stream versioned frames, and leave interpretation to diagnostics, visualization, saved-run artifacts, and comparison workflows.
 
 ## Architecture
 

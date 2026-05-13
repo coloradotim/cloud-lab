@@ -59,7 +59,7 @@ Codex may help edit or implement a lab spec after the direction is clear, but th
 
 The current planned lab sequence is:
 
-1. Fair-Weather Cumulus
+1. Lower Atmosphere Cloud Basics
 2. Cloud Optics / Beauty
 3. Evolving Boundary Layer
 4. Layered Atmosphere
@@ -79,7 +79,7 @@ Use these expected filenames unless there is a strong reason not to:
 
 | Lab | Required spec path |
 | --- | --- |
-| Fair-Weather Cumulus | `docs/labs/fair-weather-cumulus.md` |
+| Lower Atmosphere Cloud Basics | `docs/labs/lower-atmosphere-cloud-basics.md` |
 | Cloud Optics / Beauty | `docs/labs/cloud-optics-beauty.md` |
 | Evolving Boundary Layer | `docs/labs/evolving-boundary-layer.md` |
 | Layered Atmosphere | `docs/labs/layered-atmosphere.md` |
@@ -216,7 +216,7 @@ Use lab-specific names:
 
 ```text
 Design Cloud Optics / Beauty Lab v1
-Implement Fair-Weather Cumulus lab controls
+Implement Lower Atmosphere Cloud Basics lab controls
 Add Evolving Boundary Layer mixed-layer diagnostics
 Add Warm Rain droplet distribution visualization
 ```
@@ -258,7 +258,7 @@ When a lab changes, update:
 
 ## Current Phase
 
-The current phase is Workbench V2 plus Fair-Weather Cumulus reference lab.
+The current phase is Workbench V2 plus Lower Atmosphere Cloud Basics reference lab.
 
 See `docs/current-phase-plan.md`.
 

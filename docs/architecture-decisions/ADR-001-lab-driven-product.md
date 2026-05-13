@@ -96,7 +96,7 @@ The current frontend should be treated as a working prototype that proved capabi
 
 ## First Reference Lab
 
-Fair-Weather Cumulus should be the first complete reference lab because it is visually intuitive, physically rich, and already partly supported by the current Boussinesq workflow.
+Lower Atmosphere Cloud Basics should be the first complete reference lab because it is visually intuitive, physically rich, and already partly supported by the current Boussinesq workflow. Fair-weather cumulus is a scenario family inside that lab.
 
 The reference lab should establish patterns for:
 
@@ -113,7 +113,7 @@ The reference lab should establish patterns for:
 
 The lab roadmap currently includes:
 
-1. Fair-Weather Cumulus
+1. Lower Atmosphere Cloud Basics
 2. Evolving Boundary Layer
 3. Layered Atmosphere
 4. Orographic / Terrain Clouds

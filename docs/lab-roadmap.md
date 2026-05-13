@@ -99,11 +99,13 @@ All labs benefit from:
 - 2.5-D visual extrusion
 - later droplet-aware optics
 
-## Lab 1 — Fair-Weather Cumulus
+## Lab 1 — Lower Atmosphere Cloud Basics
 
 ### Question
 
-Why do puffy cumulus clouds form on some warm afternoons and not others?
+How do heating, moisture, and stability shape basic warm-cloud formation near the ground?
+
+Fair-weather cumulus is a baseline scenario/scenario family inside this lab, not the lab name.
 
 ### User controls
 
@@ -120,6 +122,7 @@ Why do puffy cumulus clouds form on some warm afternoons and not others?
 - thermals rise from heated ground
 - boundary layer deepens or mixes
 - cloud forms near lifted condensation level if moisture and lift are sufficient
+- fair-weather cumulus can appear as a baseline shallow-cloud outcome
 - cloud bases are relatively coherent in well-mixed cases
 - cloud tops vary with thermal strength, stability, entrainment, and cloud age
 - dry air aloft can erode or suppress clouds
@@ -526,7 +529,7 @@ This is not near-term. It should remain a later lab until warm-cloud, profile, t
 The exact implementation order can change, but the product should mature in this direction:
 
 1. Workbench v2 and lab-driven UI
-2. Fair-weather cumulus lab as the first complete end-to-end lab
+2. Lower Atmosphere Cloud Basics as the first complete end-to-end lab
 3. Cloud optics / beauty capabilities
 4. Evolving boundary-layer model and diagnostics
 5. Layered atmosphere controls and diagnostics

@@ -24,7 +24,7 @@ The project starts with simplified and transparent models, but the architecture 
 
 The product roadmap is organized around phenomenon labs. The order below is conceptual, not a strict implementation sequence:
 
-1. Fair-Weather Cumulus
+1. Lower Atmosphere Cloud Basics
 2. Cloud Optics / Beauty
 3. Evolving Boundary Layer
 4. Layered Atmosphere
@@ -57,7 +57,7 @@ The current frontend should be treated as a capability prototype. Workbench V2 i
 Current product development should prioritize:
 
 1. Lab-driven Workbench V2.
-2. A complete Fair-Weather Cumulus reference lab.
+2. A complete Lower Atmosphere Cloud Basics reference lab.
 3. Beautiful and honest cloud visualization, including optical controls and 2.5-D views.
 4. Evolving boundary-layer and layered-atmosphere capabilities.
 5. Orographic, warm-rain, fog/stratus, and later mixed-phase labs.

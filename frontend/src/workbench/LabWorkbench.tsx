@@ -929,7 +929,7 @@ function VisualizationStage({
               <AxisGrid orientation="y" maxValue={domain.height_m} />
               <div className="stage-empty-state" aria-label={`${lab.name} no-frame state`}>
                 <strong>No frame displayed yet.</strong>
-                <p>Run Fair-Weather Cumulus to stream solver fields into this scientific 2-D view.</p>
+                <p>Run {lab.name} to stream solver fields into this scientific 2-D view.</p>
               </div>
             </div>
             <AxisTicks orientation="x" maxValue={domain.width_m} />

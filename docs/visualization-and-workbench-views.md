@@ -198,7 +198,7 @@ Known limitations of the current/prototype approach:
 
 Visualization work should follow the labs:
 
-- Fair-Weather Cumulus: cloud water, velocity, LCL/cloud-base/profile diagnostics
+- Lower Atmosphere Cloud Basics: cloud water, velocity, LCL/cloud-base/profile diagnostics
 - Cloud Optics / Beauty: sun angle, optical controls, 2.5-D view
 - Evolving Boundary Layer: time-evolving profiles, mixed-layer depth, RH evolution
 - Layered Atmosphere: cloud-layer detection and profile overlays

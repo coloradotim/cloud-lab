@@ -369,7 +369,7 @@ Recommended migration:
 
 1. Add lab catalog and lab/scenario types.
 2. Create Lab Picker and Lab Workbench shell.
-3. Implement Fair-Weather Cumulus Lab end-to-end using existing backend and frame schema.
+3. Implement Lower Atmosphere Cloud Basics Lab end-to-end using existing backend and frame schema.
 4. Move or rewrite visualization stage around the new lab structure.
 5. Move diagnostics into the new inspector model.
 6. Move saved runs and comparison into explicit modes.
@@ -377,11 +377,11 @@ Recommended migration:
 
 ## First Reference Implementation
 
-The first Workbench V2 reference lab should be Fair-Weather Cumulus.
+The first Workbench V2 reference lab should be Lower Atmosphere Cloud Basics.
 
 Minimum reference experience:
 
-- choose Fair-Weather Cumulus Lab
+- choose Lower Atmosphere Cloud Basics Lab
 - choose a scenario
 - adjust a few controls
 - run

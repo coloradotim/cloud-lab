@@ -2,7 +2,7 @@
 
 This document is the Phase 2 review artifact for issue #148.
 
-It reviews `docs/test-suite-audit.md`, classifies the major test groups, and makes an explicit Fair-Weather Cumulus / `boussinesq_2d` trust decision. It does not change tests, solver physics, scenario presets, diagnostics, visualization, or CI behavior.
+It reviews `docs/test-suite-audit.md`, classifies the major test groups, and makes an explicit Lower Atmosphere Cloud Basics / `boussinesq_2d` trust decision. It does not change tests, solver physics, scenario presets, diagnostics, visualization, or CI behavior.
 
 ## Review Summary
 
@@ -10,7 +10,7 @@ The test suite has meaningful coverage. It is not a hollow suite. It includes ba
 
 However, the current suite does not yet provide a clean, trusted answer to the central product question:
 
-> Is `boussinesq_2d` reliable enough for Fair-Weather Cumulus to remain the reference cloud-formation lab, and reliable enough to support future Boussinesq-dependent labs?
+> Is `boussinesq_2d` reliable enough for Lower Atmosphere Cloud Basics to remain the reference cloud-formation lab, and reliable enough to support future Boussinesq-dependent labs?
 
 The answer from this review is **Yellow**.
 
@@ -21,7 +21,7 @@ The answer from this review is **Yellow**.
 Meaning:
 
 - `boussinesq_2d` remains useful as an experimental dynamics scaffold.
-- It can continue supporting controlled Fair-Weather Cumulus work, provided the UI and docs keep honest limitations visible.
+- It can continue supporting controlled Lower Atmosphere Cloud Basics work, provided the UI and docs keep honest limitations visible.
 - It should not be treated as broadly trusted atmospheric dynamics.
 - Boussinesq-dependent future labs should pause or proceed only as explicitly labeled prototypes until trust gaps are resolved.
 - Near-term product work should prefer non-Boussinesq paths where possible: Evolving Boundary Layer profile evolution, Clouds/Light/Shadow static optics, and controlled microphysics labs.
@@ -200,7 +200,7 @@ Purpose: determine whether observed suspicious behavior is caused by presets rat
 
 Required scope:
 
-- review all Fair-Weather Cumulus built-in scenarios
+- review all Lower Atmosphere Cloud Basics built-in scenarios
 - document intended physical regime, solver config, and expected qualitative outcome
 - identify presets that are physically incoherent, over-tuned, or too close to solver edge cases
 - separate preset problems from solver problems
@@ -262,7 +262,7 @@ Required scope:
 
 Until the above items are resolved or explicitly accepted as warnings:
 
-- continue Fair-Weather Cumulus work only with honest experimental labels
+- continue Lower Atmosphere Cloud Basics work only with honest experimental labels
 - do not treat `boussinesq_2d` as a broadly trusted dynamics foundation
 - do not build future Boussinesq-dependent labs as polished products
 - pause or label early Orographic/Terrain work as prototype-only if it depends on Boussinesq
@@ -303,7 +303,7 @@ Review doc:
 
 Main decisions:
 - keep boussinesq_2d as constrained experimental scaffold
-- keep Fair-Weather Cumulus work, but do not treat solver as broadly trusted
+- keep Lower Atmosphere Cloud Basics work, but do not treat solver as broadly trusted
 - pause polished Boussinesq-dependent future labs until trust gaps are resolved
 - create remediation backlog under #150
 - implement approved test cleanup under #149

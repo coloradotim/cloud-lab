@@ -39,7 +39,7 @@ Presets are reproducible starting points, not claims of operational weather real
 - stay within the documented `sim-config-v1` schema
 - avoid hiding important assumptions from the user
 
-The first backend preset is `fair-weather-cumulus`, shown in the API as **Fair-weather cumulus over heated ground**. It uses the public `boussinesq_2d` solver, a surface-moist source layer, paired warm surface patches, light background wind, and enough runtime for delayed cloud water to appear by the configured scenario end. This preset should not produce significant cloud at initialization.
+The backend API preset is `multi-thermal-cumulus-field`, shown in the API as **Multi-thermal cloud field**. It uses the public `boussinesq_2d` solver, a surface-moist source layer, paired warm surface patches, light background wind, and enough runtime for delayed cloud water to appear by the configured scenario end. The legacy helper function name is retained internally to avoid import churn, but the public preset contract is multi-thermal rather than the single-patch fair-weather baseline. This preset should not produce significant cloud at initialization.
 
 ## Current Adjustable Parameters
 

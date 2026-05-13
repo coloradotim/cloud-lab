@@ -129,7 +129,7 @@ The lab list is conceptual. It is not always the build sequence.
 Current product priority is:
 
 1. Workbench V2 and lab-driven UI.
-2. Fair-Weather Cumulus as the first complete reference lab.
+2. Lower Atmosphere Cloud Basics as the first complete reference lab.
 3. Cloud Optics / Beauty capabilities.
 4. Evolving Boundary Layer capabilities.
 5. Layered Atmosphere.

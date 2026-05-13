@@ -16,7 +16,7 @@ The current backend, solvers, validation tools, and frontend components are usef
 
 Build Cloud Lab as a collection of guided phenomenon labs:
 
-1. Fair-Weather Cumulus
+1. Lower Atmosphere Cloud Basics
 2. Cloud Optics / Beauty
 3. Evolving Boundary Layer
 4. Layered Atmosphere

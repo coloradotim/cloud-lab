@@ -25,10 +25,10 @@ import {
 const fairWeatherLab = labById(FAIR_WEATHER_CUMULUS_LAB_ID);
 
 if (!fairWeatherLab) {
-  throw new Error("Missing Fair-Weather Cumulus lab");
+  throw new Error("Missing Lower Atmosphere Cloud Basics lab");
 }
 
-describe("Workbench V2 Fair-Weather run loop", () => {
+describe("Workbench V2 lower-atmosphere run loop", () => {
   it("updates active config when a scenario is selected", () => {
     const initial = createInitialWorkbenchState(fairWeatherLab);
     const dryFailed = selectWorkbenchScenario(initial, fairWeatherLab, "dry-failed-cumulus");
@@ -39,7 +39,7 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(dryFailed.frames).toHaveLength(0);
   });
 
-  it("keeps the default Fair-Weather model setup equivalent to the former medium run", () => {
+  it("keeps the default lower-atmosphere model setup equivalent to the former medium run", () => {
     const initial = createInitialWorkbenchState(fairWeatherLab);
 
     expect(initial.modelResolutionSlug).toBe("medium");
