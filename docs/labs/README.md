@@ -44,4 +44,4 @@ A lab spec should define:
 
 The current implementation phase is Workbench V2 plus the Fair-Weather Cumulus reference lab. See `docs/current-phase-plan.md`.
 
-Clouds, Light, and Shadow now has a concept-level lab spec and an initial Workbench V2 shell. Renderer, preset scene generation, and optics diagnostics remain intentionally deferred to follow-on issues.
+Clouds, Light, and Shadow now has a concept-level lab spec, an initial Workbench V2 shell, and deterministic preset source scenes. Renderer and optics diagnostics remain intentionally deferred to follow-on issues.

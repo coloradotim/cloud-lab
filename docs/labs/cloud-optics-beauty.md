@@ -92,6 +92,11 @@ Required scene properties:
 - scene metadata describing teaching purpose
 - default sun and camera geometry
 
+The first source-scene implementation uses `cloud-optics-scene-v1` records with normalized
+`x`/`z` coordinates, a normalized non-negative `cloud_density` field, deterministic 2.5-D
+depth metadata, and default renderer-control values. These records are generated source
+fields for this lab, not backend solver output or weather forecasts.
+
 Optical forcing:
 
 - directional sunlight
