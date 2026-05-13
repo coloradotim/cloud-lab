@@ -1,9 +1,12 @@
 import asyncio
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 from app.sim import RunStatus, SimulationConfig, run_manager, stream_run
+
+pytestmark = pytest.mark.contract
 
 
 def test_run_lifecycle_streams_metadata_frames_and_completion() -> None:

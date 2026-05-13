@@ -11,6 +11,8 @@ from app.sim import (
     run_simulation,
 )
 
+pytestmark = [pytest.mark.contract, pytest.mark.lab]
+
 
 def test_presets_endpoint_returns_fair_weather_cumulus_config() -> None:
     client = TestClient(app)

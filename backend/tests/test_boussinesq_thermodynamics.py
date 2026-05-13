@@ -19,6 +19,8 @@ from app.sim.schemas import (
     TimeConfig,
 )
 
+pytestmark = [pytest.mark.boussinesq, pytest.mark.science, pytest.mark.diagnostic]
+
 
 def test_lcl_diagnostic_returns_plausible_common_values() -> None:
     assert compute_lcl_height_m(298.15, 0.80) == pytest.approx(370.0, abs=90.0)
