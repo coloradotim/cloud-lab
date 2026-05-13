@@ -585,11 +585,12 @@ function CloudOpticsControl({
         <span>{control.label}</span>
         <select
           value={controls.lightColorPreset}
-          onChange={(event) =>
+          onChange={(event) => {
+            const nextValue = event.currentTarget.value;
             setControls((current) =>
-              current ? updateCloudOpticsControls(current, "lightColorPreset", event.currentTarget.value) : current,
-            )
-          }
+              current ? updateCloudOpticsControls(current, "lightColorPreset", nextValue) : current,
+            );
+          }}
         >
           <option value="midday">midday</option>
           <option value="golden-hour">golden-hour</option>
@@ -609,13 +610,14 @@ function CloudOpticsControl({
         min={cloudOpticsControlRange(control.id).min}
         max={cloudOpticsControlRange(control.id).max}
         step={cloudOpticsControlRange(control.id).step}
-        onChange={(event) =>
+        onChange={(event) => {
+          const nextValue = event.currentTarget.value;
           setControls((current) =>
             current
-              ? updateCloudOpticsControls(current, controlKey, event.currentTarget.value)
+              ? updateCloudOpticsControls(current, controlKey, nextValue)
               : current,
-          )
-        }
+          );
+        }}
       />
       <small>{control.unitsOrType}</small>
     </label>

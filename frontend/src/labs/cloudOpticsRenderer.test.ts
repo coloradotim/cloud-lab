@@ -93,4 +93,16 @@ describe("cloud optics renderer", () => {
     expect(scene.defaultControls.viewAngleDegrees).not.toBe(55);
     expect(scene.sourceField.values).toEqual(before);
   });
+
+  it("keeps numeric renderer controls finite and bounded", () => {
+    const scene = generateCloudOpticsScene("small-puffy-cumulus");
+
+    expect(updateCloudOpticsControls(scene.defaultControls, "sunAzimuthDegrees", 235).sunAzimuthDegrees).toBe(235);
+    expect(updateCloudOpticsControls(scene.defaultControls, "sunAzimuthDegrees", "not-a-number").sunAzimuthDegrees).toBe(
+      scene.defaultControls.sunAzimuthDegrees,
+    );
+    expect(updateCloudOpticsControls(scene.defaultControls, "sunAzimuthDegrees", 720).sunAzimuthDegrees).toBe(360);
+    expect(updateCloudOpticsControls(scene.defaultControls, "viewAngleDegrees", -120).viewAngleDegrees).toBe(-60);
+    expect(updateCloudOpticsControls(scene.defaultControls, "viewAngleDegrees", 120).viewAngleDegrees).toBe(60);
+  });
 });

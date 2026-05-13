@@ -145,10 +145,43 @@ export function updateCloudOpticsControls(
   key: keyof CloudOpticsSceneControls,
   value: number | string,
 ): CloudOpticsSceneControls {
+  if (typeof controls[key] === "number") {
+    const nextValue = typeof value === "number" ? value : Number(value);
+    return {
+      ...controls,
+      [key]: Number.isFinite(nextValue)
+        ? clamp(nextValue, ...numericControlBounds(key))
+        : controls[key],
+    } as CloudOpticsSceneControls;
+  }
+
   return {
     ...controls,
-    [key]: typeof controls[key] === "number" ? Number(value) : value,
+    [key]: value,
   } as CloudOpticsSceneControls;
+}
+
+function numericControlBounds(key: keyof CloudOpticsSceneControls): [number, number] {
+  switch (key) {
+    case "sunElevationDegrees":
+      return [5, 85];
+    case "sunAzimuthDegrees":
+      return [0, 360];
+    case "viewAngleDegrees":
+      return [-60, 60];
+    case "cloudWaterDensityMultiplier":
+    case "cloudDepthMultiplier":
+    case "opticalDepthMultiplier":
+      return [0, 2.5];
+    case "edgeSoftness":
+    case "skyBrightness":
+    case "haze":
+      return [0, 1];
+    case "exposure":
+      return [0.2, 2];
+    default:
+      return [-Infinity, Infinity];
+  }
 }
 
 function lightPathLength(
