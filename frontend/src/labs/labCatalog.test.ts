@@ -152,7 +152,7 @@ describe("lab catalog", () => {
     expect(cloudOpticsLab.id).toBe("cloud-optics-beauty");
     expect(cloudOpticsLab.name).toBe("Clouds, Light, and Shadow");
     expect(cloudOpticsLab.status).toBe("concept");
-    expect(cloudOpticsLab.statusLabel).toBe("Concept shell / renderer deferred");
+    expect(cloudOpticsLab.statusLabel).toBe("Prototype optics renderer");
     expect(cloudOpticsLab.supportedPhysicsCore).toBeNull();
     expect(cloudOpticsLab.isSelectable).toBe(true);
     expect(cloudOpticsLab.question).toContain(
@@ -160,7 +160,7 @@ describe("lab catalog", () => {
     );
     expect(cloudOpticsLab.limitations).toEqual(
       expect.arrayContaining([
-        "Renderer is not implemented in this slice",
+        "Lightweight renderer is qualitative and approximate",
         "Preset scene fields are deterministic generated source fields",
         "2.5-D visual scene, not true 3-D atmospheric dynamics",
         "Qualitative learning tool, not full radiative transfer",

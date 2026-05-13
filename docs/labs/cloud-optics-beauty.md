@@ -39,7 +39,7 @@ The lab should be beautiful and intuitive, but scientifically honest.
 
 `concept`
 
-This is a design/spec lab. It is not yet implemented as a Workbench V2 lab. The first implementation should be qualitative and educational. It should not become a full radiative-transfer model, a shader playground, or a general cloud-rendering toy.
+This is an early Workbench V2 lab. It has deterministic preset source scenes and a lightweight qualitative cloud-optics renderer. It is not a full radiative-transfer model, a shader playground, or a general cloud-rendering toy.
 
 ## User Controls
 
@@ -96,6 +96,12 @@ The first source-scene implementation uses `cloud-optics-scene-v1` records with 
 `x`/`z` coordinates, a normalized non-negative `cloud_density` field, deterministic 2.5-D
 depth metadata, and default renderer-control values. These records are generated source
 fields for this lab, not backend solver output or weather forecasts.
+
+The first rendered view consumes those records in the browser and derives rendered cloud
+appearance, cloud-water/source-field, optical-depth, and light-path/shadow views without
+mutating the source field. The renderer uses lightweight attenuation and approximate
+single-scattering relationships so users can see how density, depth, optical strength,
+sun geometry, and view angle change appearance.
 
 Optical forcing:
 

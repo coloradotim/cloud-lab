@@ -567,7 +567,7 @@ const cloudOpticsVisualizationModes: LabVisualizationModeDefinition[] = [
     id: "rendered-cloud-appearance-view",
     name: "Rendered cloud appearance view",
     description:
-      "Future primary view showing a lightweight 2.5-D volumetric cloud interpretation.",
+      "Shows a lightweight 2.5-D volumetric cloud interpretation with directional light and attenuation.",
     consumesFields: ["cloud_density"],
     truthLabel: "visual-approximation",
   },
@@ -581,7 +581,7 @@ const cloudOpticsVisualizationModes: LabVisualizationModeDefinition[] = [
   {
     id: "optical-depth-view",
     name: "Optical depth view",
-    description: "Shows thin, moderate, thick, and very thick regions once scene fields exist.",
+    description: "Shows thin, moderate, thick, and very thick regions derived from the source scene.",
     consumesFields: ["cloud_density", "optical_depth"],
     truthLabel: "visual-approximation",
   },
@@ -659,7 +659,7 @@ const cloudOpticsLab: LabDefinition = {
   description:
     "Choose a preset cloud-optics scene, review the initial light and optical controls, and see where the upcoming renderer will explain appearance through density, optical depth, sun geometry, and view angle.",
   status: "concept",
-  statusLabel: "Concept shell / renderer deferred",
+  statusLabel: "Prototype optics renderer",
   supportedPhysicsCore: null,
   concepts: [
     "cloud water density",
@@ -673,7 +673,7 @@ const cloudOpticsLab: LabDefinition = {
     "bright-edge behavior",
   ],
   limitations: [
-    "Renderer is not implemented in this slice",
+    "Lightweight renderer is qualitative and approximate",
     "Preset scene fields are deterministic generated source fields",
     "2.5-D visual scene, not true 3-D atmospheric dynamics",
     "Qualitative learning tool, not full radiative transfer",

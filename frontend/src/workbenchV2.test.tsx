@@ -57,7 +57,7 @@ describe("Workbench V2 lab picker", () => {
 
     expect(CLOUD_OPTICS_BEAUTY_LAB_ID).toBe("cloud-optics-beauty");
     expect(html).toContain("Clouds, Light, and Shadow");
-    expect(html).toContain("Concept shell / renderer deferred");
+    expect(html).toContain("Prototype optics renderer");
     expect(html).toContain("Open Clouds, Light, and Shadow shell");
     expect(selectLabForWorkbench("cloud-optics-beauty")).toEqual({
       view: "workbench",
@@ -89,31 +89,34 @@ describe("Clouds, Light, and Shadow Workbench V2 shell", () => {
     throw new Error("Missing Clouds, Light, and Shadow lab");
   }
 
-  it("opens inside Workbench V2 with prototype renderer states", () => {
+  it("opens inside Workbench V2 with interactive renderer states", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={cloudOpticsLab} onBackToLabs={vi.fn()} />,
     );
 
     expect(html).toContain("Clouds, Light, and Shadow");
     expect(html).toContain("Small Puffy Cumulus");
-    expect(html).toContain("Cloud appearance view shell");
-    expect(html).toContain("Renderer");
-    expect(html).toContain("Deferred");
-    expect(html).toContain("Deterministic source fields are ready");
+    expect(html).toContain("Rendered cloud appearance view");
+    expect(html).toContain("Cloud water field view");
+    expect(html).toContain("Optical depth view");
+    expect(html).toContain("Light path / shadow view");
+    expect(html).toContain("Visual approximation - bulk optical approximation");
     expect(html).toContain("Source grid");
     expect(html).toContain("72 x 48");
     expect(html).toContain("Source scene field");
     expect(html).toContain("cloud-optics-scene-v1");
-    expect(html).toContain("Prototype shell only");
+    expect(html).toContain("Renderer controls adjust the visual interpretation only");
     expect(html).toContain("Sun elevation");
-    expect(html).toContain("48 deg");
+    expect(html).toContain('value="48"');
     expect(html).toContain("Sun direction / azimuth");
     expect(html).toContain("View angle");
     expect(html).toContain("Cloud water density");
     expect(html).toContain("Optical depth / scattering strength");
     expect(html).toContain("Visual approximation");
+    expect(html).toContain("Not full radiative transfer");
+    expect(html).toContain("Not droplet-resolved Mie scattering");
+    expect(html).toContain("Not a calibrated radiance product");
     expect(html).toContain("Preset cloud field, not new cloud formation");
-    expect(html).toContain("disabled=\"\"");
   });
 });
 
