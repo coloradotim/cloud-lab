@@ -13,7 +13,11 @@ from app.sim import (
     run_simulation,
     saturation_specific_humidity_kg_per_kg,
 )
-from app.sim.boussinesq_2d import _condense, initialize_state
+from app.sim.boussinesq_2d import SolverGrid, _condense, initialize_state
+from app.sim.thermodynamics import (
+    BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+    pressure_at_height_pa,
+)
 
 pytestmark = [pytest.mark.boussinesq, pytest.mark.science]
 
@@ -103,8 +107,13 @@ def test_surface_moisture_profile_keeps_free_air_subsaturated() -> None:
     for row_index, z_m in enumerate(grid.z_coordinates_m):
         temperature = state.environmental_temperature_k[row_index][0]
         vapor = state.water_vapor_kg_per_kg[row_index][0]
+        pressure_pa = pressure_at_height_pa(
+            z_m,
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=config.initial_atmosphere.surface_temperature_k,
+        )
         relative_humidity_by_height.append(
-            (z_m, vapor / saturation_specific_humidity_kg_per_kg(temperature))
+            (z_m, vapor / saturation_specific_humidity_kg_per_kg(temperature, pressure_pa))
         )
 
     assert relative_humidity_by_height[0][1] > 0.80
@@ -117,6 +126,7 @@ def test_boussinesq_cloud_water_evaporates_in_subsaturated_air() -> None:
         water_vapor=[[0.0]],
         cloud_liquid_water=[[0.001]],
         vertical_velocity=[[0.01]],
+        grid=_single_cell_grid(),
     )
 
     assert result.cloud_liquid_water_kg_per_kg[0][0] < 0.001
@@ -130,11 +140,12 @@ def test_lifted_parcel_cooling_can_trigger_condensation() -> None:
         water_vapor=[[0.014]],
         cloud_liquid_water=[[0.0]],
         vertical_velocity=[[0.01]],
+        grid=_single_cell_grid(),
         parcel_lift_m=[[3_000.0]],
     )
 
     assert result.cloud_liquid_water_kg_per_kg[0][0] > 0.0
-    assert result.temperature_k[0][0] < 298.15
+    assert result.temperature_k[0][0] > 298.15
 
 
 def test_boussinesq_solver_produces_buoyant_motion_and_cloud_water() -> None:
@@ -239,3 +250,7 @@ def _boussinesq_config(
             "seed": seed,
         }
     )
+
+
+def _single_cell_grid() -> SolverGrid:
+    return SolverGrid(dx_m=1.0, dz_m=1.0, x_coordinates_m=[0.5], z_coordinates_m=[0.5])

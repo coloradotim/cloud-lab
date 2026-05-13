@@ -37,6 +37,7 @@ from app.sim.solver import (
     stream_simulation_frames,
 )
 from app.sim.streaming import stream_run
+from app.sim.thermodynamics import pressure_at_height_pa
 from app.sim.validation import (
     DIVERGENCE_VELOCITY_FLOOR_M_PER_S,
     BoussinesqDiagnostics,
@@ -46,6 +47,7 @@ from app.sim.validation import (
     BoussinesqThermodynamicDiagnostics,
     BoussinesqThermodynamicValidationCase,
     CloudRegionDiagnostics,
+    InitializedProfileDiagnostics,
     LiftedSaturationSanity,
     MixedLayerDiagnostics,
     boussinesq_model_sizes,
@@ -56,6 +58,7 @@ from app.sim.validation import (
     compute_boussinesq_thermodynamic_diagnostics,
     compute_cloud_region_diagnostics,
     compute_divergence_field,
+    compute_initialized_profile_diagnostics,
     compute_lcl_height_m,
     compute_mixed_layer_diagnostics,
     format_boussinesq_scenario_summary,
@@ -86,6 +89,7 @@ __all__ = [
     "HumidityLayerConfig",
     "HumidityPatchConfig",
     "InitialAtmosphereConfig",
+    "InitializedProfileDiagnostics",
     "LiftedSaturationSanity",
     "MixedLayerDiagnostics",
     "RunStatus",
@@ -109,6 +113,7 @@ __all__ = [
     "compute_boussinesq_thermodynamic_diagnostics",
     "compute_cloud_region_diagnostics",
     "compute_divergence_field",
+    "compute_initialized_profile_diagnostics",
     "compute_lcl_height_m",
     "compute_mixed_layer_diagnostics",
     "format_boussinesq_scenario_summary",
@@ -123,6 +128,7 @@ __all__ = [
     "run_boussinesq_scenario_validation",
     "run_manager",
     "saturation_specific_humidity_kg_per_kg",
+    "pressure_at_height_pa",
     "simulation_presets",
     "solver_descriptors",
     "state_to_frame",
