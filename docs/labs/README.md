@@ -10,7 +10,7 @@ Each lab spec should follow `docs/lab-contract-template.md` and the process in `
 | --- | --- | --- | --- |
 | 1 | `fair-weather-cumulus.md` | Fair-Weather Cumulus | prototype / first reference lab |
 | 2 | `cloud-optics-beauty.md` | Clouds, Light, and Shadow | concept / static optics lab prototype |
-| 3 | `evolving-boundary-layer.md` | Evolving Boundary Layer | planned |
+| 3 | `evolving-boundary-layer.md` | Evolving Boundary Layer | concept / spec created |
 | 4 | `layered-atmosphere.md` | Layered Atmosphere | planned |
 | 5 | `orographic-terrain-clouds.md` | Orographic / Terrain Clouds | planned |
 | 6 | `warm-rain-droplet-growth.md` | Warm Rain / Droplet Growth | planned |
@@ -45,3 +45,5 @@ A lab spec should define:
 The current implementation phase is Workbench V2 plus the Fair-Weather Cumulus reference lab. See `docs/current-phase-plan.md`.
 
 Clouds, Light, and Shadow now has a concept-level lab spec, static Workbench V2 optics flow, deterministic preset source scenes, semantic sun/camera controls, and a first lightweight rendered/science-view experience.
+
+Evolving Boundary Layer now has a concept-level lab spec. It is designed as a standalone 1-D profile-evolution lab that diagnoses cloud formation potential without producing cloud water in v1. Implementation should wait until the spec and follow-on issue split are reviewed.
