@@ -1,4 +1,4 @@
-export type LabStatus = "available" | "prototype" | "planned" | "later";
+export type LabStatus = "available" | "prototype" | "concept" | "planned" | "later";
 
 export type PhysicsCoreId = "boussinesq_2d" | "microphysics_lab";
 

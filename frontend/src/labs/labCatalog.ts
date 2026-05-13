@@ -7,6 +7,7 @@ import type {
 } from "./labTypes";
 
 export const FAIR_WEATHER_CUMULUS_LAB_ID = "fair-weather-cumulus";
+export const CLOUD_OPTICS_BEAUTY_LAB_ID = "cloud-optics-beauty";
 
 const fairWeatherControls: LabControlDefinition[] = [
   {
@@ -399,6 +400,291 @@ const fairWeatherLab: LabDefinition = {
   isSelectable: true,
 };
 
+const cloudOpticsControls: LabControlDefinition[] = [
+  {
+    id: "cloud-scene",
+    label: "Cloud scene",
+    tier: "primary",
+    meaning: "Selects the generated cloud field.",
+    expectedEffect: "Changes the optical behavior and teaching purpose of the scene.",
+    unitsOrType: "preset",
+    configPaths: ["renderer.scene_preset_id"],
+  },
+  {
+    id: "sun-elevation",
+    label: "Sun elevation",
+    tier: "primary",
+    meaning: "Height of the sun above the horizon.",
+    expectedEffect:
+      "Higher sun brightens tops and flattens shadows; lower sun increases path length and contrast.",
+    unitsOrType: "degrees or low / medium / high",
+    configPaths: ["renderer.sun_elevation_degrees"],
+  },
+  {
+    id: "sun-direction-azimuth",
+    label: "Sun direction / azimuth",
+    tier: "primary",
+    meaning: "Horizontal direction of incoming sunlight.",
+    expectedEffect: "Moves lit sides, shaded sides, and bright-edge behavior.",
+    unitsOrType: "degrees or compass preset",
+    configPaths: ["renderer.sun_azimuth_degrees"],
+  },
+  {
+    id: "view-angle",
+    label: "View angle",
+    tier: "primary",
+    meaning: "Observer or camera angle relative to cloud and sun.",
+    expectedEffect: "Changes front-lit, side-lit, backlit, and apparent-depth behavior.",
+    unitsOrType: "degrees or preset",
+    configPaths: ["renderer.view_angle_degrees"],
+  },
+  {
+    id: "cloud-water-density",
+    label: "Cloud water density",
+    tier: "primary",
+    meaning: "Bulk cloud water amount in the preset field.",
+    expectedEffect:
+      "Higher density increases optical response, bright lit regions, and darker interiors or bases.",
+    unitsOrType: "normalized multiplier",
+    configPaths: ["renderer.cloud_water_density_multiplier"],
+  },
+  {
+    id: "cloud-thickness-depth",
+    label: "Cloud thickness / depth",
+    tier: "primary",
+    meaning: "Effective 2.5-D depth of the cloud volume.",
+    expectedEffect: "Greater depth increases attenuation, interior shadowing, and dark-base behavior.",
+    unitsOrType: "normalized multiplier",
+    configPaths: ["renderer.cloud_depth_multiplier"],
+  },
+  {
+    id: "optical-depth-scattering",
+    label: "Optical depth / scattering strength",
+    tier: "primary",
+    meaning: "Simplified control for how strongly the cloud interacts with light.",
+    expectedEffect:
+      "Low values look faint or translucent; high values increase contrast, bright edges, and shaded interiors.",
+    unitsOrType: "normalized multiplier",
+    configPaths: ["renderer.optical_depth_multiplier"],
+  },
+  {
+    id: "time-of-day-light-color",
+    label: "Time of day / light color",
+    tier: "primary",
+    meaning: "Simple lighting preset for color temperature and mood.",
+    expectedEffect: "Midday is cooler and flatter; golden hour is warmer and more directional.",
+    unitsOrType: "preset",
+    configPaths: ["renderer.light_color_preset"],
+  },
+  {
+    id: "edge-softness",
+    label: "Edge softness",
+    tier: "secondary",
+    meaning: "Density falloff at cloud boundaries.",
+    expectedEffect: "Softer edges produce gradual fade; sharper edges look more abrupt.",
+    unitsOrType: "normalized",
+    configPaths: ["renderer.edge_softness"],
+  },
+  {
+    id: "background-sky-brightness",
+    label: "Background sky brightness",
+    tier: "secondary",
+    meaning: "Contrast between cloud and sky.",
+    expectedEffect: "Changes perceived contrast and edge visibility.",
+    unitsOrType: "normalized or preset",
+    configPaths: ["renderer.sky_brightness"],
+  },
+  {
+    id: "haze-background-scattering",
+    label: "Haze / background scattering",
+    tier: "secondary",
+    meaning: "Simple non-cloud atmospheric background effect.",
+    expectedEffect: "Adds a depth cue and can soften contrast.",
+    unitsOrType: "normalized",
+    configPaths: ["renderer.haze"],
+  },
+  {
+    id: "exposure-tone-mapping",
+    label: "Exposure / tone mapping",
+    tier: "secondary",
+    meaning: "Display brightness mapping.",
+    expectedEffect: "Prevents bright tops from clipping or shaded bases from disappearing.",
+    unitsOrType: "preset or normalized",
+    configPaths: ["renderer.exposure_preset"],
+  },
+  {
+    id: "scene-seed",
+    label: "Scene seed",
+    tier: "secondary",
+    meaning: "Reproducibility for generated scenes.",
+    expectedEffect: "Repeats the same generated cloud field.",
+    unitsOrType: "integer",
+    configPaths: ["scene.seed"],
+  },
+];
+
+const cloudOpticsDiagnostics: LabDiagnosticDefinition[] = [
+  {
+    id: "optical-depth-estimate",
+    label: "Optical-depth estimate",
+    purpose: "Shows whether the current path is optically thin, moderate, thick, or very thick.",
+    kind: "display",
+  },
+  {
+    id: "cloud-water-density-summary",
+    label: "Cloud water / density summary",
+    purpose: "Explains how much cloud material exists.",
+    kind: "display",
+  },
+  {
+    id: "light-geometry-state",
+    label: "Light geometry state",
+    purpose: "Labels front-lit, side-lit, backlit, high-sun, or low-sun setup.",
+    kind: "display",
+  },
+  {
+    id: "light-path-length-proxy",
+    label: "Light-path length proxy",
+    purpose: "Explains short, moderate, or long paths through cloud.",
+    kind: "display",
+  },
+  {
+    id: "bright-edge-likelihood",
+    label: "Bright-edge likelihood",
+    purpose: "Indicates weak, moderate, or strong silver-lining-like behavior.",
+    kind: "display",
+  },
+  {
+    id: "approximation-labels-present",
+    label: "Approximation labels present",
+    purpose: "Confirms bulk optical and 2.5-D approximations are disclosed.",
+    kind: "hard-check",
+  },
+];
+
+const cloudOpticsVisualizationModes: LabVisualizationModeDefinition[] = [
+  {
+    id: "rendered-cloud-appearance-view",
+    name: "Rendered cloud appearance view",
+    description:
+      "Future primary view showing a lightweight 2.5-D volumetric cloud interpretation.",
+    consumesFields: ["cloud_density"],
+    truthLabel: "visual-approximation",
+  },
+  {
+    id: "cloud-water-field-view",
+    name: "Cloud water field view",
+    description: "Shows the source density structure separately from lighting effects.",
+    consumesFields: ["cloud_density"],
+    truthLabel: "visual-approximation",
+  },
+  {
+    id: "optical-depth-view",
+    name: "Optical depth view",
+    description: "Shows thin, moderate, thick, and very thick regions once scene fields exist.",
+    consumesFields: ["cloud_density", "optical_depth"],
+    truthLabel: "visual-approximation",
+  },
+  {
+    id: "light-path-shadow-view",
+    name: "Light path / shadow view",
+    description: "Shows simplified directional light behavior through the cloud field.",
+    consumesFields: ["cloud_density", "light_path_proxy"],
+    truthLabel: "visual-approximation",
+  },
+];
+
+const cloudOpticsScenarios: LabScenarioDefinition[] = [
+  {
+    id: "small-puffy-cumulus",
+    labId: CLOUD_OPTICS_BEAUTY_LAB_ID,
+    name: "Small Puffy Cumulus",
+    intendedPhenomenon: "Baseline scene for soft edges, bright tops, and shaded interiors.",
+    expectedBehavior:
+      "Rounded cloud with gradual edges; high sun brightens top; lower or side sun creates stronger contrast.",
+    keyControls: ["sun-elevation", "sun-direction-azimuth", "cloud-water-density", "optical-depth-scattering"],
+    diagnosticExpectations: ["Optical-depth estimate and light-geometry labels explain the rendered result."],
+    limitations: ["Renderer and generated scene fields are deferred; this shell is non-runnable."],
+  },
+  {
+    id: "thick-cumulus-dark-base",
+    labId: CLOUD_OPTICS_BEAUTY_LAB_ID,
+    name: "Thick Cumulus With Dark Base",
+    intendedPhenomenon: "Optical thickness and dark cloud bases.",
+    expectedBehavior:
+      "Increasing density, thickness, and optical depth darkens base and interior while lit regions stay bright.",
+    keyControls: ["cloud-thickness-depth", "cloud-water-density", "optical-depth-scattering"],
+    diagnosticExpectations: ["Base/interior darkness and optical-depth estimates explain the dark base."],
+    limitations: ["No full radiative transfer or calibrated radiance output."],
+  },
+  {
+    id: "broken-cloud-field",
+    labId: CLOUD_OPTICS_BEAUTY_LAB_ID,
+    name: "Broken Cloud Field",
+    intendedPhenomenon: "Layered depth, overlap, and view-angle behavior.",
+    expectedBehavior:
+      "Multiple cloud elements create depth; oblique views reveal stronger layered structure.",
+    keyControls: ["view-angle", "sun-direction-azimuth", "optical-depth-scattering", "haze-background-scattering"],
+    diagnosticExpectations: ["Layered depth explanation responds to view angle and overlap."],
+    limitations: ["Preset 2.5-D scene only; no true out-of-plane atmospheric motion."],
+  },
+  {
+    id: "towering-developing-cumulus",
+    labId: CLOUD_OPTICS_BEAUTY_LAB_ID,
+    name: "Towering / Developing Cumulus",
+    intendedPhenomenon: "Vertical structure, glowing tops, and shaded interiors.",
+    expectedBehavior:
+      "Taller volume shows bright top or sun-facing side with shaded interior; low sun increases drama.",
+    keyControls: ["sun-elevation", "cloud-thickness-depth", "optical-depth-scattering"],
+    diagnosticExpectations: ["Light geometry and path-length proxy explain top/interior contrast."],
+    limitations: ["Preset cloud shape; this lab does not simulate cloud formation."],
+  },
+  {
+    id: "thin-veil-low-optical-depth",
+    labId: CLOUD_OPTICS_BEAUTY_LAB_ID,
+    name: "Thin Veil / Low Optical Depth Cloud",
+    intendedPhenomenon: "Translucent clouds and faint optical response.",
+    expectedBehavior: "Cloud remains soft and semi-transparent unless optical depth is raised.",
+    keyControls: ["optical-depth-scattering", "background-sky-brightness", "cloud-water-density", "cloud-thickness-depth"],
+    diagnosticExpectations: ["Thin optical-depth state explains weak dark-base behavior."],
+    limitations: ["Qualitative bulk optical approximation; not a calibrated radiance product."],
+  },
+];
+
+const cloudOpticsLab: LabDefinition = {
+  id: CLOUD_OPTICS_BEAUTY_LAB_ID,
+  name: "Clouds, Light, and Shadow",
+  question:
+    "Why do clouds look soft, dark, glowing, layered, silver-lined, or dramatic under different lighting and viewing conditions?",
+  description:
+    "Choose a preset cloud-optics scene, review the initial light and optical controls, and see where the upcoming renderer will explain appearance through density, optical depth, sun geometry, and view angle.",
+  status: "concept",
+  statusLabel: "Concept shell / renderer deferred",
+  supportedPhysicsCore: null,
+  concepts: [
+    "cloud water density",
+    "optical depth",
+    "attenuation through cloud volume",
+    "approximate single scattering",
+    "sun elevation and azimuth",
+    "view angle / camera geometry",
+    "soft cloud edges",
+    "dark cloud bases",
+    "bright-edge behavior",
+  ],
+  limitations: [
+    "Renderer and preset scene generation are not implemented in this slice",
+    "2.5-D visual scene, not true 3-D atmospheric dynamics",
+    "Qualitative learning tool, not full radiative transfer",
+    "No droplet-resolved Mie scattering or calibrated radiance output",
+  ],
+  scenarios: cloudOpticsScenarios,
+  controls: cloudOpticsControls,
+  diagnostics: cloudOpticsDiagnostics,
+  visualizationModes: cloudOpticsVisualizationModes,
+  isSelectable: true,
+};
+
 function plannedLab(lab: Omit<LabDefinition, "supportedPhysicsCore" | "scenarios" | "controls" | "diagnostics" | "visualizationModes" | "isSelectable">): LabDefinition {
   return {
     ...lab,
@@ -413,17 +699,7 @@ function plannedLab(lab: Omit<LabDefinition, "supportedPhysicsCore" | "scenarios
 
 export const labCatalog: LabDefinition[] = [
   fairWeatherLab,
-  plannedLab({
-    id: "cloud-optics-beauty",
-    name: "Cloud Optics / Beauty",
-    question: "Why do clouds look bright, dark, soft, sharp, glowing, or dramatic?",
-    description:
-      "Future lab for bulk cloud appearance, sun/view controls, optical-depth labels, and later droplet-aware rendering.",
-    status: "planned",
-    statusLabel: "Planned",
-    concepts: ["sun angle", "cloud thickness", "optical depth", "edge brightening"],
-    limitations: ["Not implemented in Workbench V2 yet"],
-  }),
+  cloudOpticsLab,
   plannedLab({
     id: "evolving-boundary-layer",
     name: "Evolving Boundary Layer",

@@ -71,6 +71,8 @@ The scientific view renders fields from `SimulationFrame` directly:
 
 This is the most literal view of the solver output.
 
+Scientific 2-D views should label both physical axes and show rational major tick marks/gridlines derived from the displayed domain scale, such as horizontal distance `x` in meters and height `z` in meters. The ticks are interpretive display aids; they must not change solver fields or frame data.
+
 ### Cloud Appearance View
 
 The cloud appearance view uses cloud liquid water and documented assumptions to produce a more cloud-like image.
