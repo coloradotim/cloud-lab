@@ -13,7 +13,7 @@ PySDM is not a general solution to Cloud Lab's dynamics problem. It is relevant 
 - future aerosol/CCN experiments
 - future precipitation-initiation diagnostics
 
-PySDM should not be required for the first Fair-Weather Cumulus Lab, basic 2.5-D visualization, or bulk optical rendering.
+PySDM should not be required for the first Lower Atmosphere Cloud Basics Lab, basic 2.5-D visualization, or bulk optical rendering.
 
 ## Sources Checked
 

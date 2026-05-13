@@ -28,11 +28,12 @@ Workbench V2 should present scenarios inside labs.
 Example:
 
 ```text
-Fair-Weather Cumulus Lab
-  - moderate cloud base
+Lower Atmosphere Cloud Basics Lab
+  - fair-weather cumulus / baseline shallow cloud
   - dry failed cumulus
-  - multi-thermal cumulus field
-  - dry cap / suppressed cumulus
+  - capped / suppressed cloud
+  - multi-thermal cloud field
+  - humid low-cloud contrast
 
 Warm Rain / Droplet Growth Lab
   - lifted humid parcel
@@ -63,11 +64,11 @@ The UI should not expose a generic pile of sliders for every solver. If a contro
 
 ## Built-In Scenario Catalog
 
-The current built-in scenario catalog supports early Fair-Weather Cumulus and Warm Rain / Microphysics Lab behavior. These should eventually be organized under lab definitions.
+The current built-in scenario catalog supports early Lower Atmosphere Cloud Basics and Warm Rain / Microphysics Lab behavior. These should eventually be organized under lab definitions.
 
-### Fair-weather cumulus — moderate cloud base
+### Fair-weather cumulus / baseline shallow cloud
 
-- Lab: Fair-Weather Cumulus
+- Lab: Lower Atmosphere Cloud Basics
 - Solver: `boussinesq_2d`
 - Purpose: classic shallow cumulus from localized surface heating.
 - Thermodynamics: surface-moist source layer, moderate RH, finite LCL above the first model levels, drier free air aloft.
@@ -76,11 +77,11 @@ The current built-in scenario catalog supports early Fair-Weather Cumulus and Wa
 - Diagnostics: finite LCL, low below-LCL cloud fraction, cloud base more clustered than cloud top.
 - Limitation: qualitative Boussinesq prototype, simplified entrainment and turbulence.
 
-The backend `fair-weather-cumulus` preset follows the same science contract but uses paired warm patches so automated tests can verify delayed cloud formation and separated cloud regions by the configured runtime. A fair-weather cumulus scenario that produces no cloud by its configured runtime is considered mislabeled or misconfigured, not an acceptable zero-cloud outcome.
+The frontend `fair-weather-moderate-base` scenario is the single-patch baseline. The backend API preset keeps its legacy helper function name but now exposes the public slug `multi-thermal-cumulus-field` because it uses paired warm patches. A fair-weather cumulus baseline scenario that produces no cloud by its configured runtime is considered mislabeled or misconfigured, not an acceptable zero-cloud outcome.
 
-### Multi-thermal cumulus field
+### Multi-thermal cloud field
 
-- Lab: Fair-Weather Cumulus
+- Lab: Lower Atmosphere Cloud Basics
 - Solver: `boussinesq_2d`
 - Purpose: multiple thermals/clouds from structured surface heating.
 - Thermodynamics: shared moderately humid source layer with drier air aloft.
@@ -91,25 +92,25 @@ The backend `fair-weather-cumulus` preset follows the same science contract but 
 
 ### Dry failed cumulus
 
-- Lab: Fair-Weather Cumulus
+- Lab: Lower Atmosphere Cloud Basics
 - Solver: `boussinesq_2d`
 - Purpose: show buoyant motion without cloud formation.
 - Thermodynamics: lower RH and higher effective LCL.
 - Forcing: localized heating weaker than the cloud-forming fair-weather case.
 - Expected behavior: thermal/updraft structure appears while cloud liquid water stays negligible.
 
-### Humid low-cloud boundary layer
+### Humid low-cloud contrast
 
-- Lab: Fog / Stratus or Layered Atmosphere, depending on future organization
+- Lab: Lower Atmosphere Cloud Basics as a contrast/debug scenario; future Fog / Stratus or Layered Atmosphere candidate
 - Solver: `boussinesq_2d`
 - Purpose: intentionally show very-low-LCL behavior.
 - Thermodynamics: near-saturated mixed layer.
 - Forcing: weak uneven heating.
 - Expected behavior: low cloud or broad deck behavior may appear. This is not labeled as classic fair-weather cumulus.
 
-### Dry cap / suppressed cumulus
+### Capped / suppressed cloud
 
-- Lab: Fair-Weather Cumulus / Evolving Boundary Layer
+- Lab: Lower Atmosphere Cloud Basics / future Evolving Boundary Layer
 - Solver: `boussinesq_2d`
 - Purpose: show inhibition from a dry/stable layer aloft.
 - Thermodynamics: moist lower source layer with a drier cap near the boundary-layer top.

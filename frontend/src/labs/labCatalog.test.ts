@@ -16,10 +16,10 @@ if (!fairWeatherLab || !cloudOpticsLab) {
 }
 
 describe("lab catalog", () => {
-  it("includes Fair-Weather Cumulus as the first functional lab", () => {
+  it("includes Lower Atmosphere Cloud Basics as the first functional lab", () => {
     expect(labCatalog[0]).toBe(fairWeatherLab);
     expect(fairWeatherLab.id).toBe("fair-weather-cumulus");
-    expect(fairWeatherLab.name).toBe("Fair-Weather Cumulus");
+    expect(fairWeatherLab.name).toBe("Lower Atmosphere Cloud Basics");
     expect(fairWeatherLab.isSelectable).toBe(true);
     expect(fairWeatherLab.capabilities).toMatchObject({
       supportsRun: true,
@@ -29,12 +29,12 @@ describe("lab catalog", () => {
     });
   });
 
-  it("matches the Fair-Weather Cumulus lab spec metadata", () => {
+  it("matches the Lower Atmosphere Cloud Basics lab spec metadata", () => {
     expect(fairWeatherLab.question).toBe(
-      "Why do puffy cumulus clouds form on some warm afternoons and not others?",
+      "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
     expect(fairWeatherLab.status).toBe("prototype");
-    expect(fairWeatherLab.statusLabel).toBe("Prototype / first reference lab");
+    expect(fairWeatherLab.statusLabel).toBe("Experimental 2-D warm-cloud model");
     expect(fairWeatherLab.supportedPhysicsCore).toBe("boussinesq_2d");
     expect(fairWeatherLab.concepts).toEqual(
       expect.arrayContaining([
@@ -55,12 +55,12 @@ describe("lab catalog", () => {
     );
   });
 
-  it("attaches lab-specific Fair-Weather scenarios to the lab id", () => {
+  it("attaches lower-atmosphere scenarios to the legacy internal lab id", () => {
     expect(fairWeatherLab.scenarios.map((scenario) => scenario.name)).toEqual([
-      "Moderate cloud base",
+      "Fair-weather cumulus / baseline shallow cloud",
       "Dry failed cumulus",
-      "Dry cap / suppressed cumulus",
-      "Multi-thermal field",
+      "Capped / suppressed cloud",
+      "Multi-thermal cloud field",
     ]);
     expect(fairWeatherLab.scenarios.every((scenario) => scenario.labId === fairWeatherLab.id)).toBe(
       true,

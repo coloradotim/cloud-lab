@@ -35,7 +35,7 @@ The Lab Picker is where users choose what physical phenomenon they want to explo
 
 Initial lab list:
 
-- Fair-Weather Cumulus
+- Lower Atmosphere Cloud Basics
 - Cloud Optics / Beauty
 - Evolving Boundary Layer
 - Layered Atmosphere
@@ -317,11 +317,11 @@ The backend API, solver registry, frame schema, and validation work are valuable
 
 The first complete implementation should support one lab end-to-end:
 
-### Fair-Weather Cumulus Lab
+### Lower Atmosphere Cloud Basics Lab
 
 Minimum user flow:
 
-1. choose Fair-Weather Cumulus Lab
+1. choose Lower Atmosphere Cloud Basics Lab
 2. choose a scenario
 3. adjust a small number of key controls
 4. run locally

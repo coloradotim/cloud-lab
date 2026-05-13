@@ -413,9 +413,11 @@ type ConfigPathValue = string | number | null | Record<string, unknown> | Array<
 export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
   {
     slug: "fair-weather-moderate-base",
-    name: "Fair-weather cumulus — moderate cloud base",
-    description: "Localized surface heating in moderately humid air; cloud should start above the surface.",
-    intendedPhenomenon: "Classic shallow fair-weather cumulus from thermals over heated ground.",
+    name: "Fair-weather cumulus / baseline shallow cloud",
+    description:
+      "Single-patch surface heating in moderately humid air; cloud should start above the surface.",
+    intendedPhenomenon:
+      "Baseline shallow fair-weather cumulus from a single heated patch near the ground.",
     solverMode: "boussinesq_2d",
     thermodynamicAssumptions:
       "Surface-moist source layer, finite LCL hundreds of meters above ground, drier free air aloft.",
@@ -457,7 +459,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
   },
   {
     slug: "multi-thermal-cumulus-field",
-    name: "Multi-thermal cumulus field",
+    name: "Multi-thermal cloud field",
     description: "Two heated regions in a shared source layer for separated shallow cloud cells.",
     intendedPhenomenon: "Multiple thermals and cloud cells from structured surface heating.",
     solverMode: "boussinesq_2d",
@@ -540,8 +542,9 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
   },
   {
     slug: "humid-low-cloud-boundary-layer",
-    name: "Humid low-cloud boundary layer",
-    description: "Near-saturated air with a very low LCL; this is intentionally not classic fair-weather cumulus.",
+    name: "Humid low-cloud contrast",
+    description:
+      "Near-saturated air with a very low LCL; this contrast case is intentionally not classic fair-weather cumulus.",
     intendedPhenomenon: "Low-cloud or foggy boundary-layer behavior.",
     solverMode: "boussinesq_2d",
     thermodynamicAssumptions: "Very high RH places the expected LCL near the surface.",
@@ -555,7 +558,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
     ],
     knownLimitations: [
       "Fog/stratus microphysics is parameterized crudely.",
-      "This scenario is a contrast case, not the default fair-weather setup.",
+      "This scenario is a low-cloud contrast case, not the default fair-weather cumulus setup.",
     ],
     category: "diagnostic",
     apply: (config) =>
@@ -583,7 +586,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
   },
   {
     slug: "dry-cap-suppressed-cumulus",
-    name: "Dry cap / suppressed cumulus",
+    name: "Capped / suppressed cloud",
     description: "Moisture below with a drier cap aloft to show why heating does not always make clouds.",
     intendedPhenomenon: "Environmental inhibition of cumulus growth.",
     solverMode: "boussinesq_2d",

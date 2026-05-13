@@ -139,10 +139,12 @@ describe("simulation controls", () => {
     );
 
     expect(BUILT_IN_SCENARIOS).toHaveLength(7);
+    expect(fairWeather?.name).toBe("Fair-weather cumulus / baseline shallow cloud");
     expect(fairWeather?.apply(config)).toMatchObject({
       solver_type: "boussinesq_2d",
       surface_heating: { max_warming_rate_k_per_s: 0.024, pattern: "single_patch" },
     });
+    expect(multiThermal?.name).toBe("Multi-thermal cloud field");
     expect(multiThermal?.apply(config).surface_heating.pattern).toBe("two_patches");
     expect(multiThermal?.apply(config).initial_atmosphere.relative_humidity).toBe(0.85);
   });
@@ -195,6 +197,16 @@ describe("simulation controls", () => {
         "microphysics-no-lift-control",
       ]),
     );
+  });
+
+  it("keeps humid low-cloud as a contrast case rather than classic fair-weather cumulus", () => {
+    const lowCloud = BUILT_IN_SCENARIOS.find(
+      (referenceCase) => referenceCase.slug === "humid-low-cloud-boundary-layer",
+    );
+
+    expect(lowCloud?.name).toBe("Humid low-cloud contrast");
+    expect(lowCloud?.description).toContain("not classic fair-weather cumulus");
+    expect(lowCloud?.knownLimitations.join(" ")).toContain("low-cloud contrast case");
   });
 
   it("maps boussinesq model sizes to consistent domain grid and runtime configs", () => {

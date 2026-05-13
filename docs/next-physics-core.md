@@ -17,7 +17,7 @@ Primary product direction:
 Cloud Lab should use a hybrid physics-core strategy:
 
 1. Preserve the existing physics cores where they remain useful.
-2. Use `boussinesq_2d` as an experimental 2-D dynamics scaffold for selected labs, especially Fair-Weather Cumulus.
+2. Use `boussinesq_2d` as an experimental 2-D dynamics scaffold for selected labs, especially Lower Atmosphere Cloud Basics.
 3. Use `microphysics_lab` as the controlled warm-cloud experiment path for Warm Rain / Droplet Growth concepts.
 4. Evaluate PySDM in isolated parcel, box, column, and prescribed-flow cases before any production coupling.
 5. Do not integrate PySDM directly into `boussinesq_2d` yet.
@@ -31,7 +31,7 @@ Each physics core should be judged by the labs it enables.
 
 | Lab | Near-term physics path | Notes |
 | --- | --- | --- |
-| Fair-Weather Cumulus | `boussinesq_2d` | Experimental but useful for shallow thermal/cloud behavior. |
+| Lower Atmosphere Cloud Basics | `boussinesq_2d` | Experimental but useful for shallow thermal/cloud behavior. |
 | Evolving Boundary Layer | future profile/column + 2-D coupling | Major missing science/product layer. |
 | Layered Atmosphere | future profile/layer model | Needs editable and evolving profiles. |
 | Orographic / Terrain Clouds | idealized terrain forcing + validation | May start with Boussinesq, but must stay labeled. |
@@ -69,7 +69,7 @@ This schema boundary is important. The frontend and renderer should consume phys
 
 The Boussinesq validation suite checks quiet, dry, humid, stable, reproducibility, divergence, thermal-bubble behavior, and fair-weather thermodynamic structure diagnostics.
 
-The current evidence supports using `boussinesq_2d` for controlled visual experiments, Fair-Weather Cumulus learning, schema/UI validation, reference-case regression tests, and targeted dynamics work.
+The current evidence supports using `boussinesq_2d` for controlled visual experiments, Lower Atmosphere Cloud Basics learning, schema/UI validation, reference-case regression tests, and targeted dynamics work.
 
 It does not support treating it as a quantitatively credible CFD foundation for advanced microphysics.
 
@@ -187,7 +187,7 @@ Physics-core work should mature in this order unless a lab need changes the prio
 
 1. Keep existing cores stable behind the shared frame contract.
 2. Build Workbench V2 around labs rather than solver modes.
-3. Use Boussinesq for Fair-Weather Cumulus while validating lab-specific behavior.
+3. Use Boussinesq for Lower Atmosphere Cloud Basics while validating lab-specific behavior.
 4. Add boundary-layer/profile evolution as the next major bridge toward realistic cloud variety.
 5. Use `microphysics_lab` for controlled Warm Rain / Droplet Growth experiments.
 6. Evaluate PySDM in isolation and map outputs into `docs/microphysics-schema.md`.

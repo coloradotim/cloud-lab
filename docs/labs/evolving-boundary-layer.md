@@ -46,13 +46,13 @@ V1 is about whether the environment becomes favorable for clouds, not about rend
 
 This lab is currently a design/spec lab. It should become the first profile-evolution lab in Cloud Lab. It is not yet implemented, and it should not be implemented as a fully coupled 2-D dynamics model in v1.
 
-The first version should be a standalone 1-D profile-evolution lab that produces time-evolving profiles and diagnostics. Later versions may export evolved profiles into Fair-Weather Cumulus or loosely couple to `boussinesq_2d`, but that should wait until the 1-D profile model is understandable and validated.
+The first version should be a standalone 1-D profile-evolution lab that produces time-evolving profiles and diagnostics. Later versions may export evolved profiles into Lower Atmosphere Cloud Basics or loosely couple to `boussinesq_2d`, but that should wait until the 1-D profile model is understandable and validated.
 
 ## User Controls
 
 ### Primary Controls
 
-These controls should be visible by default, using scenario presets plus sliders/selectors similar in spirit to the Fair-Weather Cumulus lab.
+These controls should be visible by default, using scenario presets plus sliders/selectors similar in spirit to the Lower Atmosphere Cloud Basics lab.
 
 | Control | Meaning | Expected effect | Units / type |
 | --- | --- | --- | --- |
@@ -222,7 +222,7 @@ A compact diagnostic card or inspector summary explaining:
 
 ### Future 2-D coupling view
 
-Future versions may show an evolved profile feeding Fair-Weather Cumulus or another 2-D lab. This is not required for v1.
+Future versions may show an evolved profile feeding Lower Atmosphere Cloud Basics or another 2-D lab. This is not required for v1.
 
 ## Physics Core Requirements
 
@@ -240,7 +240,7 @@ This is the recommended path because it keeps failures interpretable. If v1 coup
    - no 2-D cloud field
    - no live Boussinesq coupling
 
-2. **Stage 2: export evolved profile to Fair-Weather Cumulus**
+2. **Stage 2: export evolved profile to Lower Atmosphere Cloud Basics**
    - use an evolved profile as an initial condition or scenario input
    - preserve source metadata and limitations
 
@@ -362,7 +362,7 @@ Useful comparisons:
 
 Future comparison:
 
-- send morning profile vs evolved profile into Fair-Weather Cumulus and compare outcomes
+- send morning profile vs evolved profile into Lower Atmosphere Cloud Basics and compare outcomes
 
 ## Validation Expectations
 
@@ -421,7 +421,7 @@ Future comparison:
 - broad ascent/cooling
 - subsidence
 - diurnal heating tied to latitude/date if ever justified
-- export evolved profile to Fair-Weather Cumulus
+- export evolved profile to Lower Atmosphere Cloud Basics
 - loose coupling to 2-D runs
 - better entrainment parameterization
 - cloud fraction or shallow-cumulus parameterization

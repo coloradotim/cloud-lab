@@ -114,7 +114,7 @@ The product should be organized around labs. See `docs/lab-roadmap.md` for the d
 
 Near-term core labs:
 
-1. Fair-Weather Cumulus Lab
+1. Lower Atmosphere Cloud Basics Lab
 2. Cloud Optics / Beauty Lab
 3. Evolving Boundary Layer Lab
 4. Layered Atmosphere Lab

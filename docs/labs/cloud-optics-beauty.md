@@ -295,7 +295,7 @@ Future comparisons:
 - low optical depth vs high optical depth
 - soft edge vs sharp edge
 - small cumulus vs towering cumulus
-- preset field vs imported Fair-Weather Cumulus field
+- preset field vs imported Lower Atmosphere Cloud Basics field
 - assumed-droplet optics vs future droplet-aware optics
 
 ## Validation Expectations
@@ -348,7 +348,7 @@ Future comparisons:
 - cloud shadows on ground
 - precipitation shaft visibility
 - water vs ice phase controls
-- imported cloud fields from Fair-Weather Cumulus
+- imported cloud fields from Lower Atmosphere Cloud Basics
 - side-by-side comparison mode
 - animation through a daily sun path
 - true 3-D scene mode when justified
@@ -359,9 +359,9 @@ Future comparisons:
 
 ## Relationship To Other Labs
 
-Fair-Weather Cumulus explains why shallow cumulus clouds form or fail. Clouds, Light, and Shadow explains why a cloud field looks the way it does under changing light and viewing geometry.
+Lower Atmosphere Cloud Basics explains why shallow clouds form or fail. Clouds, Light, and Shadow explains why a cloud field looks the way it does under changing light and viewing geometry.
 
-A future workflow may send a Fair-Weather Cumulus frame/run into this lab, but v1 should not depend on that workflow.
+A future workflow may send a Lower Atmosphere Cloud Basics frame/run into this lab, but v1 should not depend on that workflow.
 
 Layered Atmosphere, Orographic / Terrain Clouds, Warm Rain / Droplet Growth, Fog / Stratus, and Mixed-Phase / Ice may eventually provide richer source fields or optical assumptions. V1 should remain preset-scene-driven.
 
@@ -407,7 +407,7 @@ V1 should not include:
 - satellite products
 - rainbows/halos/glories/iridescence
 - side-by-side comparison as a required feature
-- import from Fair-Weather Cumulus as a required feature
+- import from Lower Atmosphere Cloud Basics as a required feature
 - saved run comparison as a required feature
 
 ## Documentation Checklist

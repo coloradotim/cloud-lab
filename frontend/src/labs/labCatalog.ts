@@ -6,6 +6,8 @@ import type {
   LabVisualizationModeDefinition,
 } from "./labTypes";
 
+// Legacy internal id retained to avoid route/config churn. The user-facing lab name is
+// "Lower Atmosphere Cloud Basics"; fair-weather cumulus is a scenario family inside it.
 export const FAIR_WEATHER_CUMULUS_LAB_ID = "fair-weather-cumulus";
 export const CLOUD_OPTICS_BEAUTY_LAB_ID = "cloud-optics-beauty";
 
@@ -296,8 +298,8 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
   {
     id: "fair-weather-moderate-base",
     labId: FAIR_WEATHER_CUMULUS_LAB_ID,
-    name: "Moderate cloud base",
-    intendedPhenomenon: "Baseline shallow cumulus case.",
+    name: "Fair-weather cumulus / baseline shallow cloud",
+    intendedPhenomenon: "Single-patch baseline shallow fair-weather cumulus case.",
     expectedBehavior:
       "Thermal circulation develops first; cloud forms later near expected LCL; cloud top grows with heating and stability.",
     keyControls: [
@@ -333,7 +335,7 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
   {
     id: "dry-cap-suppressed-cumulus",
     labId: FAIR_WEATHER_CUMULUS_LAB_ID,
-    name: "Dry cap / suppressed cumulus",
+    name: "Capped / suppressed cloud",
     intendedPhenomenon: "Inhibition from a dry or stable layer aloft.",
     expectedBehavior: "Thermals lift, but cloud development is delayed, shallow, limited, or suppressed.",
     keyControls: [
@@ -352,7 +354,7 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
   {
     id: "multi-thermal-cumulus-field",
     labId: FAIR_WEATHER_CUMULUS_LAB_ID,
-    name: "Multi-thermal field",
+    name: "Multi-thermal cloud field",
     intendedPhenomenon: "Multiple thermal responses from structured surface heating.",
     expectedBehavior: "Multiple plume or cloud regions may appear before merger or diffusion.",
     keyControls: ["surface-heating-pattern", "surface-heating-strength", "source-layer-humidity"],
@@ -367,12 +369,12 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
 
 const fairWeatherLab: LabDefinition = {
   id: FAIR_WEATHER_CUMULUS_LAB_ID,
-  name: "Fair-Weather Cumulus",
-  question: "Why do puffy cumulus clouds form on some warm afternoons and not others?",
+  name: "Lower Atmosphere Cloud Basics",
+  question: "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
   description:
-    "Vary surface heating, moisture, stability, boundary-layer structure, and runtime to see whether shallow cumulus forms, when it forms, and why similar setups can fail.",
+    "Explore how heating, moisture, and stability shape basic warm-cloud formation near the ground.",
   status: "prototype",
-  statusLabel: "Prototype / first reference lab",
+  statusLabel: "Experimental 2-D warm-cloud model",
   supportedPhysicsCore: "boussinesq_2d",
   concepts: [
     "surface sensible heating",

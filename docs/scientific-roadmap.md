@@ -47,11 +47,11 @@ The current public physics paths are:
 
 ## Lab-Driven Physics Roadmap
 
-### Fair-Weather Cumulus
+### Lower Atmosphere Cloud Basics
 
 Physical question:
 
-> Why do puffy cumulus clouds form on some warm afternoons and not others?
+> How do heating, moisture, and stability shape basic warm-cloud formation near the ground?
 
 Science needs:
 
@@ -311,7 +311,7 @@ Validation should not preserve old toy-model behavior just because it existed, a
 The product roadmap is lab-driven, not a rigid feature checklist. A reasonable science/product maturation path is:
 
 1. Workbench V2 and lab-driven UI.
-2. Fair-Weather Cumulus as the first complete reference lab.
+2. Lower Atmosphere Cloud Basics as the first complete reference lab.
 3. Cloud Optics / Beauty capabilities, including optical controls and 2.5-D visualization.
 4. Evolving Boundary Layer capabilities.
 5. Layered Atmosphere controls and diagnostics.
