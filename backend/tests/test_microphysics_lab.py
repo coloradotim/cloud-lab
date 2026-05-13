@@ -16,7 +16,7 @@ from app.sim import (
     stream_run,
 )
 
-pytestmark = [pytest.mark.microphysics]
+pytestmark = [pytest.mark.lab, pytest.mark.microphysics]
 
 
 def test_microphysics_lab_emits_valid_schema_frames() -> None:

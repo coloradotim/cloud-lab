@@ -69,6 +69,24 @@ A lab contract is broader than a scenario. For example, the Fair-Weather Cumulus
 
 ## Test Categories
 
+Backend pytest markers should describe what a test protects as well as when it
+should run. The current marker vocabulary is:
+
+- `contract`: stable software, API, schema, and run lifecycle contracts.
+- `lab`: lab, scenario, preset, and public catalog contracts.
+- `diagnostic`: diagnostic or warning checks that interpret solver outputs.
+- `science`: science-sensitive checks that belong outside generic backend
+  plumbing.
+- `boussinesq`: Boussinesq 2-D solver, diagnostic, or validation checks.
+- `microphysics`: microphysics lab solver and comparison checks.
+- `validation`: reference-case or benchmark validation checks.
+- `slow`: long-running checks reserved for slow/manual validation tiers.
+- `pysdm`: optional PySDM evaluation checks.
+
+Markers are not a substitute for reading the test. When a test is both fast and
+science-sensitive, prefer explicit domain markers over leaving it as generic
+backend quick plumbing.
+
 ### A. Contract / API / Schema Tests
 
 Purpose:
@@ -418,6 +436,9 @@ Expected PR paths:
 
 - UI-only: `Frontend quick` only, plus `CI required`.
 - Backend/API/schema: `Backend quick` only, plus `CI required`.
+- Lab/scenario metadata: backend or frontend quick checks for the touched
+  contract surface; targeted solver/science only when solver behavior,
+  science-sensitive diagnostics, or validation expectations changed.
 - Solver/science/validation: `Backend quick`, `Targeted solver/science`, plus `CI required`.
 - Docs-only: `CI required` only unless workflow/code paths changed.
 - Scheduled/manual: quick jobs plus `Science validation`.
@@ -432,16 +453,22 @@ Should include:
 - public solver catalog tests
 - lab/scenario metadata validation
 - frontend tests/build
-- fast numerical sanity
-- microphysics basic checks
-- Boussinesq short smoke checks
+- fast non-science numerical sanity
+
+Boussinesq thermodynamic diagnostics are explicitly marked as science-sensitive
+diagnostic checks. They run with targeted solver/science, not generic backend
+quick, even though they are individually fast.
 
 ### Targeted Validation
 
 Run when relevant files change:
 
-- Boussinesq solver changed: Boussinesq validation and thermodynamic diagnostics
-- lab/scenario definitions changed: lab/scenario contract tests
+- Boussinesq solver or diagnostics changed: Boussinesq short checks and
+  thermodynamic diagnostics
+- lab/scenario definitions changed: lab/scenario contract tests such as
+  `pytest -m "lab and not slow and not science and not validation and not pysdm"`
+  for backend lab/preset contracts, plus focused frontend lab catalog/workbench
+  tests when the frontend catalog changed
 - microphysics changed: microphysics validation
 - visualization changed: scaling/truth-label/visual honesty tests
 - public solver/default config changed: full contract/API/schema suite

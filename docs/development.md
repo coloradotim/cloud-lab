@@ -91,6 +91,9 @@ CI uses path-aware quick jobs so every PR does not pay for every subsystem:
 
 - Frontend-only PRs run `Frontend quick` plus the lightweight `CI required` summary.
 - Backend/API/schema PRs run `Backend quick` plus `CI required`.
+- Lab/scenario metadata PRs run the quick checks for the touched frontend or
+  backend contract surface; targeted solver/science runs only when solver
+  behavior, diagnostics, or validation expectations changed.
 - Solver/science/validation PRs run `Backend quick`, `Targeted solver/science`, and `CI required`.
 - Docs-only PRs may run only `CI required` unless they touch workflow files or code.
 - Pushes to `main`, scheduled runs, and manual workflow dispatches run the full quick set; scheduled/manual runs also run science validation.
@@ -126,14 +129,25 @@ mypy app tests
 
 Do not run backend checks for UI-only changes unless the PR also touches backend code, API/schema/shared contracts, CI workflow behavior, or scripts that affect backend execution.
 
+Boussinesq thermodynamic diagnostics are fast but science-sensitive. They are
+marked for targeted solver/science, not generic backend quick.
+
 ### Tier 2: Targeted Validation
 
 Run when the PR touches a specific subsystem.
 
 ```bash
+# Backend lab/preset contract checks
+cd backend
+pytest -m "lab and not slow and not science and not validation and not pysdm"
+
 # Boussinesq smoke and short checks
 cd backend
 pytest -m "boussinesq and not slow"
+
+# Boussinesq diagnostics without slow reference validation
+cd backend
+pytest -m "diagnostic and boussinesq and not slow"
 
 # Microphysics smoke and validation checks
 cd backend

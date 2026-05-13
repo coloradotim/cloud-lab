@@ -30,6 +30,9 @@ packages = ["app"]
 testpaths = ["tests"]
 pythonpath = ["."]
 markers = [
+  "contract: stable software, API, schema, and run lifecycle contract checks",
+  "lab: lab, scenario, preset, and public catalog contract checks",
+  "diagnostic: diagnostic or warning checks that interpret solver outputs",
   "smoke: fast smoke coverage for API, schema, and basic solver contracts",
   "science: scientific validation checks that are valuable but slower than the default PR path",
   "slow: long-running checks reserved for full or heavy validation tiers",

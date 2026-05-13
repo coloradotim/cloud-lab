@@ -23,6 +23,8 @@ from app.sim.structured_fields import (
     surface_heating_weight_field,
 )
 
+pytestmark = pytest.mark.contract
+
 
 def test_default_simulation_config_defines_vertical_slice_controls() -> None:
     config = SimulationConfig(seed=42)
