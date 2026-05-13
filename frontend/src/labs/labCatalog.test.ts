@@ -6,6 +6,7 @@ import {
   labById,
   labCatalog,
 } from "./labCatalog";
+import { cloudOpticsScenePresetIds } from "./cloudOpticsScenes";
 
 const fairWeatherLab = labById(FAIR_WEATHER_CUMULUS_LAB_ID);
 const cloudOpticsLab = labById(CLOUD_OPTICS_BEAUTY_LAB_ID);
@@ -159,7 +160,8 @@ describe("lab catalog", () => {
     );
     expect(cloudOpticsLab.limitations).toEqual(
       expect.arrayContaining([
-        "Renderer and preset scene generation are not implemented in this slice",
+        "Renderer is not implemented in this slice",
+        "Preset scene fields are deterministic generated source fields",
         "2.5-D visual scene, not true 3-D atmospheric dynamics",
         "Qualitative learning tool, not full radiative transfer",
       ]),
@@ -174,6 +176,9 @@ describe("lab catalog", () => {
       "Towering / Developing Cumulus",
       "Thin Veil / Low Optical Depth Cloud",
     ]);
+    expect(cloudOpticsLab.scenarios.map((scenario) => scenario.id)).toEqual(
+      cloudOpticsScenePresetIds(),
+    );
     expect(cloudOpticsLab.scenarios.every((scenario) => scenario.labId === cloudOpticsLab.id)).toBe(
       true,
     );

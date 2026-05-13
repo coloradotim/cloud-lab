@@ -104,6 +104,21 @@ Every field must match `grid.rows x grid.columns`. Tests reject rectangular mism
 
 Future droplet-size distribution and microphysics diagnostics are proposed as an optional frame-level `microphysics` payload rather than required scalar fields. See `docs/microphysics-schema.md` for the proposed schema shape, payload-size guardrails, and migration path.
 
+## Clouds, Light, And Shadow Scene Schema
+
+The Clouds, Light, and Shadow lab uses deterministic generated source scenes before it has a dynamics solver or renderer. These frontend-local scene records use `schema_version = "cloud-optics-scene-v1"` and are not backend simulation output.
+
+Each scene contains:
+
+- identity: stable scene id, user-facing name, teaching purpose, expected result, and seed
+- normalized source grid: columns, rows, `x` coordinates, and `z` coordinates
+- `cloud_density` source field: normalized, non-negative, cloud-water-like density values on the source grid
+- 2.5-D metadata: effective shallow depth, layer count, and deterministic layer offsets
+- default renderer controls: scene id, sun elevation/azimuth, view angle, density multiplier, depth multiplier, optical-depth multiplier, light color, edge softness, sky brightness, haze, and exposure
+- source metadata marking the field as generated, deterministic, and not cloud-formation physics
+
+The scene field is the physical/source field for that lab. Renderer controls such as sun angle, optical-depth multiplier, exposure, and view angle must not mutate the source field. Future rendered appearance, optical-depth, and light-path views should consume the source scene and derive display products from it.
+
 ## Saved Run Artifact Schema
 
 Saved run artifacts are frontend-local records stored separately from saved scenario configs. A saved scenario is a reusable setup recipe; a saved run artifact is an observation record for one completed or buffered run.

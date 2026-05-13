@@ -99,8 +99,14 @@ describe("Clouds, Light, and Shadow Workbench V2 shell", () => {
     expect(html).toContain("Cloud appearance view shell");
     expect(html).toContain("Renderer");
     expect(html).toContain("Deferred");
+    expect(html).toContain("Deterministic source fields are ready");
+    expect(html).toContain("Source grid");
+    expect(html).toContain("72 x 48");
+    expect(html).toContain("Source scene field");
+    expect(html).toContain("cloud-optics-scene-v1");
     expect(html).toContain("Prototype shell only");
     expect(html).toContain("Sun elevation");
+    expect(html).toContain("48 deg");
     expect(html).toContain("Sun direction / azimuth");
     expect(html).toContain("View angle");
     expect(html).toContain("Cloud water density");

@@ -604,7 +604,7 @@ const cloudOpticsScenarios: LabScenarioDefinition[] = [
       "Rounded cloud with gradual edges; high sun brightens top; lower or side sun creates stronger contrast.",
     keyControls: ["sun-elevation", "sun-direction-azimuth", "cloud-water-density", "optical-depth-scattering"],
     diagnosticExpectations: ["Optical-depth estimate and light-geometry labels explain the rendered result."],
-    limitations: ["Renderer and generated scene fields are deferred; this shell is non-runnable."],
+    limitations: ["Renderer is deferred; generated source fields are deterministic presets."],
   },
   {
     id: "thick-cumulus-dark-base",
@@ -673,7 +673,8 @@ const cloudOpticsLab: LabDefinition = {
     "bright-edge behavior",
   ],
   limitations: [
-    "Renderer and preset scene generation are not implemented in this slice",
+    "Renderer is not implemented in this slice",
+    "Preset scene fields are deterministic generated source fields",
     "2.5-D visual scene, not true 3-D atmospheric dynamics",
     "Qualitative learning tool, not full radiative transfer",
     "No droplet-resolved Mie scattering or calibrated radiance output",
