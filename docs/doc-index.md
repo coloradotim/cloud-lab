@@ -16,6 +16,7 @@ Older implementation docs remain useful as technical references, but they should
 ## Start Here
 
 - `README.md` — project overview, setup, current status, and doc map.
+- `docs/ai-handoff.md` — fast-start handoff for new ChatGPT/Codex sessions.
 - `docs/current-phase-plan.md` — current executable phase, open issue order, and phase guardrails.
 - `docs/product-vision.md` — product identity, tagline, north star, and durable principles.
 - `docs/lab-roadmap.md` — lab-driven roadmap and core phenomenon labs.
@@ -25,6 +26,7 @@ Older implementation docs remain useful as technical references, but they should
 
 ## Product And UX
 
+- `docs/ai-handoff.md` — source of truth for quickly bootstrapping a new AI session.
 - `docs/current-phase-plan.md` — source of truth for the current execution order.
 - `docs/workbench-v2-product-spec.md` — source of truth for the future product shell.
 - `docs/workbench-v2-architecture.md` — source of truth for future frontend structure.
@@ -55,17 +57,28 @@ Older implementation docs remain useful as technical references, but they should
 
 ## How To Use This Index
 
+### New AI session bootstrap
+
+Read:
+
+1. `AGENTS.md`
+2. `docs/ai-handoff.md`
+3. `docs/current-phase-plan.md`
+4. `docs/doc-index.md`
+5. the issue or task being implemented
+
 ### Product / UI work
 
 Read:
 
 1. `AGENTS.md`
-2. `docs/current-phase-plan.md`
-3. `docs/product-vision.md`
-4. `docs/lab-roadmap.md`
-5. `docs/workbench-v2-product-spec.md`
-6. `docs/workbench-v2-architecture.md`
-7. the issue being implemented
+2. `docs/ai-handoff.md`
+3. `docs/current-phase-plan.md`
+4. `docs/product-vision.md`
+5. `docs/lab-roadmap.md`
+6. `docs/workbench-v2-product-spec.md`
+7. `docs/workbench-v2-architecture.md`
+8. the issue being implemented
 
 ### New lab work
 
@@ -82,11 +95,12 @@ Read:
 Read:
 
 1. `AGENTS.md`
-2. `docs/scientific-roadmap.md`
-3. `docs/testing-and-validation.md`
-4. `docs/next-physics-core.md`
-5. relevant solver docs
-6. relevant lab docs/sections
+2. `docs/ai-handoff.md`
+3. `docs/scientific-roadmap.md`
+4. `docs/testing-and-validation.md`
+5. `docs/next-physics-core.md`
+6. relevant solver docs
+7. relevant lab docs/sections
 
 ### Visualization work
 
@@ -124,7 +138,7 @@ Current product priority is:
 8. Fog / Stratus.
 9. Mixed-Phase / Ice later.
 
-For executable current-phase order, use `docs/current-phase-plan.md`.
+For executable current-phase order, use `docs/current-phase-plan.md` and `docs/ai-handoff.md`.
 
 ## Current Authoritative Direction
 
