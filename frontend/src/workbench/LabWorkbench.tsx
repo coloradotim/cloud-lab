@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 import type { LabDefinition } from "../labs/labTypes";
-import { BOUSSINESQ_MODEL_SIZES, CONTROL_LIMITS, SURFACE_HEATING_PATTERNS } from "../simulationControls";
+import { CONTROL_LIMITS, SURFACE_HEATING_PATTERNS } from "../simulationControls";
 import { defaultWorkbenchRunClient, type RunStreamCleanup, type WorkbenchRunClient } from "../simulation/runClient";
 import type { SimulationFrame } from "../simulationTypes";
 import {
+  WORKBENCH_RESOLUTION_PRESETS,
   applyWorkbenchStreamMessage,
   buildWorkbenchInspectorSummary,
   createInitialWorkbenchState,
@@ -233,106 +234,159 @@ function LabSetupPanel({
   setWorkbench: Dispatch<SetStateAction<WorkbenchState>>;
 }) {
   const scenario = selectedLabScenario(lab, workbench);
+  const config = workbench.nextRunConfig;
 
   return (
     <aside className="workbench-region setup-region" aria-labelledby="setup-region-title">
       <p className="region-label">Setup</p>
       <h2 id="setup-region-title">{scenario?.name ?? "Scenario"}</h2>
-      <p>{scenario?.intendedPhenomenon ?? lab.question}</p>
 
-      <label className="control-group">
-        <span>Scenario</span>
-        <select
-          value={workbench.selectedScenarioId}
-          onChange={(event) => {
-            const scenarioId = event.currentTarget.value;
-            setWorkbench((current) =>
-              selectWorkbenchScenario(current, lab, scenarioId),
-            );
-          }}
-        >
-          {lab.scenarios.map((candidate) => (
-            <option key={candidate.id} value={candidate.id}>
-              {candidate.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <section className="setup-control-section" aria-labelledby="setup-scenario-title">
+        <h3 id="setup-scenario-title">Scenario</h3>
+        <label className="control-group">
+          <span>Scenario</span>
+          <select
+            value={workbench.selectedScenarioId}
+            onChange={(event) => {
+              const scenarioId = event.currentTarget.value;
+              setWorkbench((current) =>
+                selectWorkbenchScenario(current, lab, scenarioId),
+              );
+            }}
+          >
+            {lab.scenarios.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p>{scenario?.intendedPhenomenon ?? lab.question}</p>
+        <p className="setup-expectation">{scenario?.expectedBehavior}</p>
+      </section>
 
-      <p className="setup-expectation">{scenario?.expectedBehavior}</p>
+      <section className="setup-control-section" aria-labelledby="setup-forcing-title">
+        <h3 id="setup-forcing-title">Surface forcing</h3>
+        <div className="workbench-control-grid" aria-label="Surface forcing controls">
+          <NumberControl
+            id="surface-heating-strength"
+            label="Surface heating strength"
+            value={config.surface_heating.max_warming_rate_k_per_s}
+            min={CONTROL_LIMITS.surfaceHeatingRate.min}
+            max={CONTROL_LIMITS.surfaceHeatingRate.max}
+            step={CONTROL_LIMITS.surfaceHeatingRate.step}
+            suffix="K/s"
+            setWorkbench={setWorkbench}
+          />
+          <SelectControl
+            id="surface-heating-pattern"
+            label="Surface heating pattern"
+            value={config.surface_heating.pattern ?? "single_patch"}
+            options={SURFACE_HEATING_PATTERNS.map((pattern) => ({
+              value: pattern.value,
+              label: pattern.label,
+            }))}
+            setWorkbench={setWorkbench}
+          />
+        </div>
+      </section>
 
-      <div className="workbench-control-grid" aria-label="Primary Fair-Weather controls">
-        <NumberControl
-          id="surface-heating-strength"
-          label="Surface heating strength"
-          value={workbench.nextRunConfig.surface_heating.max_warming_rate_k_per_s}
-          min={CONTROL_LIMITS.surfaceHeatingRate.min}
-          max={CONTROL_LIMITS.surfaceHeatingRate.max}
-          step={CONTROL_LIMITS.surfaceHeatingRate.step}
-          suffix="K/s"
-          setWorkbench={setWorkbench}
-        />
-        <SelectControl
-          id="surface-heating-pattern"
-          label="Surface heating pattern"
-          value={workbench.nextRunConfig.surface_heating.pattern ?? "single_patch"}
-          options={SURFACE_HEATING_PATTERNS.map((pattern) => ({
-            value: pattern.value,
-            label: pattern.label,
-          }))}
-          setWorkbench={setWorkbench}
-        />
-        <NumberControl
-          id="source-layer-humidity"
-          label="Source-layer humidity"
-          value={workbench.nextRunConfig.initial_atmosphere.relative_humidity}
-          min={CONTROL_LIMITS.relativeHumidity.min}
-          max={CONTROL_LIMITS.relativeHumidity.max}
-          step={CONTROL_LIMITS.relativeHumidity.step}
-          suffix="RH"
-          setWorkbench={setWorkbench}
-        />
-        <NumberControl
-          id="free-atmosphere-humidity"
-          label="Free-atmosphere humidity"
-          value={workbench.nextRunConfig.initial_atmosphere.free_atmosphere_relative_humidity ?? 0.55}
-          min={CONTROL_LIMITS.relativeHumidity.min}
-          max={CONTROL_LIMITS.relativeHumidity.max}
-          step={CONTROL_LIMITS.relativeHumidity.step}
-          suffix="RH"
-          setWorkbench={setWorkbench}
-        />
-        <NumberControl
-          id="stability-lapse-rate"
-          label="Stability / lapse rate"
-          value={workbench.nextRunConfig.initial_atmosphere.lapse_rate_k_per_m}
-          min={CONTROL_LIMITS.lapseRate.min}
-          max={CONTROL_LIMITS.lapseRate.max}
-          step={CONTROL_LIMITS.lapseRate.step}
-          suffix="K/m"
-          setWorkbench={setWorkbench}
-        />
-        <NumberControl
-          id="boundary-layer-depth-cap-height"
-          label="Boundary-layer depth / cap height"
-          value={workbench.nextRunConfig.initial_atmosphere.boundary_layer_depth_m}
-          min={CONTROL_LIMITS.boundaryLayerDepth.min}
-          max={CONTROL_LIMITS.boundaryLayerDepth.max}
-          step={CONTROL_LIMITS.boundaryLayerDepth.step}
-          suffix="m"
-          setWorkbench={setWorkbench}
-        />
-        <SelectControl
-          id="model-size-runtime"
-          label="Model size / runtime"
-          value={workbench.modelSizeSlug}
-          options={BOUSSINESQ_MODEL_SIZES.map((size) => ({
-            value: size.slug,
-            label: size.name,
-          }))}
-          setWorkbench={setWorkbench}
-        />
-      </div>
+      <section className="setup-control-section" aria-labelledby="setup-atmosphere-title">
+        <h3 id="setup-atmosphere-title">Atmosphere</h3>
+        <div className="workbench-control-grid" aria-label="Atmosphere controls">
+          <NumberControl
+            id="source-layer-humidity"
+            label="Source-layer humidity"
+            value={config.initial_atmosphere.relative_humidity}
+            min={CONTROL_LIMITS.relativeHumidity.min}
+            max={CONTROL_LIMITS.relativeHumidity.max}
+            step={CONTROL_LIMITS.relativeHumidity.step}
+            suffix="RH"
+            setWorkbench={setWorkbench}
+          />
+          <NumberControl
+            id="free-atmosphere-humidity"
+            label="Free-atmosphere humidity"
+            value={config.initial_atmosphere.free_atmosphere_relative_humidity ?? 0.55}
+            min={CONTROL_LIMITS.relativeHumidity.min}
+            max={CONTROL_LIMITS.relativeHumidity.max}
+            step={CONTROL_LIMITS.relativeHumidity.step}
+            suffix="RH"
+            setWorkbench={setWorkbench}
+          />
+          <NumberControl
+            id="stability-lapse-rate"
+            label="Stability / lapse rate"
+            value={config.initial_atmosphere.lapse_rate_k_per_m}
+            min={CONTROL_LIMITS.lapseRate.min}
+            max={CONTROL_LIMITS.lapseRate.max}
+            step={CONTROL_LIMITS.lapseRate.step}
+            suffix="K/m"
+            setWorkbench={setWorkbench}
+          />
+          <NumberControl
+            id="boundary-layer-depth-cap-height"
+            label="Boundary-layer depth / cap height"
+            value={config.initial_atmosphere.boundary_layer_depth_m}
+            min={CONTROL_LIMITS.boundaryLayerDepth.min}
+            max={CONTROL_LIMITS.boundaryLayerDepth.max}
+            step={CONTROL_LIMITS.boundaryLayerDepth.step}
+            suffix="m"
+            setWorkbench={setWorkbench}
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-model-title">
+        <h3 id="setup-model-title">Model setup</h3>
+        <p className="model-setup-summary">
+          Modeling a {config.domain.width_m.toLocaleString()} m wide by{" "}
+          {config.domain.height_m.toLocaleString()} m tall slice at{" "}
+          {resolutionLabel(workbench.modelResolutionSlug).toLowerCase()} resolution.
+        </p>
+        <div className="workbench-control-grid" aria-label="Model setup controls">
+          <SelectControl
+            id="model-resolution"
+            label="Model resolution"
+            value={workbench.modelResolutionSlug}
+            options={WORKBENCH_RESOLUTION_PRESETS.map((preset) => ({
+              value: preset.slug,
+              label: preset.name,
+            }))}
+            setWorkbench={setWorkbench}
+          />
+          <NumberControl
+            id="domain-width"
+            label="Domain width"
+            value={config.domain.width_m}
+            min={CONTROL_LIMITS.domainWidth.min}
+            max={CONTROL_LIMITS.domainWidth.max}
+            step={CONTROL_LIMITS.domainWidth.step}
+            suffix="m"
+            setWorkbench={setWorkbench}
+          />
+          <NumberControl
+            id="domain-height"
+            label="Domain height"
+            value={config.domain.height_m}
+            min={CONTROL_LIMITS.domainHeight.min}
+            max={CONTROL_LIMITS.domainHeight.max}
+            step={CONTROL_LIMITS.domainHeight.step}
+            suffix="m"
+            setWorkbench={setWorkbench}
+          />
+          <NumberControl
+            id="run-length"
+            label="Run length"
+            value={config.time.duration_seconds}
+            min={CONTROL_LIMITS.duration.min}
+            max={CONTROL_LIMITS.duration.max}
+            step={CONTROL_LIMITS.duration.step}
+            suffix="s"
+            setWorkbench={setWorkbench}
+          />
+        </div>
+      </section>
     </aside>
   );
 }
@@ -424,22 +478,24 @@ function VisualizationStage({
   const normalizedFieldKey = normalizeScientificFieldSelection(frame, selectedFieldKey);
   const fieldOptions = availableScientificFields(frame);
   const viewModel = buildScientificFieldViewModel(frame, normalizedFieldKey);
+  const activeFieldLabel = viewModel
+    ? `${viewModel.field.metadata.display_name} - ${viewModel.summary.unit}`
+    : `${fieldOptions.find((field) => field.key === normalizedFieldKey)?.label ?? "Cloud liquid water"} - kg/kg`;
 
   return (
     <section
       className="workbench-region visualization-stage"
       aria-labelledby="visualization-stage-title"
     >
-      <div>
+      <div className="stage-heading">
         <p className="region-label">Visualization stage</p>
-        <h2 id="visualization-stage-title">Scientific 2-D field view</h2>
-        <p>
-          {frame
-            ? `Displaying buffered frame ${workbench.displayedFrameIndex + 1} at ${formatSeconds(
-                frame.time_seconds,
-              )}.`
-            : "Start a run to stream Fair-Weather fields into the stage."}
-        </p>
+        <div className="stage-title-row">
+          <h2 id="visualization-stage-title">Scientific 2-D field view</h2>
+          <div className="frame-readout" aria-label="Displayed frame readout">
+            <span>Frame {frame ? workbench.displayedFrameIndex + 1 : 0} / {workbench.frames.length}</span>
+            <strong>{formatSeconds(frame?.time_seconds)}</strong>
+          </div>
+        </div>
       </div>
       <div className="stage-toolbar">
         <label className="field-selector">
@@ -456,47 +512,55 @@ function VisualizationStage({
             ))}
           </select>
         </label>
-        <div className="frame-readout" aria-label="Displayed frame readout">
-          <span>Frame {frame ? workbench.displayedFrameIndex + 1 : 0} / {workbench.frames.length}</span>
-          <strong>{formatSeconds(frame?.time_seconds)}</strong>
-        </div>
+        <p className="field-scale-title">{activeFieldLabel}</p>
       </div>
 
       {viewModel ? (
         <div className="scientific-field-shell">
-          <svg
-            className="scientific-field-view"
-            viewBox={`0 0 ${viewModel.columns} ${viewModel.rows}`}
-            preserveAspectRatio="none"
-            role="img"
-            aria-label={`${viewModel.summary.truth.label}: ${viewModel.field.metadata.display_name} at ${formatSeconds(
-              viewModel.frame.time_seconds,
-            )}`}
-          >
-            <title>{viewModel.field.metadata.display_name}</title>
-            {viewModel.cells.map((cell) => (
-              <rect
-                key={`${cell.row}-${cell.column}`}
-                x={cell.column}
-                y={viewModel.rows - cell.row - 1}
-                width="1"
-                height="1"
-                fill={cell.color}
-                data-field-key={viewModel.fieldKey}
-                data-value={cell.displayValue}
-              />
-            ))}
-          </svg>
+          <div className="scientific-plot-frame">
+            <span className="axis-label axis-label-y">Height, z (m)</span>
+            <svg
+              className="scientific-field-view"
+              viewBox={`0 0 ${viewModel.columns} ${viewModel.rows}`}
+              preserveAspectRatio="none"
+              role="img"
+              aria-label={`${viewModel.summary.truth.label}: ${viewModel.field.metadata.display_name} at ${formatSeconds(
+                viewModel.frame.time_seconds,
+              )}`}
+            >
+              <title>{viewModel.field.metadata.display_name}</title>
+              {viewModel.cells.map((cell) => (
+                <rect
+                  key={`${cell.row}-${cell.column}`}
+                  x={cell.column}
+                  y={viewModel.rows - cell.row - 1}
+                  width="1"
+                  height="1"
+                  fill={cell.color}
+                  data-field-key={viewModel.fieldKey}
+                  data-value={cell.displayValue}
+                />
+              ))}
+            </svg>
+            <span className="axis-label axis-label-x">Horizontal distance, x (m)</span>
+          </div>
           <div className="field-legend" aria-label="Field legend">
+            <strong>{activeFieldLabel}</strong>
             <span>{formatLegendValue(viewModel.range.min, viewModel.summary.unit)}</span>
             <span className="legend-ramp" />
             <span>{formatLegendValue(viewModel.range.max, viewModel.summary.unit)}</span>
           </div>
         </div>
       ) : (
-        <div className="stage-empty-state" aria-label={`${lab.name} no-frame state`}>
-          <strong>No frame displayed yet.</strong>
-          <p>Run Fair-Weather Cumulus to stream solver fields into this scientific 2-D view.</p>
+        <div className="scientific-field-shell">
+          <div className="scientific-plot-frame">
+            <span className="axis-label axis-label-y">Height, z (m)</span>
+            <div className="stage-empty-state" aria-label={`${lab.name} no-frame state`}>
+              <strong>No frame displayed yet.</strong>
+              <p>Run Fair-Weather Cumulus to stream solver fields into this scientific 2-D view.</p>
+            </div>
+            <span className="axis-label axis-label-x">Horizontal distance, x (m)</span>
+          </div>
         </div>
       )}
       <dl className="stage-stats">
@@ -520,10 +584,13 @@ function VisualizationStage({
         </div>
       </dl>
       {viewModel?.summary.helper ? <p className="stage-helper">{viewModel.summary.helper}</p> : null}
-      <div className="truth-label-row" aria-label="Truth and approximation labels">
-        <span className="truth-label">{viewModel?.truth.label ?? "Solver output"}</span>
-        <span className="truth-label">{viewModel?.solverTruth.label ?? "Experimental"} 2-D dynamics</span>
-        <span className="truth-label">Simplified warm-cloud condensation</span>
+      <div className="assumption-labels" aria-label="Model assumptions">
+        <span>Model assumptions</span>
+        <p>
+          {viewModel?.truth.label ?? "Solver output"} ·{" "}
+          {viewModel?.solverTruth.label ?? "Experimental"} 2-D dynamics ·{" "}
+          Simplified warm-cloud condensation
+        </p>
       </div>
       {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
     </section>
@@ -542,109 +609,141 @@ function InspectorPanel({
   return (
     <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
       <p className="region-label">Inspector</p>
-      <h2 id="inspector-region-title">Expected vs observed</h2>
-      <p>{summary.diagnostics.observed}</p>
-      <span className={`diagnostic-status diagnostic-status-${summary.diagnostics.status}`}>
-        {summary.diagnostics.statusLabel}
-      </span>
-      <p className="truth-label">Derived diagnostic</p>
-      <ul>
-        {summary.diagnostics.notes.map((note) => (
-          <li key={note}>{note}</li>
-        ))}
-      </ul>
+      <section className="inspector-summary" aria-labelledby="inspector-region-title">
+        <h2 id="inspector-region-title">Summary</h2>
+        <span className={`diagnostic-status diagnostic-status-${summary.diagnostics.status}`}>
+          Result: {summary.diagnostics.statusLabel}
+        </span>
+        <p>{summary.diagnostics.observed}</p>
+        <dl className="result-metrics">
+          <div>
+            <dt>First cloud</dt>
+            <dd>
+              {formatSeconds(summary.firstCloudTimeSeconds)} near{" "}
+              {formatMeters(summary.firstCloudHeightM)}
+            </dd>
+          </div>
+          <div>
+            <dt>Expected cloud base</dt>
+            <dd>{formatMeters(summary.expectedLclM)}</dd>
+          </div>
+          <div>
+            <dt>Cloud top</dt>
+            <dd>{formatMeters(summary.cloudTopM)}</dd>
+          </div>
+          <div>
+            <dt>Max updraft</dt>
+            <dd>
+              {summary.maxUpdraftMPerS === null
+                ? "unavailable"
+                : `${summary.maxUpdraftMPerS.toFixed(2)} m/s`}
+            </dd>
+          </div>
+        </dl>
+        <h3>Why this happened</h3>
+        <ul>
+          {summary.diagnostics.notes.map((note) => (
+            <li key={note}>{note}</li>
+          ))}
+        </ul>
+      </section>
 
-      <h3>Profile / sounding</h3>
-      <p>{summary.profileSummary}</p>
-      {summary.profileRows.length > 0 ? (
-        <table className="profile-table">
-          <thead>
-            <tr>
-              <th>Height</th>
-              <th>Temp</th>
-              <th>Vapor</th>
-              <th>Cloud</th>
-              <th>W</th>
-            </tr>
-          </thead>
-          <tbody>
-            {summary.profileRows.map((row) => (
-              <tr key={row.heightM}>
-                <td>{formatMeters(row.heightM)}</td>
-                <td>{formatNullable(row.temperatureC, "deg C")}</td>
-                <td>{formatNullable(row.waterVaporKgPerKg, "kg/kg")}</td>
-                <td>{formatNullable(row.cloudWaterKgPerKg, "kg/kg")}</td>
-                <td>{formatNullable(row.verticalVelocityMPerS, "m/s")}</td>
+      <details className="inspector-details" open>
+        <summary>Diagnostics</summary>
+        <dl className="diagnostic-list">
+          <div>
+            <dt>Expected LCL / cloud base</dt>
+            <dd>{formatMeters(summary.expectedLclM)}</dd>
+          </div>
+          <div>
+            <dt>First cloud time / height</dt>
+            <dd>
+              {formatSeconds(summary.firstCloudTimeSeconds)} / {formatMeters(summary.firstCloudHeightM)}
+            </dd>
+          </div>
+          <div>
+            <dt>Cloud top</dt>
+            <dd>{formatMeters(summary.cloudTopM)}</dd>
+          </div>
+          <div>
+            <dt>Actual cloud-base height</dt>
+            <dd>{formatMeters(summary.actualCloudBaseM)}</dd>
+          </div>
+          <div>
+            <dt>Integrated / max cloud water</dt>
+            <dd>
+              {formatNullable(summary.integratedCloudWaterKgPerKg, "kg/kg")} /{" "}
+              {formatNullable(summary.maxCloudWaterKgPerKg, "kg/kg")}
+            </dd>
+          </div>
+          <div>
+            <dt>Cloud water below / near / above LCL</dt>
+            <dd>
+              {formatFraction(summary.belowLclCloudFraction)} /{" "}
+              {formatFraction(summary.nearLclCloudFraction)} /{" "}
+              {formatFraction(summary.aboveLclCloudFraction)}
+            </dd>
+          </div>
+          <div>
+            <dt>Boundary cloud fraction</dt>
+            <dd>{formatFraction(summary.boundaryCloudFraction)}</dd>
+          </div>
+          <div>
+            <dt>Return-flow warning</dt>
+            <dd>{summary.returnFlowWarning}</dd>
+          </div>
+          <div>
+            <dt>Dry-failed-cloud outcome</dt>
+            <dd>{summary.dryFailedOutcome}</dd>
+          </div>
+        </dl>
+      </details>
+
+      <details className="inspector-details">
+        <summary>Profile / sounding</summary>
+        <p>{summary.profileSummary}</p>
+        {summary.profileRows.length > 0 ? (
+          <table className="profile-table">
+            <thead>
+              <tr>
+                <th>Height</th>
+                <th>Temp</th>
+                <th>Vapor</th>
+                <th>Cloud</th>
+                <th>W</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      ) : (
-        <p className="empty-diagnostic">Profile / sounding unavailable until a frame is displayed.</p>
-      )}
+            </thead>
+            <tbody>
+              {summary.profileRows.map((row) => (
+                <tr key={row.heightM}>
+                  <td>{formatMeters(row.heightM)}</td>
+                  <td>{formatNullable(row.temperatureC, "deg C")}</td>
+                  <td>{formatNullable(row.waterVaporKgPerKg, "kg/kg")}</td>
+                  <td>{formatNullable(row.cloudWaterKgPerKg, "kg/kg")}</td>
+                  <td>{formatNullable(row.verticalVelocityMPerS, "m/s")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="empty-diagnostic">Profile / sounding unavailable until a frame is displayed.</p>
+        )}
+      </details>
 
-      <h3>Probe</h3>
-      <p className="empty-diagnostic">
-        Probe values are unavailable until Workbench V2 supports selecting a point in the field.
-      </p>
+      <details className="inspector-details">
+        <summary>Probe</summary>
+        <p className="empty-diagnostic">
+          Probe values are unavailable until Workbench V2 supports selecting a point in the field.
+        </p>
+      </details>
 
-      <dl className="diagnostic-list">
-        <div>
-          <dt>Expected LCL / cloud base</dt>
-          <dd>{formatMeters(summary.expectedLclM)}</dd>
-        </div>
-        <div>
-          <dt>First cloud time / height</dt>
-          <dd>
-            {formatSeconds(summary.firstCloudTimeSeconds)} / {formatMeters(summary.firstCloudHeightM)}
-          </dd>
-        </div>
-        <div>
-          <dt>Cloud top</dt>
-          <dd>{formatMeters(summary.cloudTopM)}</dd>
-        </div>
-        <div>
-          <dt>Actual cloud-base height</dt>
-          <dd>{formatMeters(summary.actualCloudBaseM)}</dd>
-        </div>
-        <div>
-          <dt>Max updraft</dt>
-          <dd>
-            {summary.maxUpdraftMPerS === null
-              ? "unavailable"
-              : `${summary.maxUpdraftMPerS.toFixed(2)} m/s`}
-          </dd>
-        </div>
-        <div>
-          <dt>Integrated / max cloud water</dt>
-          <dd>
-            {formatNullable(summary.integratedCloudWaterKgPerKg, "kg/kg")} /{" "}
-            {formatNullable(summary.maxCloudWaterKgPerKg, "kg/kg")}
-          </dd>
-        </div>
-        <div>
-          <dt>Cloud water below / near / above LCL</dt>
-          <dd>
-            {formatFraction(summary.belowLclCloudFraction)} /{" "}
-            {formatFraction(summary.nearLclCloudFraction)} /{" "}
-            {formatFraction(summary.aboveLclCloudFraction)}
-          </dd>
-        </div>
-        <div>
-          <dt>Boundary cloud fraction</dt>
-          <dd>{formatFraction(summary.boundaryCloudFraction)}</dd>
-        </div>
-        <div>
-          <dt>Return-flow warning</dt>
-          <dd>{summary.returnFlowWarning}</dd>
-        </div>
-        <div>
-          <dt>Dry-failed-cloud outcome</dt>
-          <dd>{summary.dryFailedOutcome}</dd>
-        </div>
-      </dl>
-
-      <p className="truth-label">{lab.limitations[0]}</p>
+      <details className="inspector-details">
+        <summary>Assumptions & limitations</summary>
+        <p className="assumption-copy">
+          Derived diagnostic · Solver output · Experimental 2-D dynamics · Simplified warm-cloud
+          condensation · {lab.limitations[0]}
+        </p>
+      </details>
       {saveMessage ? <p className="workbench-message">{saveMessage}</p> : null}
     </aside>
   );
@@ -754,6 +853,10 @@ function formatLegendValue(value: number, unit: string): string {
     ? value.toFixed(2)
     : value.toExponential(2);
   return `${formatted} ${unit}`;
+}
+
+function resolutionLabel(value: string): string {
+  return WORKBENCH_RESOLUTION_PRESETS.find((preset) => preset.slug === value)?.name ?? "Medium";
 }
 
 function runStatusLabel(status: string): string {

@@ -72,9 +72,12 @@ describe("lab catalog", () => {
       "Free-atmosphere humidity",
       "Stability / lapse rate",
       "Boundary-layer depth / cap height",
-      "Model size / runtime",
+      "Model resolution",
+      "Domain width",
+      "Domain height",
+      "Run length",
     ]);
-    expect(primaryControls).toHaveLength(7);
+    expect(primaryControls).toHaveLength(10);
     expect(primaryControls.map((control) => control.id)).not.toEqual(
       expect.arrayContaining(["raw-solver-type", "domain-grid", "time-step-frame-cadence"]),
     );

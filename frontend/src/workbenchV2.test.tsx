@@ -108,7 +108,11 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Free-atmosphere humidity");
     expect(html).toContain("Stability / lapse rate");
     expect(html).toContain("Boundary-layer depth / cap height");
-    expect(html).toContain("Model size / runtime");
+    expect(html).toContain("Model resolution");
+    expect(html).toContain("Domain width");
+    expect(html).toContain("Domain height");
+    expect(html).toContain("Run length");
+    expect(html).not.toContain("Model size / runtime");
     expect(html).toContain(">Run<");
     expect(html).toContain(">Stop<");
     expect(html).toContain(">Reset<");
