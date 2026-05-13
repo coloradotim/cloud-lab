@@ -33,6 +33,13 @@ export type LabVisualizationModeDefinition = {
   truthLabel: VisualizationTruthLabel;
 };
 
+export type LabCapabilities = {
+  supportsRun: boolean;
+  supportsTimeline: boolean;
+  supportsReplay: boolean;
+  supportsStaticControls: boolean;
+};
+
 export type LabScenarioDefinition = {
   id: string;
   labId: string;
@@ -58,5 +65,6 @@ export type LabDefinition = {
   controls: LabControlDefinition[];
   diagnostics: LabDiagnosticDefinition[];
   visualizationModes: LabVisualizationModeDefinition[];
+  capabilities: LabCapabilities;
   isSelectable: boolean;
 };

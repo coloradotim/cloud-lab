@@ -92,6 +92,8 @@ Clouds, Light, and Shadow now has a first lightweight rendered appearance view b
 
 The same lab exposes deterministic diagnostic states for optical depth, cloud-water density, light geometry, light-path length, edge softness, base/interior darkness, bright-edge likelihood, layered depth, approximation-label availability, and source-field immutability. These are explanatory display diagnostics for the renderer/source scene, not solver-emitted physics fields.
 
+Clouds, Light, and Shadow is a static optics lab in v1. It should not show run, stop, timeline, replay, or `No frames buffered yet` language by default. Its primary controls are semantic presets for sun direction, sun elevation, and camera angle, with a visible orientation guide and a 2.5-D explanation near the visualization.
+
 ### 2.5-D Cloud Scene
 
 A 2.5-D view renders the 2-D vertical slice as a shallow visual extrusion with camera/perspective controls.

@@ -39,7 +39,7 @@ The lab should be beautiful and intuitive, but scientifically honest.
 
 `concept`
 
-This is an early Workbench V2 lab. It has deterministic preset source scenes, a lightweight qualitative cloud-optics renderer, and deterministic diagnostic states for the first renderer/science views. It is not a full radiative-transfer model, a shader playground, or a general cloud-rendering toy.
+This is an early static Workbench V2 optics lab. It has deterministic preset source scenes, a lightweight qualitative cloud-optics renderer, and deterministic diagnostic states for the first renderer/science views. It does not show run, stop, timeline, or replay controls because v1 is not a time-evolving simulation. It is not a full radiative-transfer model, a shader playground, or a general cloud-rendering toy.
 
 ## User Controls
 
@@ -102,6 +102,16 @@ appearance, cloud-water/source-field, optical-depth, and light-path/shadow views
 mutating the source field. The renderer uses lightweight attenuation and approximate
 single-scattering relationships so users can see how density, depth, optical strength,
 sun geometry, and view angle change appearance.
+
+The default user controls are semantic presets rather than raw angle editing:
+
+- Sun direction: Front, Left, Right, Behind
+- Sun elevation: Low, Medium, High
+- Camera angle: Left, Center, Right
+
+These presets map to internal renderer angles while keeping the lab focused on cause and effect:
+front lighting, side lighting, backlighting, low-sun shadows, high-sun top lighting, and oblique
+camera paths through the shallow 2.5-D volume.
 
 Optical forcing:
 

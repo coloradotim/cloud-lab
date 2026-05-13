@@ -397,6 +397,12 @@ const fairWeatherLab: LabDefinition = {
   controls: fairWeatherControls,
   diagnostics: fairWeatherDiagnostics,
   visualizationModes: fairWeatherVisualizationModes,
+  capabilities: {
+    supportsRun: true,
+    supportsTimeline: true,
+    supportsReplay: true,
+    supportsStaticControls: false,
+  },
   isSelectable: true,
 };
 
@@ -683,10 +689,16 @@ const cloudOpticsLab: LabDefinition = {
   controls: cloudOpticsControls,
   diagnostics: cloudOpticsDiagnostics,
   visualizationModes: cloudOpticsVisualizationModes,
+  capabilities: {
+    supportsRun: false,
+    supportsTimeline: false,
+    supportsReplay: false,
+    supportsStaticControls: true,
+  },
   isSelectable: true,
 };
 
-function plannedLab(lab: Omit<LabDefinition, "supportedPhysicsCore" | "scenarios" | "controls" | "diagnostics" | "visualizationModes" | "isSelectable">): LabDefinition {
+function plannedLab(lab: Omit<LabDefinition, "supportedPhysicsCore" | "scenarios" | "controls" | "diagnostics" | "visualizationModes" | "capabilities" | "isSelectable">): LabDefinition {
   return {
     ...lab,
     supportedPhysicsCore: null,
@@ -694,6 +706,12 @@ function plannedLab(lab: Omit<LabDefinition, "supportedPhysicsCore" | "scenarios
     controls: [],
     diagnostics: [],
     visualizationModes: [],
+    capabilities: {
+      supportsRun: false,
+      supportsTimeline: false,
+      supportsReplay: false,
+      supportsStaticControls: false,
+    },
     isSelectable: false,
   };
 }

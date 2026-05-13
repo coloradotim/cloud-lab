@@ -49,8 +49,8 @@ export function buildCloudOpticsDiagnostics(
   const meanBaseShadow = mean(baseCells.map((cell) => cell.shadow));
   const edgeCells = cloudyCells.filter((cell) => cell.sourceDensity > 0.04 && cell.sourceDensity < 0.42);
   const meanEdgeBrightness = mean(edgeCells.map((cell) => cell.brightness));
-  const sunState = classifySunElevation(renderModel.controls.sunElevationDegrees);
-  const viewState = classifyViewGeometry(renderModel.controls.viewAngleDegrees);
+  const sunState = `${renderModel.summary.sunElevation} sun`;
+  const lightingState = renderModel.summary.lightGeometry;
   const missingLabels = CLOUD_OPTICS_HONESTY_LABELS.filter((label) => !visibleLabels.includes(label));
   const availableLabels = CLOUD_OPTICS_HONESTY_LABELS.filter((label) => visibleLabels.includes(label));
 
@@ -66,8 +66,8 @@ export function buildCloudOpticsDiagnostics(
   };
   const lightGeometryState = {
     label: "Light geometry state",
-    state: `${sunState}, ${viewState}`,
-    explanation: `Sun elevation is ${renderModel.controls.sunElevationDegrees} degrees and the view angle is ${renderModel.controls.viewAngleDegrees} degrees, so the scene is treated as ${sunState} and ${viewState}.`,
+    state: `${sunState}, ${lightingState}`,
+    explanation: `Sun direction is ${renderModel.summary.sunDirection}, sun elevation is ${renderModel.summary.sunElevation}, and camera angle is ${renderModel.summary.cameraAngle}, so the scene is treated as ${lightingState}.`,
   };
   const lightPathLengthProxy = {
     label: "Light-path length proxy",
@@ -86,8 +86,8 @@ export function buildCloudOpticsDiagnostics(
   };
   const brightEdgeLikelihood = {
     label: "Bright-edge likelihood",
-    state: classifyBrightEdge(viewState, renderModel.summary.maxOpticalDepth, meanEdgeBrightness),
-    explanation: `Backlit geometry and moderate-to-thick optical response increase bright-edge likelihood; front-lit geometry keeps it weak.`,
+    state: classifyBrightEdge(lightingState, renderModel.summary.maxOpticalDepth, meanEdgeBrightness),
+    explanation: brightEdgeExplanation(lightingState, renderModel.summary.maxOpticalDepth),
   };
   const layeredDepthExplanation = {
     label: "Layered depth explanation",
@@ -148,27 +148,6 @@ export function sourceFieldMatchesSnapshot(
   return scene.sourceField.values.every((row, rowIndex) =>
     row.every((value, columnIndex) => value === snapshot[rowIndex]?.[columnIndex]),
   );
-}
-
-function classifySunElevation(elevationDegrees: number): "high sun" | "middle sun" | "low sun" {
-  if (elevationDegrees >= 55) {
-    return "high sun";
-  }
-  if (elevationDegrees <= 24) {
-    return "low sun";
-  }
-  return "middle sun";
-}
-
-function classifyViewGeometry(viewAngleDegrees: number): "front-lit" | "side-lit" | "backlit" {
-  const absoluteViewAngle = Math.abs(viewAngleDegrees);
-  if (absoluteViewAngle <= 15) {
-    return "front-lit";
-  }
-  if (absoluteViewAngle >= 38) {
-    return "backlit";
-  }
-  return "side-lit";
 }
 
 function opticalDepthExplanation(maxOpticalDepth: number): string {
@@ -245,17 +224,32 @@ function classifyDarkness(meanBaseShadow: number, maxOpticalDepth: number): stri
 }
 
 function classifyBrightEdge(
-  viewState: "front-lit" | "side-lit" | "backlit",
+  viewState: "front lit" | "side lit" | "backlit",
   maxOpticalDepth: number,
   meanEdgeBrightness: number,
 ): string {
-  if (viewState === "front-lit" || maxOpticalDepth < 0.45) {
+  if (viewState === "front lit" || maxOpticalDepth < 0.45) {
     return "weak";
   }
   if (viewState === "backlit" && maxOpticalDepth >= 1.2 && meanEdgeBrightness >= 0.3) {
     return "strong";
   }
   return "moderate";
+}
+
+function brightEdgeExplanation(
+  viewState: "front lit" | "side lit" | "backlit",
+  maxOpticalDepth: number,
+): string {
+  const opticalResponse =
+    maxOpticalDepth >= 1.2 ? "moderate-to-thick optical response" : "thin optical response";
+  if (viewState === "front lit") {
+    return `Front-lit geometry and ${opticalResponse} keep bright-edge likelihood weak.`;
+  }
+  if (viewState === "backlit") {
+    return `Backlit geometry and ${opticalResponse} increase bright-edge likelihood.`;
+  }
+  return `Side-lit geometry and ${opticalResponse} create an asymmetric bright edge.`;
 }
 
 function classifyLayeredDepth(scene: CloudOpticsScene, viewAngleDegrees: number): string {

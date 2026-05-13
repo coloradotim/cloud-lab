@@ -712,6 +712,50 @@ h2 {
   color: #5a6d68;
 }
 
+.control-helper {
+  margin: 0;
+  color: #5a6d68;
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.segmented-control {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.segmented-control legend {
+  color: #153137;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.segmented-control div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(74px, 1fr));
+  gap: 6px;
+}
+
+.segmented-control button {
+  min-height: 36px;
+  border: 1px solid #b6c7c0;
+  border-radius: 8px;
+  padding: 7px 8px;
+  color: #24423d;
+  background: #f7fbf8;
+  font-weight: 800;
+}
+
+.segmented-control button[aria-pressed="true"] {
+  border-color: #426f66;
+  color: #ffffff;
+  background: #426f66;
+}
+
 .stage-heading {
   display: grid;
   gap: 4px;
@@ -750,6 +794,39 @@ h2 {
   color: #153137;
   background: #ffffff;
   font-weight: 800;
+}
+
+.optics-orientation-guide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d3e0da;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #f7fbf8;
+  color: #24423d;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.optics-orientation-guide strong {
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #ffffff;
+  color: #153137;
+}
+
+.optics-orientation-guide em {
+  color: #4f6f68;
+  font-style: normal;
+}
+
+.optics-explanation {
+  margin: 0;
+  color: #465a55;
+  font-size: 0.88rem;
+  line-height: 1.45;
 }
 
 .frame-readout {
@@ -962,6 +1039,29 @@ h2 {
   border-radius: 8px;
   background:
     linear-gradient(180deg, #9ec9e6 0%, #dceef4 58%, #eef3ee 100%);
+}
+
+.optics-renderer-rendered-cloud-appearance.optics-renderer-sun-left {
+  background:
+    linear-gradient(90deg, rgb(255 247 205 / 82%) 0%, rgb(190 220 231 / 46%) 42%, rgb(134 167 181 / 34%) 100%),
+    linear-gradient(180deg, #9ec9e6 0%, #dceef4 58%, #eef3ee 100%);
+}
+
+.optics-renderer-rendered-cloud-appearance.optics-renderer-sun-right {
+  background:
+    linear-gradient(90deg, rgb(134 167 181 / 34%) 0%, rgb(190 220 231 / 46%) 58%, rgb(255 247 205 / 82%) 100%),
+    linear-gradient(180deg, #9ec9e6 0%, #dceef4 58%, #eef3ee 100%);
+}
+
+.optics-renderer-rendered-cloud-appearance.optics-renderer-sun-behind {
+  background:
+    radial-gradient(circle at 50% 45%, rgb(255 252 210 / 88%) 0%, rgb(211 231 231 / 48%) 34%, transparent 62%),
+    linear-gradient(180deg, #9ec9e6 0%, #dceef4 58%, #eef3ee 100%);
+}
+
+.optics-renderer-rendered-cloud-appearance.optics-renderer-sun-front {
+  background:
+    linear-gradient(180deg, #abd3e8 0%, #e2f0f2 58%, #f1f5ef 100%);
 }
 
 .optics-renderer-cloud-water-field {
