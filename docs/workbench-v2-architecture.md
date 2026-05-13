@@ -140,6 +140,7 @@ It should describe:
 - visualization modes
 - limitations
 - related physics capabilities
+- workbench capabilities, such as whether the lab supports run, timeline, replay, or static controls
 
 Example shape:
 
@@ -154,11 +155,19 @@ type LabDefinition = {
   controls: LabControlDefinition[];
   diagnostics: DiagnosticDefinition[];
   visualizationModes: VisualizationModeDefinition[];
+  capabilities: {
+    supportsRun: boolean;
+    supportsTimeline: boolean;
+    supportsReplay: boolean;
+    supportsStaticControls: boolean;
+  };
   limitations: string[];
 };
 ```
 
 The exact typing can evolve, but this concept should drive the UI.
+
+Static labs, such as the v1 Clouds, Light, and Shadow optics lab, should use capability metadata to hide run/timeline chrome and present static renderer controls instead of disabled simulation workflow controls.
 
 ## Scenario Definitions
 

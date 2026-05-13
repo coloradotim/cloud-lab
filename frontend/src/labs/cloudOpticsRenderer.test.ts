@@ -70,9 +70,68 @@ describe("cloud optics renderer", () => {
     );
 
     expect(lowSun.summary.meanShadow).toBeGreaterThan(highSun.summary.meanShadow);
-    expect(lowSun.summary.lightGeometry).toBe("low sun");
-    expect(highSun.summary.lightGeometry).toBe("high sun");
+    expect(lowSun.summary.sunElevation).toBe("low");
+    expect(highSun.summary.sunElevation).toBe("high");
     expect(highSun.summary.maxOpticalDepth).toBeGreaterThan(veil.summary.maxOpticalDepth);
+  });
+
+  it("creates distinct front, side, and backlit sun-direction states", () => {
+    const scene = generateCloudOpticsScene("small-puffy-cumulus");
+    const front = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, sunAzimuthDegrees: 180 },
+      "rendered-cloud-appearance",
+    );
+    const left = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, sunAzimuthDegrees: 270 },
+      "rendered-cloud-appearance",
+    );
+    const behind = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, sunAzimuthDegrees: 0 },
+      "rendered-cloud-appearance",
+    );
+
+    expect(front.summary.lightGeometry).toBe("front lit");
+    expect(left.summary.lightGeometry).toBe("side lit");
+    expect(behind.summary.lightGeometry).toBe("backlit");
+    expect(behind.summary.meanBrightness).not.toBe(front.summary.meanBrightness);
+  });
+
+  it("moves highlight and shadow sides when sun direction changes left versus right", () => {
+    const scene = generateCloudOpticsScene("small-puffy-cumulus");
+    const left = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, sunAzimuthDegrees: 270 },
+      "rendered-cloud-appearance",
+    );
+    const right = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, sunAzimuthDegrees: 90 },
+      "rendered-cloud-appearance",
+    );
+
+    expect(meanBrightness(left, "left")).toBeGreaterThan(meanBrightness(left, "right"));
+    expect(meanBrightness(right, "right")).toBeGreaterThan(meanBrightness(right, "left"));
+  });
+
+  it("changes apparent depth offset when the camera moves off center", () => {
+    const scene = generateCloudOpticsScene("broken-cloud-field");
+    const center = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, viewAngleDegrees: 0 },
+      "rendered-cloud-appearance",
+    );
+    const oblique = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, viewAngleDegrees: 45 },
+      "rendered-cloud-appearance",
+    );
+
+    expect(maxDepthOffset(center)).toBe(0);
+    expect(maxDepthOffset(oblique)).toBeGreaterThan(0);
+    expect(oblique.summary.cameraAngle).toBe("right");
   });
 
   it("supports empty no-cloud rendering", () => {
@@ -106,3 +165,17 @@ describe("cloud optics renderer", () => {
     expect(updateCloudOpticsControls(scene.defaultControls, "viewAngleDegrees", 120).viewAngleDegrees).toBe(60);
   });
 });
+
+function meanBrightness(
+  model: ReturnType<typeof renderCloudOpticsScene>,
+  half: "left" | "right",
+): number {
+  const cells = model.cells.filter((cell) =>
+    half === "left" ? cell.column < model.columns / 2 : cell.column >= model.columns / 2,
+  );
+  return cells.reduce((sum, cell) => sum + cell.brightness, 0) / cells.length;
+}
+
+function maxDepthOffset(model: ReturnType<typeof renderCloudOpticsScene>): number {
+  return Math.max(...model.cells.map((cell) => Math.abs(cell.depthOffset)));
+}

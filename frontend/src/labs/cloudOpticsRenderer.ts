@@ -20,6 +20,7 @@ export type CloudOpticsRenderCell = {
   shadow: number;
   brightness: number;
   opacity: number;
+  depthOffset: number;
   fill: string;
 };
 
@@ -30,7 +31,10 @@ export type CloudOpticsRenderSummary = {
   meanBrightness: number;
   meanOpacity: number;
   meanShadow: number;
-  lightGeometry: "high sun" | "low sun" | "front lit" | "side lit" | "backlit";
+  lightGeometry: "front lit" | "side lit" | "backlit";
+  sunDirection: "front" | "left" | "right" | "behind";
+  sunElevation: "low" | "medium" | "high";
+  cameraAngle: "left" | "center" | "right";
   opticalState: "thin" | "moderate" | "thick" | "very thick";
 };
 
@@ -58,6 +62,9 @@ export function renderCloudOpticsScene(
   const sourceValues = scene.sourceField.values;
   const maxRawDensity = Math.max(...sourceValues.flat(), 0);
   const light = lightVector(controls);
+  const sunDirection = sunDirectionState(controls);
+  const lighting = lightGeometry(controls);
+  const camera = cameraAngleState(controls);
   const cells: CloudOpticsRenderCell[] = [];
   let maxDensity = 0;
   let maxOpticalDepth = 0;
@@ -69,6 +76,8 @@ export function renderCloudOpticsScene(
     row.forEach((sourceDensity, columnIndex) => {
       const normalizedDensity = maxRawDensity > 0 ? sourceDensity / maxRawDensity : 0;
       const effectiveDensity = normalizedDensity * controls.cloudWaterDensityMultiplier;
+      const columnPosition = columnIndex / Math.max(1, scene.grid.columns - 1);
+      const verticalPosition = rowIndex / Math.max(1, scene.grid.rows - 1);
       const pathLength = lightPathLength(scene, controls, rowIndex, columnIndex);
       const opticalDepth =
         effectiveDensity *
@@ -80,9 +89,23 @@ export function renderCloudOpticsScene(
       const transmittance = Math.exp(-opticalDepth);
       const shadow = 1 - transmittance;
       const topLighting = clamp01(0.4 + 0.6 * light.z);
-      const sideLighting = clamp01(0.55 + 0.25 * Math.abs(light.x));
+      const sideLighting = sideLightingForCell(sunDirection, columnPosition);
+      const rimLighting =
+        lighting === "backlit"
+          ? edgeGlow(normalizedDensity) * 0.95
+          : edgeGlow(normalizedDensity) * sideLighting * 0.7;
+      const sideContrast = sunDirection === "front" ? 0.2 : 1.25;
+      const depthOffset =
+        Math.sin((controls.viewAngleDegrees * Math.PI) / 180) *
+        controls.cloudDepthMultiplier *
+        scene.depth.effectiveDepth *
+        normalizedDensity *
+        6;
       const brightness = clamp01(
-        (0.2 + topLighting * sideLighting * transmittance + 0.25 * edgeGlow(normalizedDensity)) *
+        (0.14 +
+          topLighting * (0.08 + sideLighting * sideContrast) * (0.45 + 0.55 * transmittance) +
+          rimLighting +
+          0.22 * verticalPosition) *
           controls.exposure,
       );
       const opacity = clamp01(1 - Math.exp(-opticalDepth * 0.9));
@@ -104,6 +127,7 @@ export function renderCloudOpticsScene(
         shadow,
         brightness,
         opacity,
+        depthOffset,
         fill: colorForMode(viewMode, {
           effectiveDensity,
           opticalDepth,
@@ -135,6 +159,9 @@ export function renderCloudOpticsScene(
       meanOpacity: cells.length ? opacitySum / cells.length : 0,
       meanShadow: cells.length ? shadowSum / cells.length : 0,
       lightGeometry: lightGeometry(controls),
+      sunDirection,
+      sunElevation: sunElevationState(controls),
+      cameraAngle: camera,
       opticalState: opticalState(maxOpticalDepth),
     },
   };
@@ -195,9 +222,15 @@ function lightPathLength(
   const viewFactor = 1 + Math.abs(controls.viewAngleDegrees) / 120;
   const directionalPosition = column / Math.max(1, scene.grid.columns - 1);
   const verticalPosition = row / Math.max(1, scene.grid.rows - 1);
-  const sunFromLeft = Math.sin((controls.sunAzimuthDegrees * Math.PI) / 180) < 0;
-  const downSunDistance = sunFromLeft ? directionalPosition : 1 - directionalPosition;
-  const interiorDistance = clamp01(0.35 + 0.4 * downSunDistance + 0.25 * (1 - verticalPosition));
+  const sunDirection = sunDirectionState(controls);
+  const downSunDistance =
+    sunDirection === "left"
+      ? directionalPosition
+      : sunDirection === "right"
+        ? 1 - directionalPosition
+        : 0.5;
+  const behindFactor = sunDirection === "behind" ? 0.45 : sunDirection === "front" ? -0.12 : 0;
+  const interiorDistance = clamp01(0.3 + 0.42 * downSunDistance + 0.25 * (1 - verticalPosition) + behindFactor);
 
   return lowSunFactor * viewFactor * interiorDistance;
 }
@@ -251,19 +284,64 @@ function colorForMode(
 }
 
 function lightGeometry(controls: CloudOpticsSceneControls): CloudOpticsRenderSummary["lightGeometry"] {
-  if (controls.sunElevationDegrees >= 55) {
-    return "high sun";
-  }
-  if (controls.sunElevationDegrees <= 24) {
-    return "low sun";
-  }
-  if (Math.abs(controls.viewAngleDegrees) <= 15) {
+  const sunDirection = sunDirectionState(controls);
+  if (sunDirection === "front") {
     return "front lit";
   }
-  if (Math.abs(controls.viewAngleDegrees) >= 38) {
+  if (sunDirection === "behind") {
     return "backlit";
   }
   return "side lit";
+}
+
+function sunDirectionState(controls: CloudOpticsSceneControls): CloudOpticsRenderSummary["sunDirection"] {
+  const azimuth = ((controls.sunAzimuthDegrees % 360) + 360) % 360;
+  if (azimuth >= 315 || azimuth < 45) {
+    return "behind";
+  }
+  if (azimuth >= 45 && azimuth < 135) {
+    return "right";
+  }
+  if (azimuth >= 135 && azimuth < 225) {
+    return "front";
+  }
+  return "left";
+}
+
+function sunElevationState(controls: CloudOpticsSceneControls): CloudOpticsRenderSummary["sunElevation"] {
+  if (controls.sunElevationDegrees <= 24) {
+    return "low";
+  }
+  if (controls.sunElevationDegrees >= 60) {
+    return "high";
+  }
+  return "medium";
+}
+
+function cameraAngleState(controls: CloudOpticsSceneControls): CloudOpticsRenderSummary["cameraAngle"] {
+  if (controls.viewAngleDegrees <= -20) {
+    return "left";
+  }
+  if (controls.viewAngleDegrees >= 20) {
+    return "right";
+  }
+  return "center";
+}
+
+function sideLightingForCell(
+  sunDirection: CloudOpticsRenderSummary["sunDirection"],
+  columnPosition: number,
+): number {
+  if (sunDirection === "left") {
+    return 1 - columnPosition;
+  }
+  if (sunDirection === "right") {
+    return columnPosition;
+  }
+  if (sunDirection === "behind") {
+    return 0.45 + edgeGlow(columnPosition) * 0.6;
+  }
+  return 0.72;
 }
 
 function opticalState(maxOpticalDepth: number): CloudOpticsRenderSummary["opticalState"] {

@@ -28,17 +28,17 @@ describe("cloud optics diagnostics", () => {
     const scene = generateCloudOpticsScene("small-puffy-cumulus");
     const highFront = renderCloudOpticsScene(
       scene,
-      { ...scene.defaultControls, sunElevationDegrees: 70, viewAngleDegrees: 0 },
+      { ...scene.defaultControls, sunElevationDegrees: 70, sunAzimuthDegrees: 180, viewAngleDegrees: 0 },
       "rendered-cloud-appearance",
     );
     const lowBack = renderCloudOpticsScene(
       scene,
-      { ...scene.defaultControls, sunElevationDegrees: 14, viewAngleDegrees: 48 },
+      { ...scene.defaultControls, sunElevationDegrees: 14, sunAzimuthDegrees: 0, viewAngleDegrees: 48 },
       "rendered-cloud-appearance",
     );
 
     expect(buildCloudOpticsDiagnostics(scene, highFront).lightGeometryState.state).toBe(
-      "high sun, front-lit",
+      "high sun, front lit",
     );
     expect(buildCloudOpticsDiagnostics(scene, lowBack).lightGeometryState.state).toBe(
       "low sun, backlit",
@@ -92,18 +92,30 @@ describe("cloud optics diagnostics", () => {
     const scene = generateCloudOpticsScene("small-puffy-cumulus");
     const frontLit = renderCloudOpticsScene(
       scene,
-      { ...scene.defaultControls, viewAngleDegrees: 0 },
+      { ...scene.defaultControls, sunAzimuthDegrees: 180, viewAngleDegrees: 0 },
+      "rendered-cloud-appearance",
+    );
+    const sideLit = renderCloudOpticsScene(
+      scene,
+      { ...scene.defaultControls, sunAzimuthDegrees: 90, viewAngleDegrees: 0 },
       "rendered-cloud-appearance",
     );
     const backlit = renderCloudOpticsScene(
       scene,
-      { ...scene.defaultControls, viewAngleDegrees: 50 },
+      { ...scene.defaultControls, sunAzimuthDegrees: 0, viewAngleDegrees: 50 },
       "rendered-cloud-appearance",
     );
 
-    expect(buildCloudOpticsDiagnostics(scene, frontLit).brightEdgeLikelihood.state).toBe("weak");
+    const frontDiagnostics = buildCloudOpticsDiagnostics(scene, frontLit);
+    const sideDiagnostics = buildCloudOpticsDiagnostics(scene, sideLit);
+    const backDiagnostics = buildCloudOpticsDiagnostics(scene, backlit);
+
+    expect(frontDiagnostics.brightEdgeLikelihood.state).toBe("weak");
+    expect(frontDiagnostics.brightEdgeLikelihood.explanation).toContain("Front-lit geometry");
+    expect(sideDiagnostics.brightEdgeLikelihood.explanation).toContain("Side-lit geometry");
+    expect(backDiagnostics.brightEdgeLikelihood.explanation).toContain("Backlit geometry");
     expect(["moderate", "strong"]).toContain(
-      buildCloudOpticsDiagnostics(scene, backlit).brightEdgeLikelihood.state,
+      backDiagnostics.brightEdgeLikelihood.state,
     );
   });
 

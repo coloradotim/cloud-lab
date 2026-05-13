@@ -21,6 +21,12 @@ describe("lab catalog", () => {
     expect(fairWeatherLab.id).toBe("fair-weather-cumulus");
     expect(fairWeatherLab.name).toBe("Fair-Weather Cumulus");
     expect(fairWeatherLab.isSelectable).toBe(true);
+    expect(fairWeatherLab.capabilities).toMatchObject({
+      supportsRun: true,
+      supportsTimeline: true,
+      supportsReplay: true,
+      supportsStaticControls: false,
+    });
   });
 
   it("matches the Fair-Weather Cumulus lab spec metadata", () => {
@@ -146,6 +152,7 @@ describe("lab catalog", () => {
     expect(plannedLabs.every((lab) => lab.scenarios.length === 0)).toBe(true);
     expect(plannedLabs.every((lab) => lab.controls.length === 0)).toBe(true);
     expect(plannedLabs.every((lab) => lab.diagnostics.length === 0)).toBe(true);
+    expect(plannedLabs.every((lab) => lab.capabilities.supportsRun === false)).toBe(true);
   });
 
   it("includes Clouds, Light, and Shadow as a concept shell lab", () => {
@@ -155,6 +162,12 @@ describe("lab catalog", () => {
     expect(cloudOpticsLab.statusLabel).toBe("Prototype optics renderer");
     expect(cloudOpticsLab.supportedPhysicsCore).toBeNull();
     expect(cloudOpticsLab.isSelectable).toBe(true);
+    expect(cloudOpticsLab.capabilities).toMatchObject({
+      supportsRun: false,
+      supportsTimeline: false,
+      supportsReplay: false,
+      supportsStaticControls: true,
+    });
     expect(cloudOpticsLab.question).toContain(
       "Why do clouds look soft, dark, glowing, layered, silver-lined, or dramatic",
     );
