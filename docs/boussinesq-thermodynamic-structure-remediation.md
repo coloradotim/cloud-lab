@@ -329,3 +329,24 @@ These likely belong to #156, #158, or #159 depending on the specific hypothesis.
 - Validation thresholds were not changed.
 - The existing `xfail` was not removed.
 - No new follow-on GitHub issues were created.
+
+## Post-#155 Update
+
+Issue #155 implemented the first pressure-aware thermodynamic remediation:
+
+- Boussinesq warm-cloud saturation now uses a shared helper with a height-dependent hydrostatic pressure profile anchored to the prototype's historical `900 hPa` reference pressure.
+- Condensation and validation diagnostics now share that pressure-aware saturation path.
+- LCL diagnostics now dry-lift the surface parcel through the same pressure profile.
+- The thermodynamic validation report now exposes initialized pressure, temperature, vapor, RH, source-layer vapor-conservation, saturation-cap, effective-source-layer-top, transition-layer, and initialized-profile saturation diagnostics.
+- Condensation uses local pressure plus a bounded parcel-lift saturation-temperature signal; the actual cell temperature is changed only by latent heating/evaporation, not by replacing it with the diagnostic lifted temperature.
+
+After #155, pressure-aware LCL for the `isolated-fair-weather-cumulus` reference case is about `336 m`. The reference still forms bounded shallow cloud and still preserves the existing boundary-layer-top `xfail`; the maximum cloud water remains below the configured `1500 m` boundary-layer top.
+
+The remaining humid-reference trust gap is therefore narrower:
+
+- not primarily a fixed-pressure thermodynamics issue
+- still partly an initialized-profile/source-layer issue, because source-layer vapor is capped and not conserved with height
+- still partly a vertical-transport/scenario-contract issue, because the strongest condensate remains shallow
+- still partly a return-flow/diagnostic-policy issue, because the thermodynamic report can warn about low-level return-flow cloud water
+
+Do not remove the old boundary-layer-top `xfail` until a replacement Fair-Weather scenario contract is approved.

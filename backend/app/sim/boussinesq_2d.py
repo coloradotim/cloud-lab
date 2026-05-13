@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import exp, isfinite
+from math import isfinite
 
 from app.sim.sample import build_grid_metadata, make_simulation_fields
 from app.sim.schemas import SimulationConfig, SimulationFrame
@@ -9,6 +9,11 @@ from app.sim.structured_fields import (
     StructuredGrid,
     initial_relative_humidity,
     surface_heating_weight,
+)
+from app.sim.thermodynamics import (
+    BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+    pressure_at_height_pa,
+    saturation_specific_humidity_kg_per_kg,
 )
 
 Grid = list[list[float]]
@@ -32,7 +37,10 @@ VELOCITY_DAMPING_PER_SECOND = 0.004
 TOP_SPONGE_DEPTH_CELLS = 2
 TOP_SPONGE_RELAXATION_PER_SECOND = 0.05
 PARCEL_LIFT_DECAY_PER_SECOND = 0.001
-PARCEL_LIFT_COOLING_FRACTION = 1.0
+# Parcel temperature already receives step-wise adiabatic cooling. The lift-memory
+# term gives saturation adjustment a bounded lifted-parcel signal without double
+# counting the full accumulated displacement.
+PARCEL_LIFT_COOLING_FRACTION = 0.40
 MAX_PARCEL_COOLING_LIFT_M = 1_000.0
 MIN_PARCEL_TEMPERATURE_K = 180.0
 MAX_PARCEL_TEMPERATURE_K = 330.0
@@ -169,7 +177,7 @@ def step_state(config: SimulationConfig, state: BoussinesqState) -> BoussinesqSt
         w,
         dt,
     )
-    condensation = _condense(parcel_temperature, vapor, cloud, w)
+    condensation = _condense(parcel_temperature, vapor, cloud, w, grid, parcel_lift)
     theta = _clip_grid(
         _theta_from_temperature(condensation.temperature_k, state.environmental_temperature_k),
         -MAX_ABS_THETA_PERTURBATION_K,
@@ -275,10 +283,20 @@ def _initial_water_vapor_specific_humidity_kg_per_kg(
     z_m: float,
     temperature_k: float,
 ) -> float:
+    pressure_pa = pressure_at_height_pa(
+        z_m,
+        surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+        scale_temperature_k=config.initial_atmosphere.surface_temperature_k,
+    )
     if config.initial_atmosphere.humidity_profile == SURFACE_MOISTURE_HUMIDITY_PROFILE:
-        local_saturation = _saturation_specific_humidity_kg_per_kg(temperature_k)
-        source_vapor = _saturation_specific_humidity_kg_per_kg(
-            _initial_temperature_k(config, 0.0)
+        local_saturation = saturation_specific_humidity_kg_per_kg(temperature_k, pressure_pa)
+        source_vapor = saturation_specific_humidity_kg_per_kg(
+            _initial_temperature_k(config, 0.0),
+            pressure_at_height_pa(
+                0.0,
+                surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+                scale_temperature_k=config.initial_atmosphere.surface_temperature_k,
+            ),
         ) * initial_relative_humidity(config, x_m, 0.0)
         environmental_vapor = local_saturation * initial_relative_humidity(config, x_m, z_m)
         source_top = min(
@@ -300,13 +318,20 @@ def _initial_water_vapor_specific_humidity_kg_per_kg(
         and config.initial_atmosphere.humidity_profile in MIXED_LAYER_HUMIDITY_PROFILES
     ):
         surface_temperature_k = _initial_temperature_k(config, 0.0)
-        mixed_layer_vapor = _saturation_specific_humidity_kg_per_kg(
-            surface_temperature_k
+        mixed_layer_vapor = saturation_specific_humidity_kg_per_kg(
+            surface_temperature_k,
+            pressure_at_height_pa(
+                0.0,
+                surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+                scale_temperature_k=config.initial_atmosphere.surface_temperature_k,
+            ),
         ) * initial_relative_humidity(config, x_m, 0.0)
-        local_saturation = _saturation_specific_humidity_kg_per_kg(temperature_k)
+        local_saturation = saturation_specific_humidity_kg_per_kg(temperature_k, pressure_pa)
         return min(mixed_layer_vapor, local_saturation * INITIAL_SATURATION_CAP_FRACTION)
 
-    return _saturation_specific_humidity_kg_per_kg(temperature_k) * initial_relative_humidity(
+    return saturation_specific_humidity_kg_per_kg(
+        temperature_k, pressure_pa
+    ) * initial_relative_humidity(
         config,
         x_m,
         z_m,
@@ -442,6 +467,7 @@ def _condense(
     water_vapor: Grid,
     cloud_liquid_water: Grid,
     vertical_velocity: Grid,
+    grid: SolverGrid,
     parcel_lift_m: Grid | None = None,
 ) -> _CondensationResult:
     updated_temperature = _copy_grid(temperature)
@@ -450,16 +476,20 @@ def _condense(
 
     for row_index, row in enumerate(updated_temperature):
         for column_index, temperature_k in enumerate(row):
-            lifted_temperature_k = temperature_k
+            saturation_temperature_k = temperature_k
             if parcel_lift_m is not None:
-                lifted_temperature_k -= DRY_ADIABATIC_LAPSE_RATE_K_PER_M * max(
+                saturation_temperature_k -= DRY_ADIABATIC_LAPSE_RATE_K_PER_M * max(
                     0.0,
                     min(
                         MAX_PARCEL_COOLING_LIFT_M,
                         parcel_lift_m[row_index][column_index] * PARCEL_LIFT_COOLING_FRACTION,
                     ),
                 )
-            qsat = _saturation_specific_humidity_kg_per_kg(lifted_temperature_k)
+            pressure_pa = pressure_at_height_pa(
+                grid.z_coordinates_m[row_index],
+                surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            )
+            qsat = saturation_specific_humidity_kg_per_kg(saturation_temperature_k, pressure_pa)
             excess = max(0.0, updated_vapor[row_index][column_index] - qsat)
             deficit = max(0.0, qsat - updated_vapor[row_index][column_index])
             existing_cloud = updated_cloud[row_index][column_index]
@@ -478,7 +508,7 @@ def _condense(
             )
             updated_cloud[row_index][column_index] += condensed - evaporated
             updated_temperature[row_index][column_index] = (
-                lifted_temperature_k + LATENT_HEATING_K_PER_KG_PER_KG * (condensed - evaporated)
+                temperature_k + LATENT_HEATING_K_PER_KG_PER_KG * (condensed - evaporated)
             )
 
     return _CondensationResult(
@@ -679,16 +709,6 @@ def _theta_from_temperature(temperature: Grid, environmental_temperature: Grid) 
         ]
         for row_index, row in enumerate(temperature)
     ]
-
-
-def _saturation_specific_humidity_kg_per_kg(temperature_k: float) -> float:
-    temperature_c = temperature_k - 273.15
-    saturation_vapor_pressure_hpa = 6.112 * exp((17.67 * temperature_c) / (temperature_c + 243.5))
-    pressure_hpa = 900.0
-    mixing_ratio = (
-        0.622 * saturation_vapor_pressure_hpa / (pressure_hpa - saturation_vapor_pressure_hpa)
-    )
-    return max(0.0, mixing_ratio / (1.0 + mixing_ratio))
 
 
 def _upwind_x(field: Grid, row_index: int, column_index: int, velocity: float) -> float:

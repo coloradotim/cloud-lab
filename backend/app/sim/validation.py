@@ -4,7 +4,7 @@ import argparse
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
-from math import exp, isfinite, sqrt
+from math import isfinite, sqrt
 from typing import Any
 
 from app.sim.presets import fair_weather_cumulus_preset
@@ -21,12 +21,24 @@ from app.sim.schemas import (
     TimeConfig,
 )
 from app.sim.solver import run_simulation
+from app.sim.structured_fields import initial_relative_humidity
+from app.sim.thermodynamics import (
+    BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+    lcl_height_m,
+    pressure_at_height_pa,
+    relative_humidity_from_specific_humidity,
+)
+from app.sim.thermodynamics import (
+    saturation_specific_humidity_kg_per_kg as pressure_aware_saturation_specific_humidity_kg_per_kg,
+)
 
 CLOUD_TOP_THRESHOLD_KG_PER_KG = 1e-6
 THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG = 1e-8
 DIVERGENCE_VELOCITY_FLOOR_M_PER_S = 1e-3
 DRY_ADIABATIC_LAPSE_RATE_K_PER_M = 0.0098
-BOUSSINESQ_REFERENCE_PRESSURE_HPA = 900.0
+INITIAL_SATURATION_CAP_FRACTION = 0.98
+SURFACE_MOISTURE_HUMIDITY_PROFILE = "surface_moisture"
+MIXED_LAYER_HUMIDITY_PROFILES = {"uniform", "moist_boundary_layer"}
 LCL_GRID_TOLERANCE_CELLS = 1.0
 LCL_WARN_TOLERANCE_CELLS = 2.0
 BELOW_LCL_WARN_FRACTION = 0.05
@@ -105,6 +117,7 @@ class CloudRegionDiagnostics:
 @dataclass(frozen=True)
 class BoussinesqThermodynamicDiagnostics:
     expected_lcl_m: float
+    initialized_profile: InitializedProfileDiagnostics
     first_cloud_time_seconds: float | None
     first_cloud_height_m: float | None
     first_cloud_lcl_delta_m: float | None
@@ -146,6 +159,24 @@ class LiftedSaturationSanity:
     relative_humidity_values: tuple[float, ...]
     saturation_decreases: bool
     relative_humidity_increases: bool
+
+
+@dataclass(frozen=True)
+class InitializedProfileDiagnostics:
+    heights_m: tuple[float, ...]
+    pressure_profile_pa: tuple[float, ...]
+    temperature_profile_k: tuple[float, ...]
+    water_vapor_profile_kg_per_kg: tuple[float, ...]
+    relative_humidity_profile: tuple[float, ...]
+    source_layer_vapor_spread_kg_per_kg: float
+    source_layer_vapor_conserved: bool
+    saturation_cap_cell_count: int
+    saturation_cap_heights_m: tuple[float, ...]
+    effective_source_layer_top_m: float
+    transition_layer_bottom_m: float
+    transition_layer_top_m: float
+    initialized_saturation_height_m: float | None
+    well_mixed_for_shared_cloud_base: bool
 
 
 def boussinesq_reference_cases() -> list[BoussinesqReferenceCase]:
@@ -503,33 +534,13 @@ def format_boussinesq_thermodynamic_summary(report: dict[str, Any]) -> str:
 
 
 def compute_lcl_height_m(temperature_k: float, relative_humidity: float) -> float:
-    """Estimate LCL by dry-lifting a parcel against the diagnostic saturation curve."""
-    rh = min(max(relative_humidity, 1e-6), 1.0)
-    vapor = saturation_specific_humidity_kg_per_kg(temperature_k) * rh
-    if vapor >= saturation_specific_humidity_kg_per_kg(temperature_k):
-        return 0.0
+    """Estimate LCL by dry-lifting a parcel through the pressure-aware profile."""
 
-    lower_m = 0.0
-    upper_m = 100.0
-    max_height_m = 15_000.0
-    while upper_m < max_height_m:
-        lifted_temperature_k = temperature_k - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * upper_m
-        if vapor >= saturation_specific_humidity_kg_per_kg(lifted_temperature_k):
-            break
-        lower_m = upper_m
-        upper_m *= 2.0
-    else:
-        return max_height_m
-
-    for _iteration in range(48):
-        midpoint_m = (lower_m + upper_m) / 2.0
-        lifted_temperature_k = temperature_k - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * midpoint_m
-        if vapor >= saturation_specific_humidity_kg_per_kg(lifted_temperature_k):
-            upper_m = midpoint_m
-        else:
-            lower_m = midpoint_m
-
-    return upper_m
+    return lcl_height_m(
+        temperature_k,
+        relative_humidity,
+        surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+    )
 
 
 def compute_boussinesq_thermodynamic_diagnostics(
@@ -541,6 +552,7 @@ def compute_boussinesq_thermodynamic_diagnostics(
     initial = frames[0]
     final = frames[-1]
     dz_m = final.config.domain.height_m / final.grid.rows
+    initialized_profile = compute_initialized_profile_diagnostics(initial)
     lcl_m = compute_lcl_height_m(
         initial.config.initial_atmosphere.surface_temperature_k,
         initial.config.initial_atmosphere.relative_humidity,
@@ -559,7 +571,12 @@ def compute_boussinesq_thermodynamic_diagnostics(
         row_index, column_index = onset_sample
         temperature = first_cloud_frame.fields.temperature_k.values[row_index][column_index]
         vapor = first_cloud_frame.fields.water_vapor_kg_per_kg.values[row_index][column_index]
-        saturation = saturation_specific_humidity_kg_per_kg(temperature)
+        pressure_pa = pressure_at_height_pa(
+            first_cloud_frame.grid.z_coordinates_m[row_index],
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=first_cloud_frame.config.initial_atmosphere.surface_temperature_k,
+        )
+        saturation = saturation_specific_humidity_kg_per_kg(temperature, pressure_pa)
         cloud_onset_rh = vapor / max(saturation, 1e-12)
         cloud_onset_excess = vapor - saturation
 
@@ -586,6 +603,12 @@ def compute_boussinesq_thermodynamic_diagnostics(
 
     if not mixed_layer.well_mixed:
         notes.append("source layer is not well mixed; shared cloud bases are less expected")
+        status_rank = max(status_rank, 1)
+    if initialized_profile.saturation_cap_cell_count > 0:
+        notes.append("source-layer vapor was capped against local saturation during initialization")
+        status_rank = max(status_rank, 1)
+    if not initialized_profile.source_layer_vapor_conserved:
+        notes.append("initialized source-layer vapor is not conserved with height")
         status_rank = max(status_rank, 1)
     if first_cloud_height is None:
         notes.append("no cloud water formed above threshold")
@@ -635,6 +658,7 @@ def compute_boussinesq_thermodynamic_diagnostics(
     status = ("pass", "warn", "fail")[status_rank]
     return BoussinesqThermodynamicDiagnostics(
         expected_lcl_m=lcl_m,
+        initialized_profile=initialized_profile,
         first_cloud_time_seconds=first_cloud_frame.time_seconds if first_cloud_frame else None,
         first_cloud_height_m=first_cloud_height,
         first_cloud_lcl_delta_m=(
@@ -828,10 +852,15 @@ def compute_mixed_layer_diagnostics(frame: SimulationFrame) -> MixedLayerDiagnos
         for column_index in range(frame.grid.columns):
             temperature = frame.fields.temperature_k.values[row_index][column_index]
             vapor = frame.fields.water_vapor_kg_per_kg.values[row_index][column_index]
+            pressure_pa = pressure_at_height_pa(
+                z_m,
+                surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+                scale_temperature_k=frame.config.initial_atmosphere.surface_temperature_k,
+            )
             theta_values.append(temperature + DRY_ADIABATIC_LAPSE_RATE_K_PER_M * z_m)
             vapor_values.append(vapor)
             rh_values.append(
-                vapor / max(saturation_specific_humidity_kg_per_kg(temperature), 1e-12)
+                relative_humidity_from_specific_humidity(temperature, vapor, pressure_pa)
             )
 
     theta_spread = _spread(theta_values)
@@ -846,15 +875,81 @@ def compute_mixed_layer_diagnostics(frame: SimulationFrame) -> MixedLayerDiagnos
     )
 
 
-def saturation_specific_humidity_kg_per_kg(temperature_k: float) -> float:
-    temperature_c = temperature_k - 273.15
-    saturation_vapor_pressure_hpa = 6.112 * exp((17.67 * temperature_c) / (temperature_c + 243.5))
-    mixing_ratio = (
-        0.622
-        * saturation_vapor_pressure_hpa
-        / (BOUSSINESQ_REFERENCE_PRESSURE_HPA - saturation_vapor_pressure_hpa)
+def compute_initialized_profile_diagnostics(
+    frame: SimulationFrame,
+) -> InitializedProfileDiagnostics:
+    heights: list[float] = []
+    pressures: list[float] = []
+    temperatures: list[float] = []
+    vapors: list[float] = []
+    relative_humidities: list[float] = []
+    capped_heights: set[float] = set()
+    capped_cells = 0
+    source_layer_vapor_values: list[float] = []
+    initialized_saturation_height_m: float | None = None
+
+    for row_index, z_m in enumerate(frame.grid.z_coordinates_m):
+        row_temperatures = frame.fields.temperature_k.values[row_index]
+        row_vapors = frame.fields.water_vapor_kg_per_kg.values[row_index]
+        pressure_pa = pressure_at_height_pa(
+            z_m,
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=frame.config.initial_atmosphere.surface_temperature_k,
+        )
+        row_rh = [
+            relative_humidity_from_specific_humidity(temperature, vapor, pressure_pa)
+            for temperature, vapor in zip(row_temperatures, row_vapors, strict=False)
+        ]
+
+        heights.append(z_m)
+        pressures.append(pressure_pa)
+        temperatures.append(sum(row_temperatures) / len(row_temperatures))
+        vapors.append(sum(row_vapors) / len(row_vapors))
+        relative_humidities.append(sum(row_rh) / len(row_rh))
+
+        if initialized_saturation_height_m is None and max(row_rh, default=0.0) >= 1.0:
+            initialized_saturation_height_m = z_m
+
+        for column_index, (temperature, vapor) in enumerate(
+            zip(row_temperatures, row_vapors, strict=False)
+        ):
+            if z_m <= _effective_source_layer_top_m(frame.config):
+                source_layer_vapor_values.append(vapor)
+            if _source_layer_vapor_was_capped(
+                frame.config,
+                frame.grid.x_coordinates_m[column_index],
+                z_m,
+                temperature,
+                vapor,
+            ):
+                capped_cells += 1
+                capped_heights.add(z_m)
+
+    source_layer_vapor_spread = _spread(source_layer_vapor_values)
+    return InitializedProfileDiagnostics(
+        heights_m=tuple(heights),
+        pressure_profile_pa=tuple(pressures),
+        temperature_profile_k=tuple(temperatures),
+        water_vapor_profile_kg_per_kg=tuple(vapors),
+        relative_humidity_profile=tuple(relative_humidities),
+        source_layer_vapor_spread_kg_per_kg=source_layer_vapor_spread,
+        source_layer_vapor_conserved=source_layer_vapor_spread <= 0.002,
+        saturation_cap_cell_count=capped_cells,
+        saturation_cap_heights_m=tuple(sorted(capped_heights)),
+        effective_source_layer_top_m=_effective_source_layer_top_m(frame.config),
+        transition_layer_bottom_m=_transition_layer_bottom_m(frame.config),
+        transition_layer_top_m=_transition_layer_top_m(frame.config),
+        initialized_saturation_height_m=initialized_saturation_height_m,
+        well_mixed_for_shared_cloud_base=source_layer_vapor_spread <= 0.002
+        and _spread(relative_humidities) <= 0.35,
     )
-    return max(0.0, mixing_ratio / (1.0 + mixing_ratio))
+
+
+def saturation_specific_humidity_kg_per_kg(
+    temperature_k: float,
+    pressure_pa: float = BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+) -> float:
+    return pressure_aware_saturation_specific_humidity_kg_per_kg(temperature_k, pressure_pa)
 
 
 def lifted_saturation_sanity_path(
@@ -864,14 +959,27 @@ def lifted_saturation_sanity_path(
     lift_step_m: float = 100.0,
     steps: int = 8,
 ) -> LiftedSaturationSanity:
-    initial_saturation = saturation_specific_humidity_kg_per_kg(surface_temperature_k)
+    initial_saturation = saturation_specific_humidity_kg_per_kg(
+        surface_temperature_k,
+        pressure_at_height_pa(
+            0.0,
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=surface_temperature_k,
+        ),
+    )
     vapor = initial_saturation * relative_humidity
     saturation_values = []
     rh_values = []
 
     for step in range(steps + 1):
-        temperature = surface_temperature_k - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * lift_step_m * step
-        saturation = saturation_specific_humidity_kg_per_kg(temperature)
+        height_m = lift_step_m * step
+        temperature = surface_temperature_k - DRY_ADIABATIC_LAPSE_RATE_K_PER_M * height_m
+        pressure_pa = pressure_at_height_pa(
+            height_m,
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=surface_temperature_k,
+        )
+        saturation = saturation_specific_humidity_kg_per_kg(temperature, pressure_pa)
         saturation_values.append(saturation)
         rh_values.append(vapor / max(saturation, 1e-12))
 
@@ -959,6 +1067,65 @@ def compute_divergence_field(frame: SimulationFrame) -> list[list[float]]:
     _fill_boundary_from_nearest_interior(divergence)
 
     return divergence
+
+
+def _effective_source_layer_top_m(config: SimulationConfig) -> float:
+    return min(
+        config.initial_atmosphere.moist_source_layer_depth_m,
+        config.initial_atmosphere.boundary_layer_depth_m,
+        config.domain.height_m,
+    )
+
+
+def _transition_layer_bottom_m(config: SimulationConfig) -> float:
+    if config.initial_atmosphere.humidity_profile != SURFACE_MOISTURE_HUMIDITY_PROFILE:
+        return _effective_source_layer_top_m(config)
+    return _effective_source_layer_top_m(config)
+
+
+def _transition_layer_top_m(config: SimulationConfig) -> float:
+    if config.initial_atmosphere.humidity_profile != SURFACE_MOISTURE_HUMIDITY_PROFILE:
+        return _effective_source_layer_top_m(config)
+    transition_depth = max(config.domain.height_m * 0.08, 200.0)
+    return min(config.domain.height_m, _effective_source_layer_top_m(config) + transition_depth)
+
+
+def _source_layer_vapor_was_capped(
+    config: SimulationConfig,
+    x_m: float,
+    z_m: float,
+    temperature_k: float,
+    vapor_kg_per_kg: float,
+) -> bool:
+    if config.initial_atmosphere.humidity_profile not in (
+        {SURFACE_MOISTURE_HUMIDITY_PROFILE} | MIXED_LAYER_HUMIDITY_PROFILES
+    ):
+        return False
+    if z_m > _transition_layer_top_m(config):
+        return False
+
+    pressure_pa = pressure_at_height_pa(
+        z_m,
+        surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+        scale_temperature_k=config.initial_atmosphere.surface_temperature_k,
+    )
+    local_cap = (
+        saturation_specific_humidity_kg_per_kg(temperature_k, pressure_pa)
+        * INITIAL_SATURATION_CAP_FRACTION
+    )
+    surface_saturation = saturation_specific_humidity_kg_per_kg(
+        config.initial_atmosphere.surface_temperature_k,
+        pressure_at_height_pa(
+            0.0,
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=config.initial_atmosphere.surface_temperature_k,
+        ),
+    )
+    source_vapor = surface_saturation * initial_relative_humidity(config, x_m, 0.0)
+    return source_vapor > local_cap and abs(vapor_kg_per_kg - local_cap) <= max(
+        1e-8,
+        local_cap * 1e-4,
+    )
 
 
 def _first_cloud_frame(frames: list[SimulationFrame]) -> SimulationFrame | None:
@@ -1087,6 +1254,7 @@ def _thermodynamic_diagnostics_to_dict(
 ) -> dict[str, Any]:
     return {
         "expected_lcl_m": diagnostics.expected_lcl_m,
+        "initialized_profile": _initialized_profile_to_dict(diagnostics.initialized_profile),
         "first_cloud_time_seconds": diagnostics.first_cloud_time_seconds,
         "first_cloud_height_m": diagnostics.first_cloud_height_m,
         "first_cloud_lcl_delta_m": diagnostics.first_cloud_lcl_delta_m,
@@ -1121,6 +1289,27 @@ def _thermodynamic_diagnostics_to_dict(
         "return_flow_cloud_fraction": diagnostics.return_flow_cloud_fraction,
         "status": diagnostics.status,
         "notes": list(diagnostics.notes),
+    }
+
+
+def _initialized_profile_to_dict(
+    diagnostics: InitializedProfileDiagnostics,
+) -> dict[str, Any]:
+    return {
+        "heights_m": list(diagnostics.heights_m),
+        "pressure_profile_pa": list(diagnostics.pressure_profile_pa),
+        "temperature_profile_k": list(diagnostics.temperature_profile_k),
+        "water_vapor_profile_kg_per_kg": list(diagnostics.water_vapor_profile_kg_per_kg),
+        "relative_humidity_profile": list(diagnostics.relative_humidity_profile),
+        "source_layer_vapor_spread_kg_per_kg": diagnostics.source_layer_vapor_spread_kg_per_kg,
+        "source_layer_vapor_conserved": diagnostics.source_layer_vapor_conserved,
+        "saturation_cap_cell_count": diagnostics.saturation_cap_cell_count,
+        "saturation_cap_heights_m": list(diagnostics.saturation_cap_heights_m),
+        "effective_source_layer_top_m": diagnostics.effective_source_layer_top_m,
+        "transition_layer_bottom_m": diagnostics.transition_layer_bottom_m,
+        "transition_layer_top_m": diagnostics.transition_layer_top_m,
+        "initialized_saturation_height_m": diagnostics.initialized_saturation_height_m,
+        "well_mixed_for_shared_cloud_base": diagnostics.well_mixed_for_shared_cloud_base,
     }
 
 

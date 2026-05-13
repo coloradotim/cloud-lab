@@ -167,7 +167,9 @@ Fair-weather cumulus often has a visually flat cloud base because parcels rising
 
 Cloud Lab checks this structure diagnostically. These diagnostics do not clamp cloud water, hide cloud water below an LCL, or force flat bases in the renderer. They report whether simulated cloud water is thermodynamically plausible for the configured initial state.
 
-The expected LCL is estimated numerically by dry-lifting the initial surface parcel until its conserved water vapor reaches the diagnostic saturation curve. This keeps the LCL diagnostic consistent with the Boussinesq prototype's current saturation calculation. That saturation calculation still uses a fixed `900 hPa` reference pressure, so the validation should be read as a consistency check for this prototype, not a full hydrostatic parcel calculation.
+The expected LCL is estimated numerically by dry-lifting the initial surface parcel until its conserved water vapor reaches the diagnostic saturation curve. The Boussinesq thermodynamic path now uses a height-dependent hydrostatic pressure profile anchored to the prototype's historical `900 hPa` reference pressure. Condensation and diagnostics share this pressure-aware saturation helper.
+
+This is still an approximation. The dynamics remain Boussinesq and do not solve compressible pressure evolution. The pressure profile is used only to make warm-cloud saturation, relative humidity, and LCL diagnostics more coherent with height.
 
 The thermodynamic validation suite reports:
 
@@ -178,6 +180,12 @@ The thermodynamic validation suite reports:
 - cloud-water centroid and maximum-cloud-water height
 - cloud-region count, base heights, top heights, base spread, and top spread
 - source-layer potential-temperature spread, water-vapor spread, and RH spread
+- initialized pressure, temperature, water-vapor, and pressure-aware RH profiles by height
+- source-layer vapor conservation/non-conservation
+- source-layer saturation-cap cell count and affected heights
+- effective source-layer top and source-to-free-atmosphere transition layer
+- initialized-profile saturation height when present
+- whether the initialized profile is well mixed enough for simple shared cloud-base assumptions
 - saturation sanity for a dry-adiabatically lifted diagnostic parcel
 - boundary-cloud fraction and low-level return-flow cloud fraction
 

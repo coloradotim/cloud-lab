@@ -6,10 +6,13 @@ from app.sim import (
     build_grid_metadata,
     compute_boussinesq_thermodynamic_diagnostics,
     compute_cloud_region_diagnostics,
+    compute_initialized_profile_diagnostics,
     compute_lcl_height_m,
     compute_mixed_layer_diagnostics,
     lifted_saturation_sanity_path,
     make_simulation_fields,
+    pressure_at_height_pa,
+    saturation_specific_humidity_kg_per_kg,
 )
 from app.sim.schemas import (
     DomainConfig,
@@ -23,8 +26,27 @@ pytestmark = [pytest.mark.boussinesq, pytest.mark.science, pytest.mark.diagnosti
 
 
 def test_lcl_diagnostic_returns_plausible_common_values() -> None:
-    assert compute_lcl_height_m(298.15, 0.80) == pytest.approx(370.0, abs=90.0)
+    assert compute_lcl_height_m(298.15, 0.80) == pytest.approx(460.0, abs=90.0)
     assert compute_lcl_height_m(298.15, 1.0) == 0.0
+
+
+def test_pressure_profile_decreases_with_height() -> None:
+    surface_pressure = pressure_at_height_pa(0.0)
+    elevated_pressure = pressure_at_height_pa(2_000.0)
+
+    assert surface_pressure == pytest.approx(101_325.0)
+    assert elevated_pressure < surface_pressure
+    assert elevated_pressure > 70_000.0
+
+
+def test_saturation_uses_local_pressure() -> None:
+    surface_saturation = saturation_specific_humidity_kg_per_kg(293.15, pressure_at_height_pa(0.0))
+    elevated_saturation = saturation_specific_humidity_kg_per_kg(
+        293.15,
+        pressure_at_height_pa(2_000.0),
+    )
+
+    assert elevated_saturation > surface_saturation
 
 
 def test_higher_rh_produces_lower_lcl_at_same_temperature() -> None:
@@ -88,6 +110,38 @@ def test_saturation_sanity_path_cools_toward_saturation() -> None:
     assert path.relative_humidity_increases is True
     assert path.saturation_values_kg_per_kg[-1] < path.saturation_values_kg_per_kg[0]
     assert path.relative_humidity_values[-1] > path.relative_humidity_values[0]
+
+
+def test_initialized_profile_reports_pressure_aware_rh_and_saturation_caps() -> None:
+    config = SimulationConfig(
+        solver_type="boussinesq_2d",
+        domain=DomainConfig(width_m=4_000.0, height_m=4_000.0),
+        grid=GridConfig(columns=4, rows=4),
+        initial_atmosphere=InitialAtmosphereConfig(
+            surface_temperature_k=298.15,
+            relative_humidity=0.90,
+            free_atmosphere_relative_humidity=0.45,
+            boundary_layer_depth_m=2_000.0,
+            moist_source_layer_depth_m=2_000.0,
+            humidity_profile="surface_moisture",
+        ),
+        surface_heating=SurfaceHeatingConfig(
+            patch_center_x_m=2_000.0,
+            patch_width_m=1_000.0,
+        ),
+    )
+    from app.sim.boussinesq_2d import initialize_state, state_to_frame
+
+    frame = state_to_frame(config, initialize_state(config))
+    profile = compute_initialized_profile_diagnostics(frame)
+
+    assert len(profile.heights_m) == config.grid.rows
+    assert profile.pressure_profile_pa[-1] < profile.pressure_profile_pa[0]
+    assert profile.saturation_cap_cell_count > 0
+    assert profile.source_layer_vapor_conserved is False
+    assert profile.effective_source_layer_top_m == 2_000.0
+    assert profile.transition_layer_bottom_m == 2_000.0
+    assert profile.transition_layer_top_m == pytest.approx(2_320.0)
 
 
 def test_cloud_onset_and_distribution_metrics_from_synthetic_frames() -> None:
