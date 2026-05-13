@@ -105,6 +105,16 @@ describe("Clouds, Light, and Shadow Workbench V2 shell", () => {
     expect(html).toContain("72 x 48");
     expect(html).toContain("Source scene field");
     expect(html).toContain("cloud-optics-scene-v1");
+    expect(html).toContain("Optical-depth estimate");
+    expect(html).toContain("Cloud water / density summary");
+    expect(html).toContain("Light geometry state");
+    expect(html).toContain("Light-path length proxy");
+    expect(html).toContain("Edge softness state");
+    expect(html).toContain("Base/interior darkness state");
+    expect(html).toContain("Bright-edge likelihood");
+    expect(html).toContain("Layered depth explanation");
+    expect(html).toContain("Approximation/honesty label availability");
+    expect(html).toContain("Source-field immutability");
     expect(html).toContain("Renderer controls adjust the visual interpretation only");
     expect(html).toContain("Sun elevation");
     expect(html).toContain('value="48"');

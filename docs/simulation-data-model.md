@@ -117,7 +117,9 @@ Each scene contains:
 - default renderer controls: scene id, sun elevation/azimuth, view angle, density multiplier, depth multiplier, optical-depth multiplier, light color, edge softness, sky brightness, haze, and exposure
 - source metadata marking the field as generated, deterministic, and not cloud-formation physics
 
-The scene field is the physical/source field for that lab. Renderer controls such as sun angle, optical-depth multiplier, exposure, and view angle must not mutate the source field. Future rendered appearance, optical-depth, and light-path views should consume the source scene and derive display products from it.
+The scene field is the physical/source field for that lab. Renderer controls such as sun angle, optical-depth multiplier, exposure, and view angle must not mutate the source field. Rendered appearance, optical-depth, and light-path views consume the source scene and derive display products from it.
+
+Cloud-optics diagnostics are deterministic explanations derived from the source scene, renderer controls, and rendered model summary. They include optical-depth estimate, cloud-water/density summary, light geometry state, light-path proxy, edge-softness state, base/interior darkness state, bright-edge likelihood, layered-depth explanation, approximation-label availability, and source-field immutability metadata. They do not claim full radiative transfer or droplet-resolved optics.
 
 ## Saved Run Artifact Schema
 
