@@ -34,8 +34,8 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     const dryFailed = selectWorkbenchScenario(initial, fairWeatherLab, "dry-failed-cumulus");
 
     expect(dryFailed.selectedScenarioId).toBe("dry-failed-cumulus");
-    expect(dryFailed.nextRunConfig.initial_atmosphere.relative_humidity).toBe(0.45);
-    expect(dryFailed.nextRunConfig.surface_heating.max_warming_rate_k_per_s).toBe(0.016);
+    expect(dryFailed.nextRunConfig.initial_atmosphere.relative_humidity).toBe(0.35);
+    expect(dryFailed.nextRunConfig.surface_heating.max_warming_rate_k_per_s).toBe(0.012);
     expect(dryFailed.frames).toHaveLength(0);
   });
 

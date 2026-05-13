@@ -95,7 +95,7 @@ The backend `fair-weather-cumulus` preset follows the same science contract but 
 - Solver: `boussinesq_2d`
 - Purpose: show buoyant motion without cloud formation.
 - Thermodynamics: lower RH and higher effective LCL.
-- Forcing: localized heating similar to the fair-weather case.
+- Forcing: localized heating weaker than the cloud-forming fair-weather case.
 - Expected behavior: thermal/updraft structure appears while cloud liquid water stays negligible.
 
 ### Humid low-cloud boundary layer

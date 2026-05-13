@@ -502,11 +502,11 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
   {
     slug: "dry-failed-cumulus",
     name: "Dry failed cumulus",
-    description: "A heated dry boundary layer that lifts but should not make appreciable cloud water.",
+    description: "A weakly heated dry boundary layer that lifts but should not make appreciable cloud water.",
     intendedPhenomenon: "Buoyant motion without condensation.",
     solverMode: "boussinesq_2d",
     thermodynamicAssumptions: "Lower RH keeps the LCL above the modeled thermal reach.",
-    forcingSetup: "Single heated patch similar to the fair-weather case.",
+    forcingSetup: "Single heated patch, weaker than the cloud-forming fair-weather case.",
     expectedOutcome: "A thermal/updraft pattern appears while cloud liquid water stays zero or negligible.",
     diagnosticExpectations: [
       "Maximum vertical velocity is nonzero.",
@@ -522,14 +522,14 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
         initial_atmosphere: {
           surface_temperature_k: celsiusToKelvin(25),
           lapse_rate_k_per_m: 0.0075,
-          relative_humidity: 0.45,
+          relative_humidity: 0.35,
           boundary_layer_depth_m: 1_000,
           moist_source_layer_depth_m: 500,
-          free_atmosphere_relative_humidity: 0.35,
+          free_atmosphere_relative_humidity: 0.25,
           humidity_profile: "surface_moisture",
         },
         surface_heating: {
-          max_warming_rate_k_per_s: 0.016,
+          max_warming_rate_k_per_s: 0.012,
           patch_center_x_m: config.domain.width_m / 2,
           patch_width_m: 2_000,
           pattern: "single_patch",

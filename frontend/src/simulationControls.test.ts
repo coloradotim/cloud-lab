@@ -147,6 +147,31 @@ describe("simulation controls", () => {
     expect(multiThermal?.apply(config).initial_atmosphere.relative_humidity).toBe(0.85);
   });
 
+  it("keeps dry failed cumulus conservative enough for long default workbench runs", () => {
+    const dryFailed = BUILT_IN_SCENARIOS.find(
+      (referenceCase) => referenceCase.slug === "dry-failed-cumulus",
+    );
+    const longRunConfig = normalizeConfig({
+      ...config,
+      time: { ...config.time, duration_seconds: 3_600 },
+    });
+    const dryFailedConfig = dryFailed?.apply(longRunConfig);
+
+    expect(dryFailedConfig).toMatchObject({
+      solver_type: "boussinesq_2d",
+      initial_atmosphere: {
+        relative_humidity: 0.35,
+        free_atmosphere_relative_humidity: 0.25,
+        humidity_profile: "surface_moisture",
+      },
+      surface_heating: {
+        max_warming_rate_k_per_s: 0.012,
+        pattern: "single_patch",
+      },
+      time: { duration_seconds: 3_600 },
+    });
+  });
+
   it("requires built-in scenarios to carry physical intent metadata", () => {
     const names = new Set(BUILT_IN_SCENARIOS.map((scenario) => scenario.name));
 
