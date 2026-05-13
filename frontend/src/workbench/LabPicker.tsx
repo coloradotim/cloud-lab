@@ -7,7 +7,9 @@ type LabPickerProps = {
 
 export function LabPicker({ labs, onSelectLab }: LabPickerProps) {
   const primaryLab = labs.find((lab) => lab.isSelectable);
-  const comingNextLabs = labs.filter((lab) => !lab.isSelectable && lab.status === "planned");
+  const comingNextLabs = labs.filter(
+    (lab) => lab.id !== primaryLab?.id && lab.status !== "later",
+  );
   const futureLabs = labs.filter((lab) => !lab.isSelectable && lab.status === "later");
 
   return (
@@ -53,14 +55,22 @@ export function LabPicker({ labs, onSelectLab }: LabPickerProps) {
       ) : null}
 
       <section className="lab-roadmap" aria-label="Planned cloud labs">
-        <LabRoadmapGroup title="Coming next" labs={comingNextLabs} />
-        <LabRoadmapGroup title="Future labs" labs={futureLabs} />
+        <LabRoadmapGroup title="Coming next" labs={comingNextLabs} onSelectLab={onSelectLab} />
+        <LabRoadmapGroup title="Future labs" labs={futureLabs} onSelectLab={onSelectLab} />
       </section>
     </main>
   );
 }
 
-function LabRoadmapGroup({ title, labs }: { title: string; labs: LabDefinition[] }) {
+function LabRoadmapGroup({
+  title,
+  labs,
+  onSelectLab,
+}: {
+  title: string;
+  labs: LabDefinition[];
+  onSelectLab: (labId: string) => void;
+}) {
   if (labs.length === 0) {
     return null;
   }
@@ -72,13 +82,23 @@ function LabRoadmapGroup({ title, labs }: { title: string; labs: LabDefinition[]
       <h2 id={headingId}>{title}</h2>
       <div className="roadmap-card-grid">
         {labs.map((lab) => (
-          <article className="lab-card roadmap-lab-card" key={lab.id} aria-disabled="true">
+          <article
+            className={`lab-card roadmap-lab-card${lab.isSelectable ? " roadmap-lab-card-open" : ""}`}
+            key={lab.id}
+            aria-disabled={lab.isSelectable ? undefined : "true"}
+          >
             <div className="lab-card-header">
               <h3>{lab.name}</h3>
               <span className={`lab-status lab-status-${lab.status}`}>{lab.statusLabel}</span>
             </div>
             <p className="lab-question">{lab.question}</p>
-            <p className="roadmap-unavailable">Not open yet</p>
+            {lab.isSelectable ? (
+              <button type="button" className="secondary-lab-cta" onClick={() => onSelectLab(lab.id)}>
+                Open {lab.name} shell
+              </button>
+            ) : (
+              <p className="roadmap-unavailable">Not open yet</p>
+            )}
           </article>
         ))}
       </div>

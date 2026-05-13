@@ -9,7 +9,7 @@ Each lab spec should follow `docs/lab-contract-template.md` and the process in `
 | Order | Spec | User-facing lab name | Status |
 | --- | --- | --- | --- |
 | 1 | `fair-weather-cumulus.md` | Fair-Weather Cumulus | prototype / first reference lab |
-| 2 | `cloud-optics-beauty.md` | Clouds, Light, and Shadow | concept / spec created |
+| 2 | `cloud-optics-beauty.md` | Clouds, Light, and Shadow | concept / Workbench V2 shell created |
 | 3 | `evolving-boundary-layer.md` | Evolving Boundary Layer | planned |
 | 4 | `layered-atmosphere.md` | Layered Atmosphere | planned |
 | 5 | `orographic-terrain-clouds.md` | Orographic / Terrain Clouds | planned |
@@ -44,4 +44,4 @@ A lab spec should define:
 
 The current implementation phase is Workbench V2 plus the Fair-Weather Cumulus reference lab. See `docs/current-phase-plan.md`.
 
-Clouds, Light, and Shadow now has a concept-level lab spec. Implementation should wait until the Fair-Weather Cumulus reference flow is usable enough to support the next lab cleanly, unless the team intentionally pulls optics/renderer work forward.
+Clouds, Light, and Shadow now has a concept-level lab spec and an initial Workbench V2 shell. Renderer, preset scene generation, and optics diagnostics remain intentionally deferred to follow-on issues.

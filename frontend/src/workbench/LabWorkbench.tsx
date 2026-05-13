@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
+import { CLOUD_OPTICS_BEAUTY_LAB_ID } from "../labs/labCatalog";
 import type { LabDefinition } from "../labs/labTypes";
 import { CONTROL_LIMITS, SURFACE_HEATING_PATTERNS } from "../simulationControls";
 import { defaultWorkbenchRunClient, type RunStreamCleanup, type WorkbenchRunClient } from "../simulation/runClient";
@@ -61,6 +62,7 @@ export function LabWorkbench({
   const currentFrame = displayedFrame(workbench);
   const inspector = useMemo(() => buildWorkbenchInspectorSummary(workbench), [workbench]);
   const replayEvents = useMemo(() => workbenchReplayEvents(workbench), [workbench]);
+  const canRun = lab.supportedPhysicsCore !== null;
 
   useEffect(() => {
     setWorkbench(createInitialWorkbenchState(lab));
@@ -69,6 +71,13 @@ export function LabWorkbench({
   }, [lab]);
 
   async function handleStartRun() {
+    if (!canRun) {
+      setWorkbench((current) =>
+        markWorkbenchRunError(current, "This lab shell is not runnable until its renderer lands."),
+      );
+      return;
+    }
+
     cleanupRef.current?.();
     setWorkbench((current) => markWorkbenchRunStarting(current));
 
@@ -123,6 +132,7 @@ export function LabWorkbench({
         mode={mode}
         runStatus={workbench.run.status}
         isRunning={isRunning}
+        canRun={canRun}
         onBackToLabs={onBackToLabs}
         onStartRun={handleStartRun}
         onStopRun={handleStopRun}
@@ -164,6 +174,7 @@ function WorkbenchTopBar({
   mode,
   runStatus,
   isRunning,
+  canRun,
   inspectorOpen,
   onBackToLabs,
   onStartRun,
@@ -177,6 +188,7 @@ function WorkbenchTopBar({
   mode: WorkbenchMode;
   runStatus: string;
   isRunning: boolean;
+  canRun: boolean;
   inspectorOpen: boolean;
   onBackToLabs: () => void;
   onStartRun: () => void;
@@ -196,10 +208,15 @@ function WorkbenchTopBar({
         <span>{scenarioName}</span>
       </div>
       <div className="workbench-actions" aria-label="Run and workbench actions">
-        <button type="button" onClick={onStartRun} disabled={isRunning}>
+        <button
+          type="button"
+          onClick={onStartRun}
+          disabled={isRunning || !canRun}
+          title={canRun ? undefined : "Renderer/run flow is intentionally deferred for this lab shell."}
+        >
           Run
         </button>
-        <button type="button" onClick={onStopRun} disabled={!isRunning}>
+        <button type="button" onClick={onStopRun} disabled={!isRunning || !canRun}>
           Stop
         </button>
         <button type="button" onClick={onResetRun}>
@@ -235,6 +252,12 @@ function LabSetupPanel({
 }) {
   const scenario = selectedLabScenario(lab, workbench);
   const config = workbench.nextRunConfig;
+
+  if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
+    return (
+      <CloudOpticsSetupPanel lab={lab} workbench={workbench} setWorkbench={setWorkbench} />
+    );
+  }
 
   return (
     <aside className="workbench-region setup-region" aria-labelledby="setup-region-title">
@@ -391,6 +414,88 @@ function LabSetupPanel({
   );
 }
 
+function CloudOpticsSetupPanel({
+  lab,
+  workbench,
+  setWorkbench,
+}: {
+  lab: LabDefinition;
+  workbench: WorkbenchState;
+  setWorkbench: Dispatch<SetStateAction<WorkbenchState>>;
+}) {
+  const scenario = selectedLabScenario(lab, workbench);
+  const primaryControls = lab.controls.filter((control) => control.tier === "primary");
+
+  return (
+    <aside className="workbench-region setup-region" aria-labelledby="setup-region-title">
+      <p className="region-label">Setup</p>
+      <h2 id="setup-region-title">{scenario?.name ?? "Cloud optics scene"}</h2>
+
+      <section className="setup-control-section" aria-labelledby="setup-scenario-title">
+        <h3 id="setup-scenario-title">Scenario</h3>
+        <label className="control-group">
+          <span>Scenario</span>
+          <select
+            value={workbench.selectedScenarioId}
+            onChange={(event) => {
+              const scenarioId = event.currentTarget.value;
+              setWorkbench((current) =>
+                selectWorkbenchScenario(current, lab, scenarioId),
+              );
+            }}
+          >
+            {lab.scenarios.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p>{scenario?.intendedPhenomenon ?? lab.question}</p>
+        <p className="setup-expectation">{scenario?.expectedBehavior}</p>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-light-title">
+        <h3 id="setup-light-title">Light and view</h3>
+        <div className="workbench-control-grid" aria-label="Cloud optics light controls">
+          {primaryControls.slice(1, 4).map((control) => (
+            <PlaceholderControl key={control.id} control={control} />
+          ))}
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-cloud-title">
+        <h3 id="setup-cloud-title">Cloud and optics</h3>
+        <div className="workbench-control-grid" aria-label="Cloud optics material controls">
+          <PlaceholderControl control={primaryControls[0]} />
+          {primaryControls.slice(4).map((control) => (
+            <PlaceholderControl key={control.id} control={control} />
+          ))}
+        </div>
+      </section>
+
+      <p className="workbench-message">
+        Prototype shell only: controls are placed from the lab spec but disabled until preset
+        scene generation and the optics renderer land.
+      </p>
+    </aside>
+  );
+}
+
+function PlaceholderControl({ control }: { control: LabDefinition["controls"][number] | undefined }) {
+  if (!control) {
+    return null;
+  }
+
+  return (
+    <label className="control-group control-group-disabled">
+      <span>{control.label}</span>
+      <input value="Deferred" readOnly disabled aria-label={`${control.label} placeholder`} />
+      <small>{control.unitsOrType}</small>
+    </label>
+  );
+}
+
 function NumberControl({
   id,
   label,
@@ -475,9 +580,14 @@ function VisualizationStage({
   selectedFieldKey: string;
   onSelectedFieldKeyChange: (fieldKey: string) => void;
 }) {
+  if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
+    return <CloudOpticsVisualizationStage lab={lab} workbench={workbench} />;
+  }
+
   const normalizedFieldKey = normalizeScientificFieldSelection(frame, selectedFieldKey);
   const fieldOptions = availableScientificFields(frame);
   const viewModel = buildScientificFieldViewModel(frame, normalizedFieldKey);
+  const domain = frame?.config?.domain ?? workbench.nextRunConfig.domain;
   const activeFieldLabel = viewModel
     ? `${viewModel.field.metadata.display_name} - ${viewModel.summary.unit}`
     : `${fieldOptions.find((field) => field.key === normalizedFieldKey)?.label ?? "Cloud liquid water"} - kg/kg`;
@@ -519,29 +629,35 @@ function VisualizationStage({
         <div className="scientific-field-shell">
           <div className="scientific-plot-frame">
             <span className="axis-label axis-label-y">Height, z (m)</span>
-            <svg
-              className="scientific-field-view"
-              viewBox={`0 0 ${viewModel.columns} ${viewModel.rows}`}
-              preserveAspectRatio="none"
-              role="img"
-              aria-label={`${viewModel.summary.truth.label}: ${viewModel.field.metadata.display_name} at ${formatSeconds(
-                viewModel.frame.time_seconds,
-              )}`}
-            >
-              <title>{viewModel.field.metadata.display_name}</title>
-              {viewModel.cells.map((cell) => (
-                <rect
-                  key={`${cell.row}-${cell.column}`}
-                  x={cell.column}
-                  y={viewModel.rows - cell.row - 1}
-                  width="1"
-                  height="1"
-                  fill={cell.color}
-                  data-field-key={viewModel.fieldKey}
-                  data-value={cell.displayValue}
-                />
-              ))}
-            </svg>
+            <AxisTicks orientation="y" maxValue={domain.height_m} />
+            <div className="scientific-plot-area">
+              <AxisGrid orientation="x" maxValue={domain.width_m} />
+              <AxisGrid orientation="y" maxValue={domain.height_m} />
+              <svg
+                className="scientific-field-view"
+                viewBox={`0 0 ${viewModel.columns} ${viewModel.rows}`}
+                preserveAspectRatio="none"
+                role="img"
+                aria-label={`${viewModel.summary.truth.label}: ${viewModel.field.metadata.display_name} at ${formatSeconds(
+                  viewModel.frame.time_seconds,
+                )}`}
+              >
+                <title>{viewModel.field.metadata.display_name}</title>
+                {viewModel.cells.map((cell) => (
+                  <rect
+                    key={`${cell.row}-${cell.column}`}
+                    x={cell.column}
+                    y={viewModel.rows - cell.row - 1}
+                    width="1"
+                    height="1"
+                    fill={cell.color}
+                    data-field-key={viewModel.fieldKey}
+                    data-value={cell.displayValue}
+                  />
+                ))}
+              </svg>
+            </div>
+            <AxisTicks orientation="x" maxValue={domain.width_m} />
             <span className="axis-label axis-label-x">Horizontal distance, x (m)</span>
           </div>
           <div className="field-legend" aria-label="Field legend">
@@ -555,10 +671,16 @@ function VisualizationStage({
         <div className="scientific-field-shell">
           <div className="scientific-plot-frame">
             <span className="axis-label axis-label-y">Height, z (m)</span>
-            <div className="stage-empty-state" aria-label={`${lab.name} no-frame state`}>
-              <strong>No frame displayed yet.</strong>
-              <p>Run Fair-Weather Cumulus to stream solver fields into this scientific 2-D view.</p>
+            <AxisTicks orientation="y" maxValue={domain.height_m} />
+            <div className="scientific-plot-area">
+              <AxisGrid orientation="x" maxValue={domain.width_m} />
+              <AxisGrid orientation="y" maxValue={domain.height_m} />
+              <div className="stage-empty-state" aria-label={`${lab.name} no-frame state`}>
+                <strong>No frame displayed yet.</strong>
+                <p>Run Fair-Weather Cumulus to stream solver fields into this scientific 2-D view.</p>
+              </div>
             </div>
+            <AxisTicks orientation="x" maxValue={domain.width_m} />
             <span className="axis-label axis-label-x">Horizontal distance, x (m)</span>
           </div>
         </div>
@@ -597,6 +719,134 @@ function VisualizationStage({
   );
 }
 
+function CloudOpticsVisualizationStage({
+  lab,
+  workbench,
+}: {
+  lab: LabDefinition;
+  workbench: WorkbenchState;
+}) {
+  const scenario = selectedLabScenario(lab, workbench);
+
+  return (
+    <section
+      className="workbench-region visualization-stage cloud-optics-stage"
+      aria-labelledby="visualization-stage-title"
+    >
+      <div className="stage-heading">
+        <p className="region-label">Visualization stage</p>
+        <div className="stage-title-row">
+          <h2 id="visualization-stage-title">Cloud appearance view shell</h2>
+          <div className="frame-readout" aria-label="Displayed frame readout">
+            <span>Renderer</span>
+            <strong>Deferred</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="optics-placeholder-scene" aria-label={`${lab.name} renderer placeholder`}>
+        <div className="optics-sky">
+          <span className="optics-cloud optics-cloud-a" />
+          <span className="optics-cloud optics-cloud-b" />
+          <span className="optics-sun" />
+        </div>
+        <div className="optics-placeholder-copy">
+          <strong>{scenario?.name ?? lab.name}</strong>
+          <p>
+            Preset 2.5-D scenes, optical-depth views, light-path views, and the rendered cloud
+            appearance mode are intentionally deferred from this catalog/shell slice.
+          </p>
+        </div>
+      </div>
+
+      <dl className="stage-stats">
+        <div>
+          <dt>Cloud scene</dt>
+          <dd>{scenario?.name ?? "unavailable"}</dd>
+        </div>
+        <div>
+          <dt>Renderer state</dt>
+          <dd>placeholder</dd>
+        </div>
+        <div>
+          <dt>Physics core</dt>
+          <dd>none required</dd>
+        </div>
+        <div>
+          <dt>Source fields</dt>
+          <dd>deferred</dd>
+        </div>
+      </dl>
+
+      <div className="assumption-labels" aria-label="Model assumptions">
+        <span>Model assumptions</span>
+        <p>
+          Visual approximation · Bulk optical approximation · 2.5-D visual scene · Preset cloud
+          field, not new cloud formation
+        </p>
+      </div>
+      {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
+    </section>
+  );
+}
+
+function AxisGrid({
+  orientation,
+  maxValue,
+}: {
+  orientation: "x" | "y";
+  maxValue: number;
+}) {
+  return (
+    <>
+      {buildAxisTicks(maxValue).map((tick) => {
+        const position = `${tick.percent}%`;
+        const style =
+          orientation === "x"
+            ? { left: position }
+            : { bottom: position };
+
+        return (
+          <span
+            key={`${orientation}-grid-${tick.value}`}
+            className={`plot-gridline plot-gridline-${orientation}`}
+            style={style}
+            aria-hidden="true"
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function AxisTicks({
+  orientation,
+  maxValue,
+}: {
+  orientation: "x" | "y";
+  maxValue: number;
+}) {
+  const ticks = buildAxisTicks(maxValue);
+
+  return (
+    <div className={`axis-ticks axis-ticks-${orientation}`} aria-hidden="true">
+      {ticks.map((tick) => {
+        const position = `${tick.percent}%`;
+        const style =
+          orientation === "x"
+            ? { left: position }
+            : { bottom: position };
+
+        return (
+          <span key={`${orientation}-tick-${tick.value}`} className="axis-tick" style={style}>
+            {formatAxisTick(tick.value)}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function InspectorPanel({
   lab,
   summary,
@@ -606,6 +856,10 @@ function InspectorPanel({
   summary: ReturnType<typeof buildWorkbenchInspectorSummary>;
   saveMessage: string | null;
 }) {
+  if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
+    return <CloudOpticsInspectorPanel lab={lab} saveMessage={saveMessage} />;
+  }
+
   return (
     <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
       <p className="region-label">Inspector</p>
@@ -749,6 +1003,59 @@ function InspectorPanel({
   );
 }
 
+function CloudOpticsInspectorPanel({
+  lab,
+  saveMessage,
+}: {
+  lab: LabDefinition;
+  saveMessage: string | null;
+}) {
+  return (
+    <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
+      <p className="region-label">Inspector</p>
+      <section className="inspector-summary" aria-labelledby="inspector-region-title">
+        <h2 id="inspector-region-title">Summary</h2>
+        <span className="diagnostic-status diagnostic-status-warning">
+          Result: renderer deferred
+        </span>
+        <p>
+          This Workbench V2 shell reserves the product structure for Clouds, Light, and Shadow.
+          It does not generate scenes, mutate solver fields, or claim radiative-transfer output.
+        </p>
+      </section>
+
+      <details className="inspector-details" open>
+        <summary>Planned diagnostics</summary>
+        <dl className="diagnostic-list">
+          {lab.diagnostics.map((diagnostic) => (
+            <div key={diagnostic.id}>
+              <dt>{diagnostic.label}</dt>
+              <dd>{diagnostic.purpose}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Visualization modes</summary>
+        <ul>
+          {lab.visualizationModes.map((mode) => (
+            <li key={mode.id}>
+              <strong>{mode.name}:</strong> {mode.description}
+            </li>
+          ))}
+        </ul>
+      </details>
+
+      <details className="inspector-details">
+        <summary>Assumptions & limitations</summary>
+        <p className="assumption-copy">{lab.limitations.join(" · ")}</p>
+      </details>
+      {saveMessage ? <p className="workbench-message">{saveMessage}</p> : null}
+    </aside>
+  );
+}
+
 function TimelinePanel({
   workbench,
   replayEvents,
@@ -853,6 +1160,38 @@ function formatLegendValue(value: number, unit: string): string {
     ? value.toFixed(2)
     : value.toExponential(2);
   return `${formatted} ${unit}`;
+}
+
+function buildAxisTicks(maxValue: number): Array<{ value: number; percent: number }> {
+  if (!Number.isFinite(maxValue) || maxValue <= 0) {
+    return [{ value: 0, percent: 0 }];
+  }
+
+  const targetIntervals = 5;
+  const rawStep = maxValue / targetIntervals;
+  const magnitude = 10 ** Math.floor(Math.log10(rawStep));
+  const normalizedStep = rawStep / magnitude;
+  const niceMultiplier = normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10;
+  const step = niceMultiplier * magnitude;
+  const ticks: Array<{ value: number; percent: number }> = [];
+
+  for (let value = 0; value < maxValue; value += step) {
+    ticks.push({ value: Math.round(value), percent: (value / maxValue) * 100 });
+  }
+
+  if (ticks[ticks.length - 1]?.value !== maxValue) {
+    ticks.push({ value: maxValue, percent: 100 });
+  }
+
+  return ticks;
+}
+
+function formatAxisTick(value: number): string {
+  if (Math.abs(value) >= 1000) {
+    return `${Number((value / 1000).toFixed(1))}k`;
+  }
+
+  return `${Math.round(value)}`;
 }
 
 function resolutionLabel(value: string): string {

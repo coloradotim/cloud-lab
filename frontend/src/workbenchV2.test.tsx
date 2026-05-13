@@ -3,7 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { App } from "./App";
 import { selectLabForWorkbench } from "./app/workbenchRoute";
-import { FAIR_WEATHER_CUMULUS_LAB_ID, labCatalog, labById } from "./labs/labCatalog";
+import {
+  CLOUD_OPTICS_BEAUTY_LAB_ID,
+  FAIR_WEATHER_CUMULUS_LAB_ID,
+  labCatalog,
+  labById,
+} from "./labs/labCatalog";
 import { LabPicker } from "./workbench/LabPicker";
 import { LabWorkbench } from "./workbench/LabWorkbench";
 
@@ -12,7 +17,7 @@ describe("Workbench V2 lab picker", () => {
     const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
 
     expect(html).toContain("Fair-Weather Cumulus");
-    expect(html).toContain("Cloud Optics / Beauty");
+    expect(html).toContain("Clouds, Light, and Shadow");
     expect(html).toContain("Evolving Boundary Layer");
     expect(html).toContain("Layered Atmosphere");
     expect(html).toContain("Orographic / Terrain Clouds");
@@ -37,14 +42,27 @@ describe("Workbench V2 lab picker", () => {
     expect(html).toContain("Qualitative 2-D Boussinesq prototype");
   });
 
-  it("marks planned labs as visibly non-functional", () => {
+  it("marks future planned labs as visibly non-functional", () => {
     const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
 
     expect(html).toContain("Coming next");
     expect(html).toContain("Future labs");
     expect(html).toContain("Not open yet");
     expect(html).toContain("aria-disabled=\"true\"");
-    expect(selectLabForWorkbench("cloud-optics-beauty")).toEqual({ view: "lab-picker" });
+    expect(selectLabForWorkbench("evolving-boundary-layer")).toEqual({ view: "lab-picker" });
+  });
+
+  it("shows Clouds, Light, and Shadow as a subordinate selectable shell", () => {
+    const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
+
+    expect(CLOUD_OPTICS_BEAUTY_LAB_ID).toBe("cloud-optics-beauty");
+    expect(html).toContain("Clouds, Light, and Shadow");
+    expect(html).toContain("Concept shell / renderer deferred");
+    expect(html).toContain("Open Clouds, Light, and Shadow shell");
+    expect(selectLabForWorkbench("cloud-optics-beauty")).toEqual({
+      view: "workbench",
+      selectedLabId: "cloud-optics-beauty",
+    });
   });
 
   it("features Fair-Weather Cumulus as the guided start-here lab", () => {
@@ -61,6 +79,35 @@ describe("Workbench V2 lab picker", () => {
       view: "workbench",
       selectedLabId: "fair-weather-cumulus",
     });
+  });
+});
+
+describe("Clouds, Light, and Shadow Workbench V2 shell", () => {
+  const cloudOpticsLab = labById("cloud-optics-beauty");
+
+  if (!cloudOpticsLab) {
+    throw new Error("Missing Clouds, Light, and Shadow lab");
+  }
+
+  it("opens inside Workbench V2 with prototype renderer states", () => {
+    const html = renderToStaticMarkup(
+      <LabWorkbench lab={cloudOpticsLab} onBackToLabs={vi.fn()} />,
+    );
+
+    expect(html).toContain("Clouds, Light, and Shadow");
+    expect(html).toContain("Small Puffy Cumulus");
+    expect(html).toContain("Cloud appearance view shell");
+    expect(html).toContain("Renderer");
+    expect(html).toContain("Deferred");
+    expect(html).toContain("Prototype shell only");
+    expect(html).toContain("Sun elevation");
+    expect(html).toContain("Sun direction / azimuth");
+    expect(html).toContain("View angle");
+    expect(html).toContain("Cloud water density");
+    expect(html).toContain("Optical depth / scattering strength");
+    expect(html).toContain("Visual approximation");
+    expect(html).toContain("Preset cloud field, not new cloud formation");
+    expect(html).toContain("disabled=\"\"");
   });
 });
 

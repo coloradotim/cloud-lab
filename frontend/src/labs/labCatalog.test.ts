@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { FAIR_WEATHER_CUMULUS_LAB_ID, labById, labCatalog } from "./labCatalog";
+import {
+  CLOUD_OPTICS_BEAUTY_LAB_ID,
+  FAIR_WEATHER_CUMULUS_LAB_ID,
+  labById,
+  labCatalog,
+} from "./labCatalog";
 
 const fairWeatherLab = labById(FAIR_WEATHER_CUMULUS_LAB_ID);
+const cloudOpticsLab = labById(CLOUD_OPTICS_BEAUTY_LAB_ID);
 
-if (!fairWeatherLab) {
-  throw new Error("Missing Fair-Weather Cumulus lab");
+if (!fairWeatherLab || !cloudOpticsLab) {
+  throw new Error("Missing expected lab definitions");
 }
 
 describe("lab catalog", () => {
@@ -129,7 +135,9 @@ describe("lab catalog", () => {
   });
 
   it("keeps planned labs present but not falsely functional", () => {
-    const plannedLabs = labCatalog.filter((lab) => lab.id !== fairWeatherLab.id);
+    const plannedLabs = labCatalog.filter(
+      (lab) => lab.id !== fairWeatherLab.id && lab.id !== cloudOpticsLab.id,
+    );
 
     expect(plannedLabs.length).toBeGreaterThan(0);
     expect(plannedLabs.every((lab) => lab.isSelectable === false)).toBe(true);
@@ -137,5 +145,72 @@ describe("lab catalog", () => {
     expect(plannedLabs.every((lab) => lab.scenarios.length === 0)).toBe(true);
     expect(plannedLabs.every((lab) => lab.controls.length === 0)).toBe(true);
     expect(plannedLabs.every((lab) => lab.diagnostics.length === 0)).toBe(true);
+  });
+
+  it("includes Clouds, Light, and Shadow as a concept shell lab", () => {
+    expect(cloudOpticsLab.id).toBe("cloud-optics-beauty");
+    expect(cloudOpticsLab.name).toBe("Clouds, Light, and Shadow");
+    expect(cloudOpticsLab.status).toBe("concept");
+    expect(cloudOpticsLab.statusLabel).toBe("Concept shell / renderer deferred");
+    expect(cloudOpticsLab.supportedPhysicsCore).toBeNull();
+    expect(cloudOpticsLab.isSelectable).toBe(true);
+    expect(cloudOpticsLab.question).toContain(
+      "Why do clouds look soft, dark, glowing, layered, silver-lined, or dramatic",
+    );
+    expect(cloudOpticsLab.limitations).toEqual(
+      expect.arrayContaining([
+        "Renderer and preset scene generation are not implemented in this slice",
+        "2.5-D visual scene, not true 3-D atmospheric dynamics",
+        "Qualitative learning tool, not full radiative transfer",
+      ]),
+    );
+  });
+
+  it("defines the Clouds, Light, and Shadow initial scenario and control metadata", () => {
+    expect(cloudOpticsLab.scenarios.map((scenario) => scenario.name)).toEqual([
+      "Small Puffy Cumulus",
+      "Thick Cumulus With Dark Base",
+      "Broken Cloud Field",
+      "Towering / Developing Cumulus",
+      "Thin Veil / Low Optical Depth Cloud",
+    ]);
+    expect(cloudOpticsLab.scenarios.every((scenario) => scenario.labId === cloudOpticsLab.id)).toBe(
+      true,
+    );
+
+    const primaryControls = cloudOpticsLab.controls.filter((control) => control.tier === "primary");
+
+    expect(primaryControls.map((control) => control.label)).toEqual([
+      "Cloud scene",
+      "Sun elevation",
+      "Sun direction / azimuth",
+      "View angle",
+      "Cloud water density",
+      "Cloud thickness / depth",
+      "Optical depth / scattering strength",
+      "Time of day / light color",
+    ]);
+  });
+
+  it("keeps Clouds, Light, and Shadow honest about deferred rendering", () => {
+    expect(cloudOpticsLab.diagnostics.map((diagnostic) => diagnostic.id)).toEqual(
+      expect.arrayContaining([
+        "optical-depth-estimate",
+        "cloud-water-density-summary",
+        "light-geometry-state",
+        "light-path-length-proxy",
+        "bright-edge-likelihood",
+        "approximation-labels-present",
+      ]),
+    );
+    expect(cloudOpticsLab.visualizationModes.map((mode) => mode.id)).toEqual([
+      "rendered-cloud-appearance-view",
+      "cloud-water-field-view",
+      "optical-depth-view",
+      "light-path-shadow-view",
+    ]);
+    expect(cloudOpticsLab.visualizationModes.every((mode) => mode.truthLabel === "visual-approximation")).toBe(
+      true,
+    );
   });
 });

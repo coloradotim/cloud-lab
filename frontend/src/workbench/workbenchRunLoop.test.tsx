@@ -140,6 +140,10 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(html).toContain("Cloud liquid water");
     expect(html).toContain("Horizontal distance, x (m)");
     expect(html).toContain("Height, z (m)");
+    expect(html).toContain(">0<");
+    expect(html).toContain(">2k<");
+    expect(html).toContain(">10k<");
+    expect(html).toContain(">3k<");
     expect(html).toContain("Cloud liquid water - kg/kg");
   });
 
