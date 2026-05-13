@@ -90,6 +90,8 @@ This is a visual approximation. It should never be presented as true radiative t
 
 Clouds, Light, and Shadow now has a first lightweight rendered appearance view backed by deterministic preset source scenes. It derives opacity, attenuation, approximate single-scattering brightness, optical-depth, and light-path/shadow displays from the source `cloud_density` field and renderer controls. Sun angle, view angle, density, depth, optical strength, and light color change the renderer state only; they must not mutate the source scene field.
 
+The same lab exposes deterministic diagnostic states for optical depth, cloud-water density, light geometry, light-path length, edge softness, base/interior darkness, bright-edge likelihood, layered depth, approximation-label availability, and source-field immutability. These are explanatory display diagnostics for the renderer/source scene, not solver-emitted physics fields.
+
 ### 2.5-D Cloud Scene
 
 A 2.5-D view renders the 2-D vertical slice as a shallow visual extrusion with camera/perspective controls.

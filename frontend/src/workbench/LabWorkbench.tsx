@@ -2,6 +2,10 @@ import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateActio
 
 import { CLOUD_OPTICS_BEAUTY_LAB_ID } from "../labs/labCatalog";
 import {
+  buildCloudOpticsDiagnostics,
+  CLOUD_OPTICS_HONESTY_LABELS,
+} from "../labs/cloudOpticsDiagnostics";
+import {
   cloudOpticsSceneStats,
   generateCloudOpticsScene,
   type CloudOpticsScene,
@@ -182,7 +186,14 @@ export function LabWorkbench({
           onSelectedFieldKeyChange={setSelectedFieldKey}
         />
         {inspectorOpen ? (
-          <InspectorPanel lab={lab} summary={inspector} saveMessage={workbench.saveMessage} />
+          <InspectorPanel
+            lab={lab}
+            summary={inspector}
+            workbench={workbench}
+            cloudOpticsControls={cloudOpticsControls}
+            cloudOpticsViewMode={cloudOpticsViewMode}
+            saveMessage={workbench.saveMessage}
+          />
         ) : null}
       </section>
 
@@ -961,11 +972,7 @@ function CloudOpticsVisualizationStage({
 
       <div className="assumption-labels" aria-label="Model assumptions">
         <span>Model assumptions</span>
-        <p>
-          Visual approximation · Bulk optical approximation · 2.5-D visual scene, not true 3-D
-          dynamics · Preset cloud field, not new cloud formation · Not full radiative transfer · Not
-          droplet-resolved Mie scattering · Not a calibrated radiance product
-        </p>
+        <p>{CLOUD_OPTICS_HONESTY_LABELS.join(" · ")}</p>
       </div>
       {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
     </section>
@@ -1032,14 +1039,28 @@ function AxisTicks({
 function InspectorPanel({
   lab,
   summary,
+  workbench,
+  cloudOpticsControls,
+  cloudOpticsViewMode,
   saveMessage,
 }: {
   lab: LabDefinition;
   summary: ReturnType<typeof buildWorkbenchInspectorSummary>;
+  workbench: WorkbenchState;
+  cloudOpticsControls: CloudOpticsSceneControls | null;
+  cloudOpticsViewMode: CloudOpticsViewMode;
   saveMessage: string | null;
 }) {
   if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
-    return <CloudOpticsInspectorPanel lab={lab} saveMessage={saveMessage} />;
+    return (
+      <CloudOpticsInspectorPanel
+        lab={lab}
+        workbench={workbench}
+        controls={cloudOpticsControls}
+        viewMode={cloudOpticsViewMode}
+        saveMessage={saveMessage}
+      />
+    );
   }
 
   return (
@@ -1187,13 +1208,27 @@ function InspectorPanel({
 
 function CloudOpticsInspectorPanel({
   lab,
+  workbench,
+  controls,
+  viewMode,
   saveMessage,
 }: {
   lab: LabDefinition;
+  workbench: WorkbenchState;
+  controls: CloudOpticsSceneControls | null;
+  viewMode: CloudOpticsViewMode;
   saveMessage: string | null;
 }) {
-  const firstScene = cloudOpticsSceneForScenario(lab.scenarios[0]?.id);
-  const stats = firstScene ? cloudOpticsSceneStats(firstScene) : null;
+  const scenario = selectedLabScenario(lab, workbench);
+  const scene = cloudOpticsSceneForScenario(scenario?.id);
+  const activeControls = controls ?? scene?.defaultControls ?? null;
+  const renderModel = scene && activeControls
+    ? renderCloudOpticsScene(scene, activeControls, viewMode)
+    : null;
+  const diagnostics = scene && renderModel
+    ? buildCloudOpticsDiagnostics(scene, renderModel, CLOUD_OPTICS_HONESTY_LABELS)
+    : null;
+  const stats = scene ? cloudOpticsSceneStats(scene) : null;
 
   return (
     <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
@@ -1204,9 +1239,9 @@ function CloudOpticsInspectorPanel({
           Result: visual approximation
         </span>
         <p>
-          This Workbench V2 shell reserves the product structure for Clouds, Light, and Shadow.
-          It uses deterministic preset source fields, does not mutate them from renderer controls,
-          and does not claim radiative-transfer output.
+          {diagnostics
+            ? `${diagnostics.opticalDepthEstimate.explanation} ${diagnostics.brightEdgeLikelihood.explanation}`
+            : "This lab uses deterministic preset source fields, renderer controls, and explicit approximation labels."}
         </p>
       </section>
 
@@ -1215,16 +1250,16 @@ function CloudOpticsInspectorPanel({
         <dl className="diagnostic-list">
           <div>
             <dt>Schema</dt>
-            <dd>{firstScene?.schema_version ?? "unavailable"}</dd>
+            <dd>{scene?.schema_version ?? "unavailable"}</dd>
           </div>
           <div>
             <dt>Field</dt>
-            <dd>{firstScene?.sourceField.displayName ?? "unavailable"}</dd>
+            <dd>{scene?.sourceField.displayName ?? "unavailable"}</dd>
           </div>
           <div>
             <dt>Grid</dt>
             <dd>
-              {firstScene ? `${firstScene.grid.columns} columns x ${firstScene.grid.rows} rows` : "unavailable"}
+              {scene ? `${scene.grid.columns} columns x ${scene.grid.rows} rows` : "unavailable"}
             </dd>
           </div>
           <div>
@@ -1237,7 +1272,14 @@ function CloudOpticsInspectorPanel({
       <details className="inspector-details" open>
         <summary>Optics diagnostics</summary>
         <dl className="diagnostic-list">
-          {lab.diagnostics.map((diagnostic) => (
+          {diagnostics ? diagnostics.entries.map((diagnostic) => (
+            <div key={diagnostic.label}>
+              <dt>{diagnostic.label}</dt>
+              <dd>
+                <strong>{diagnostic.state}</strong> - {diagnostic.explanation}
+              </dd>
+            </div>
+          )) : lab.diagnostics.map((diagnostic) => (
             <div key={diagnostic.id}>
               <dt>{diagnostic.label}</dt>
               <dd>{diagnostic.purpose}</dd>
@@ -1259,7 +1301,7 @@ function CloudOpticsInspectorPanel({
 
       <details className="inspector-details">
         <summary>Assumptions & limitations</summary>
-        <p className="assumption-copy">{lab.limitations.join(" · ")}</p>
+        <p className="assumption-copy">{CLOUD_OPTICS_HONESTY_LABELS.join(" · ")} · {lab.limitations.join(" · ")}</p>
       </details>
       {saveMessage ? <p className="workbench-message">{saveMessage}</p> : null}
     </aside>

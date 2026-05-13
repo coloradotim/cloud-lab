@@ -39,7 +39,7 @@ The lab should be beautiful and intuitive, but scientifically honest.
 
 `concept`
 
-This is an early Workbench V2 lab. It has deterministic preset source scenes and a lightweight qualitative cloud-optics renderer. It is not a full radiative-transfer model, a shader playground, or a general cloud-rendering toy.
+This is an early Workbench V2 lab. It has deterministic preset source scenes, a lightweight qualitative cloud-optics renderer, and deterministic diagnostic states for the first renderer/science views. It is not a full radiative-transfer model, a shader playground, or a general cloud-rendering toy.
 
 ## User Controls
 
@@ -155,7 +155,7 @@ These are meaningful outcomes, not app failures.
 | Approximation labels present | Confirms bulk optical and 2.5-D approximations are disclosed. | Hard failure for tests |
 | Frame immutability check | Ensures visual controls do not mutate source fields. | Hard failure for tests |
 
-Diagnostics should be deterministic. Explanatory text may be generated from deterministic states.
+Diagnostics should be deterministic. Explanatory text is generated from deterministic states such as optical-depth class, density class, sun/view geometry, light-path proxy, edge softness, base/interior darkness, bright-edge likelihood, layered-depth state, approximation-label availability, and source-field immutability metadata. These diagnostics explain renderer/source-field behavior; they do not add new dynamics or radiative-transfer physics.
 
 ## Visualization Modes
 
