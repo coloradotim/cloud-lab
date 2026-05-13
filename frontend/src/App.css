@@ -953,73 +953,34 @@ h2 {
   min-height: 520px;
 }
 
-.optics-placeholder-scene {
+.optics-renderer {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr);
-  gap: 14px;
   min-height: 360px;
   overflow: hidden;
   border: 1px solid #bcd1cc;
   border-radius: 8px;
-  background: #eef7f6;
-}
-
-.optics-sky {
-  position: relative;
-  min-height: 360px;
-  overflow: hidden;
   background:
     linear-gradient(180deg, #9ec9e6 0%, #dceef4 58%, #eef3ee 100%);
 }
 
-.optics-sun,
-.optics-cloud {
-  position: absolute;
+.optics-renderer-cloud-water-field {
+  background: #eef7f6;
+}
+
+.optics-renderer-optical-depth {
+  background: linear-gradient(180deg, #fbf7e6, #e7dcc7);
+}
+
+.optics-renderer-light-path-shadow {
+  background: linear-gradient(135deg, #f7e4ad, #d5e5ee 48%, #465360);
+}
+
+.optics-renderer-svg {
   display: block;
-}
-
-.optics-sun {
-  top: 34px;
-  right: 56px;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-  background: #ffe7a2;
-  box-shadow: 0 0 40px rgb(255 225 146 / 70%);
-}
-
-.optics-cloud {
-  border-radius: 999px;
-  background: rgb(255 255 255 / 86%);
-  box-shadow:
-    30px 10px 44px rgb(59 86 95 / 18%),
-    inset -28px -18px 36px rgb(95 112 120 / 22%);
-}
-
-.optics-cloud-a {
-  bottom: 86px;
-  left: 14%;
-  width: 190px;
-  height: 74px;
-}
-
-.optics-cloud-b {
-  bottom: 138px;
-  left: 34%;
-  width: 260px;
-  height: 104px;
-}
-
-.optics-placeholder-copy {
-  display: grid;
-  align-content: center;
-  gap: 10px;
-  padding: 22px;
-}
-
-.optics-placeholder-copy strong {
-  color: #153137;
-  font-size: 1.2rem;
+  width: 100%;
+  min-height: 360px;
+  height: 100%;
 }
 
 .stage-helper,
@@ -1224,9 +1185,6 @@ h2 {
     grid-template-columns: 18px 42px minmax(0, 1fr);
   }
 
-  .optics-placeholder-scene {
-    grid-template-columns: 1fr;
-  }
 }
 
 .workbench-shell.inspector-open:not(.setup-open) {

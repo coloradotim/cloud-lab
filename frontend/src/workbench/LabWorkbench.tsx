@@ -5,8 +5,14 @@ import {
   cloudOpticsSceneStats,
   generateCloudOpticsScene,
   type CloudOpticsScene,
+  type CloudOpticsSceneControls,
   type CloudOpticsSceneId,
 } from "../labs/cloudOpticsScenes";
+import {
+  renderCloudOpticsScene,
+  updateCloudOpticsControls,
+  type CloudOpticsViewMode,
+} from "../labs/cloudOpticsRenderer";
 import type { LabDefinition } from "../labs/labTypes";
 import { CONTROL_LIMITS, SURFACE_HEATING_PATTERNS } from "../simulationControls";
 import { defaultWorkbenchRunClient, type RunStreamCleanup, type WorkbenchRunClient } from "../simulation/runClient";
@@ -61,6 +67,10 @@ export function LabWorkbench({
   const [workbench, setWorkbench] = useState<WorkbenchState>(() =>
     createInitialWorkbenchState(lab),
   );
+  const [cloudOpticsControls, setCloudOpticsControls] =
+    useState<CloudOpticsSceneControls | null>(() => defaultCloudOpticsControls(lab.scenarios[0]?.id));
+  const [cloudOpticsViewMode, setCloudOpticsViewMode] =
+    useState<CloudOpticsViewMode>("rendered-cloud-appearance");
   const [selectedFieldKey, setSelectedFieldKey] = useState(defaultScientificFieldKey(null));
   const [inspectorOpen, setInspectorOpen] = useState(initialInspectorOpen);
   const cleanupRef = useRef<RunStreamCleanup | null>(null);
@@ -72,6 +82,8 @@ export function LabWorkbench({
 
   useEffect(() => {
     setWorkbench(createInitialWorkbenchState(lab));
+    setCloudOpticsControls(defaultCloudOpticsControls(lab.scenarios[0]?.id));
+    setCloudOpticsViewMode("rendered-cloud-appearance");
     setSelectedFieldKey(defaultScientificFieldKey(null));
     return () => cleanupRef.current?.();
   }, [lab]);
@@ -79,7 +91,7 @@ export function LabWorkbench({
   async function handleStartRun() {
     if (!canRun) {
       setWorkbench((current) =>
-        markWorkbenchRunError(current, "This lab shell is not runnable until its renderer lands."),
+        markWorkbenchRunError(current, "This lab uses interactive preset scenes; backend run flow is not needed yet."),
       );
       return;
     }
@@ -152,11 +164,20 @@ export function LabWorkbench({
         className={`workbench-grid${inspectorOpen ? "" : " inspector-collapsed"}`}
         aria-label="Workbench regions"
       >
-        <LabSetupPanel lab={lab} workbench={workbench} setWorkbench={setWorkbench} />
+        <LabSetupPanel
+          lab={lab}
+          workbench={workbench}
+          setWorkbench={setWorkbench}
+          cloudOpticsControls={cloudOpticsControls}
+          setCloudOpticsControls={setCloudOpticsControls}
+        />
         <VisualizationStage
           lab={lab}
           frame={currentFrame}
           workbench={workbench}
+          cloudOpticsControls={cloudOpticsControls}
+          cloudOpticsViewMode={cloudOpticsViewMode}
+          onCloudOpticsViewModeChange={setCloudOpticsViewMode}
           selectedFieldKey={selectedFieldKey}
           onSelectedFieldKeyChange={setSelectedFieldKey}
         />
@@ -251,17 +272,27 @@ function LabSetupPanel({
   lab,
   workbench,
   setWorkbench,
+  cloudOpticsControls,
+  setCloudOpticsControls,
 }: {
   lab: LabDefinition;
   workbench: WorkbenchState;
   setWorkbench: Dispatch<SetStateAction<WorkbenchState>>;
+  cloudOpticsControls: CloudOpticsSceneControls | null;
+  setCloudOpticsControls: Dispatch<SetStateAction<CloudOpticsSceneControls | null>>;
 }) {
   const scenario = selectedLabScenario(lab, workbench);
   const config = workbench.nextRunConfig;
 
   if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
     return (
-      <CloudOpticsSetupPanel lab={lab} workbench={workbench} setWorkbench={setWorkbench} />
+      <CloudOpticsSetupPanel
+        lab={lab}
+        workbench={workbench}
+        setWorkbench={setWorkbench}
+        controls={cloudOpticsControls}
+        setControls={setCloudOpticsControls}
+      />
     );
   }
 
@@ -424,14 +455,19 @@ function CloudOpticsSetupPanel({
   lab,
   workbench,
   setWorkbench,
+  controls,
+  setControls,
 }: {
   lab: LabDefinition;
   workbench: WorkbenchState;
   setWorkbench: Dispatch<SetStateAction<WorkbenchState>>;
+  controls: CloudOpticsSceneControls | null;
+  setControls: Dispatch<SetStateAction<CloudOpticsSceneControls | null>>;
 }) {
   const scenario = selectedLabScenario(lab, workbench);
   const primaryControls = lab.controls.filter((control) => control.tier === "primary");
   const scene = cloudOpticsSceneForScenario(scenario?.id);
+  const activeControls = controls ?? scene?.defaultControls ?? null;
 
   return (
     <aside className="workbench-region setup-region" aria-labelledby="setup-region-title">
@@ -449,6 +485,7 @@ function CloudOpticsSetupPanel({
               setWorkbench((current) =>
                 selectWorkbenchScenario(current, lab, scenarioId),
               );
+              setControls(defaultCloudOpticsControls(scenarioId));
             }}
           >
             {lab.scenarios.map((candidate) => (
@@ -466,10 +503,11 @@ function CloudOpticsSetupPanel({
         <h3 id="setup-light-title">Light and view</h3>
         <div className="workbench-control-grid" aria-label="Cloud optics light controls">
           {primaryControls.slice(1, 4).map((control) => (
-            <PlaceholderControl
+            <CloudOpticsControl
               key={control.id}
               control={control}
-              value={cloudOpticsControlValue(control.id, scene)}
+              controls={activeControls}
+              setControls={setControls}
             />
           ))}
         </div>
@@ -478,43 +516,96 @@ function CloudOpticsSetupPanel({
       <section className="setup-control-section" aria-labelledby="setup-cloud-title">
         <h3 id="setup-cloud-title">Cloud and optics</h3>
         <div className="workbench-control-grid" aria-label="Cloud optics material controls">
-          <PlaceholderControl
+          <CloudOpticsControl
             control={primaryControls[0]}
-            value={cloudOpticsControlValue(primaryControls[0]?.id, scene)}
+            controls={activeControls}
+            setControls={setControls}
           />
           {primaryControls.slice(4).map((control) => (
-            <PlaceholderControl
+            <CloudOpticsControl
               key={control.id}
               control={control}
-              value={cloudOpticsControlValue(control.id, scene)}
+              controls={activeControls}
+              setControls={setControls}
             />
           ))}
         </div>
       </section>
 
       <p className="workbench-message">
-        Prototype shell only: deterministic source fields are available, while controls remain
-        disabled until the optics renderer lands.
+        Renderer controls adjust the visual interpretation only; the deterministic source scene
+        field stays unchanged.
       </p>
     </aside>
   );
 }
 
-function PlaceholderControl({
+function CloudOpticsControl({
   control,
-  value = "Deferred",
+  controls,
+  setControls,
 }: {
   control: LabDefinition["controls"][number] | undefined;
-  value?: string;
+  controls: CloudOpticsSceneControls | null;
+  setControls: Dispatch<SetStateAction<CloudOpticsSceneControls | null>>;
 }) {
-  if (!control) {
+  if (!control || !controls) {
     return null;
   }
 
+  const controlKey = cloudOpticsControlKey(control.id);
+  if (!controlKey) {
+    return null;
+  }
+
+  if (control.id === "cloud-scene") {
+    return (
+      <label className="control-group control-group-disabled">
+        <span>{control.label}</span>
+        <input value={cloudOpticsControlValue(control.id, controls)} readOnly disabled />
+        <small>{control.unitsOrType}</small>
+      </label>
+    );
+  }
+
+  if (control.id === "time-of-day-light-color") {
+    return (
+      <label className="control-group">
+        <span>{control.label}</span>
+        <select
+          value={controls.lightColorPreset}
+          onChange={(event) =>
+            setControls((current) =>
+              current ? updateCloudOpticsControls(current, "lightColorPreset", event.currentTarget.value) : current,
+            )
+          }
+        >
+          <option value="midday">midday</option>
+          <option value="golden-hour">golden-hour</option>
+          <option value="cool-haze">cool-haze</option>
+        </select>
+        <small>{control.unitsOrType}</small>
+      </label>
+    );
+  }
+
   return (
-    <label className="control-group control-group-disabled">
+    <label className="control-group">
       <span>{control.label}</span>
-      <input value={value} readOnly disabled aria-label={`${control.label} placeholder`} />
+      <input
+        type="number"
+        value={controls[controlKey] as number}
+        min={cloudOpticsControlRange(control.id).min}
+        max={cloudOpticsControlRange(control.id).max}
+        step={cloudOpticsControlRange(control.id).step}
+        onChange={(event) =>
+          setControls((current) =>
+            current
+              ? updateCloudOpticsControls(current, controlKey, event.currentTarget.value)
+              : current,
+          )
+        }
+      />
       <small>{control.unitsOrType}</small>
     </label>
   );
@@ -595,17 +686,31 @@ function VisualizationStage({
   lab,
   frame,
   workbench,
+  cloudOpticsControls,
+  cloudOpticsViewMode,
+  onCloudOpticsViewModeChange,
   selectedFieldKey,
   onSelectedFieldKeyChange,
 }: {
   lab: LabDefinition;
   frame: SimulationFrame | null;
   workbench: WorkbenchState;
+  cloudOpticsControls: CloudOpticsSceneControls | null;
+  cloudOpticsViewMode: CloudOpticsViewMode;
+  onCloudOpticsViewModeChange: (mode: CloudOpticsViewMode) => void;
   selectedFieldKey: string;
   onSelectedFieldKeyChange: (fieldKey: string) => void;
 }) {
   if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
-    return <CloudOpticsVisualizationStage lab={lab} workbench={workbench} />;
+    return (
+      <CloudOpticsVisualizationStage
+        lab={lab}
+        workbench={workbench}
+        controls={cloudOpticsControls}
+        viewMode={cloudOpticsViewMode}
+        onViewModeChange={onCloudOpticsViewModeChange}
+      />
+    );
   }
 
   const normalizedFieldKey = normalizeScientificFieldSelection(frame, selectedFieldKey);
@@ -746,12 +851,22 @@ function VisualizationStage({
 function CloudOpticsVisualizationStage({
   lab,
   workbench,
+  controls,
+  viewMode,
+  onViewModeChange,
 }: {
   lab: LabDefinition;
   workbench: WorkbenchState;
+  controls: CloudOpticsSceneControls | null;
+  viewMode: CloudOpticsViewMode;
+  onViewModeChange: (mode: CloudOpticsViewMode) => void;
 }) {
   const scenario = selectedLabScenario(lab, workbench);
   const scene = cloudOpticsSceneForScenario(scenario?.id);
+  const activeControls = controls ?? scene?.defaultControls ?? null;
+  const renderModel = scene && activeControls
+    ? renderCloudOpticsScene(scene, activeControls, viewMode)
+    : null;
   const stats = scene ? cloudOpticsSceneStats(scene) : null;
 
   return (
@@ -762,27 +877,62 @@ function CloudOpticsVisualizationStage({
       <div className="stage-heading">
         <p className="region-label">Visualization stage</p>
         <div className="stage-title-row">
-          <h2 id="visualization-stage-title">Cloud appearance view shell</h2>
+          <h2 id="visualization-stage-title">{cloudOpticsViewLabel(viewMode)}</h2>
           <div className="frame-readout" aria-label="Displayed frame readout">
-            <span>Renderer</span>
-            <strong>Deferred</strong>
+            <span>{renderModel?.summary.lightGeometry ?? "Renderer"}</span>
+            <strong>{renderModel?.summary.opticalState ?? "unavailable"}</strong>
           </div>
         </div>
       </div>
+      <div className="stage-toolbar">
+        <label className="field-selector">
+          <span>View</span>
+          <select
+            aria-label="Cloud optics view"
+            value={viewMode}
+            onChange={(event) => onViewModeChange(event.currentTarget.value as CloudOpticsViewMode)}
+          >
+            <option value="rendered-cloud-appearance">Rendered cloud appearance view</option>
+            <option value="cloud-water-field">Cloud water field view</option>
+            <option value="optical-depth">Optical depth view</option>
+            <option value="light-path-shadow">Light path / shadow view</option>
+          </select>
+        </label>
+        <p className="field-scale-title">Visual approximation - bulk optical approximation</p>
+      </div>
 
-      <div className="optics-placeholder-scene" aria-label={`${lab.name} renderer placeholder`}>
-        <div className="optics-sky">
-          <span className="optics-cloud optics-cloud-a" />
-          <span className="optics-cloud optics-cloud-b" />
-          <span className="optics-sun" />
-        </div>
-        <div className="optics-placeholder-copy">
-          <strong>{scenario?.name ?? lab.name}</strong>
-          <p>
-            Deterministic source fields are ready for this scene. Optical-depth views, light-path
-            views, and rendered cloud appearance remain intentionally deferred to the renderer slice.
-          </p>
-        </div>
+      <div
+        className={`optics-renderer optics-renderer-${viewMode}`}
+        aria-label={`${lab.name} ${cloudOpticsViewLabel(viewMode)}`}
+      >
+        {renderModel ? (
+          <svg
+            className="optics-renderer-svg"
+            viewBox={`0 0 ${renderModel.columns} ${renderModel.rows}`}
+            preserveAspectRatio="none"
+            role="img"
+            aria-label={`${cloudOpticsViewLabel(viewMode)} for ${renderModel.scene.name}`}
+          >
+            <title>{cloudOpticsViewLabel(viewMode)}</title>
+            {renderModel.cells.map((cell) => (
+              <rect
+                key={`${cell.row}-${cell.column}`}
+                x={cell.column}
+                y={renderModel.rows - cell.row - 1}
+                width="1"
+                height="1"
+                fill={cell.fill}
+                data-optical-depth={cell.opticalDepth.toFixed(3)}
+                data-source-density={cell.sourceDensity.toFixed(3)}
+              />
+            ))}
+          </svg>
+        ) : (
+          <div className="stage-empty-state">
+            <strong>No scene available.</strong>
+            <p>Select a Clouds, Light, and Shadow scenario to render its source field.</p>
+          </div>
+        )}
       </div>
 
       <dl className="stage-stats">
@@ -795,20 +945,26 @@ function CloudOpticsVisualizationStage({
           <dd>{scene ? `${scene.grid.columns} x ${scene.grid.rows}` : "unavailable"}</dd>
         </div>
         <div>
-          <dt>Max density</dt>
-          <dd>{stats ? stats.maxDensity.toFixed(2) : "unavailable"}</dd>
+          <dt>Max optical depth</dt>
+          <dd>{renderModel ? renderModel.summary.maxOpticalDepth.toFixed(2) : "unavailable"}</dd>
         </div>
         <div>
-          <dt>2.5-D depth</dt>
-          <dd>{scene ? `${scene.depth.effectiveDepth.toFixed(2)} normalized` : "unavailable"}</dd>
+          <dt>Mean shadow</dt>
+          <dd>{renderModel ? `${Math.round(renderModel.summary.meanShadow * 100)}%` : "unavailable"}</dd>
         </div>
       </dl>
+      <p className="stage-helper">
+        {stats
+          ? `${scene?.name} source field: ${stats.nonzeroCellCount} nonzero cells, max density ${stats.maxDensity.toFixed(2)}.`
+          : "Scene source field unavailable."}
+      </p>
 
       <div className="assumption-labels" aria-label="Model assumptions">
         <span>Model assumptions</span>
         <p>
-          Visual approximation · Bulk optical approximation · 2.5-D visual scene · Preset cloud
-          field, not new cloud formation
+          Visual approximation · Bulk optical approximation · 2.5-D visual scene, not true 3-D
+          dynamics · Preset cloud field, not new cloud formation · Not full radiative transfer · Not
+          droplet-resolved Mie scattering · Not a calibrated radiance product
         </p>
       </div>
       {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
@@ -1045,7 +1201,7 @@ function CloudOpticsInspectorPanel({
       <section className="inspector-summary" aria-labelledby="inspector-region-title">
         <h2 id="inspector-region-title">Summary</h2>
         <span className="diagnostic-status diagnostic-status-warning">
-          Result: renderer deferred
+          Result: visual approximation
         </span>
         <p>
           This Workbench V2 shell reserves the product structure for Clouds, Light, and Shadow.
@@ -1079,7 +1235,7 @@ function CloudOpticsInspectorPanel({
       </details>
 
       <details className="inspector-details" open>
-        <summary>Planned diagnostics</summary>
+        <summary>Optics diagnostics</summary>
         <dl className="diagnostic-list">
           {lab.diagnostics.map((diagnostic) => (
             <div key={diagnostic.id}>
@@ -1260,33 +1416,99 @@ function cloudOpticsSceneForScenario(scenarioId: string | undefined): CloudOptic
   }
 }
 
+function defaultCloudOpticsControls(
+  scenarioId: string | undefined,
+): CloudOpticsSceneControls | null {
+  const scene = cloudOpticsSceneForScenario(scenarioId);
+  return scene ? { ...scene.defaultControls } : null;
+}
+
+function cloudOpticsControlKey(
+  controlId: string,
+): keyof CloudOpticsSceneControls | null {
+  switch (controlId) {
+    case "sun-elevation":
+      return "sunElevationDegrees";
+    case "sun-direction-azimuth":
+      return "sunAzimuthDegrees";
+    case "view-angle":
+      return "viewAngleDegrees";
+    case "cloud-water-density":
+      return "cloudWaterDensityMultiplier";
+    case "cloud-thickness-depth":
+      return "cloudDepthMultiplier";
+    case "optical-depth-scattering":
+      return "opticalDepthMultiplier";
+    case "time-of-day-light-color":
+      return "lightColorPreset";
+    case "cloud-scene":
+      return "sceneId";
+    default:
+      return null;
+  }
+}
+
+function cloudOpticsControlRange(controlId: string): { min: number; max: number; step: number } {
+  switch (controlId) {
+    case "sun-elevation":
+      return { min: 5, max: 85, step: 1 };
+    case "sun-direction-azimuth":
+      return { min: 0, max: 360, step: 5 };
+    case "view-angle":
+      return { min: -60, max: 60, step: 2 };
+    case "cloud-water-density":
+    case "cloud-thickness-depth":
+    case "optical-depth-scattering":
+      return { min: 0, max: 2.5, step: 0.05 };
+    default:
+      return { min: 0, max: 1, step: 0.05 };
+  }
+}
+
 function cloudOpticsControlValue(
   controlId: string | undefined,
-  scene: CloudOpticsScene | null,
+  controls: CloudOpticsSceneControls | null,
 ): string {
-  if (!controlId || !scene) {
+  if (!controlId || !controls) {
     return "Deferred";
   }
 
   switch (controlId) {
     case "cloud-scene":
-      return scene.name;
+      return sceneNameForId(controls.sceneId);
     case "sun-elevation":
-      return `${scene.defaultControls.sunElevationDegrees} deg`;
+      return `${controls.sunElevationDegrees} deg`;
     case "sun-direction-azimuth":
-      return `${scene.defaultControls.sunAzimuthDegrees} deg`;
+      return `${controls.sunAzimuthDegrees} deg`;
     case "view-angle":
-      return `${scene.defaultControls.viewAngleDegrees} deg`;
+      return `${controls.viewAngleDegrees} deg`;
     case "cloud-water-density":
-      return `${scene.defaultControls.cloudWaterDensityMultiplier}x`;
+      return `${controls.cloudWaterDensityMultiplier}x`;
     case "cloud-thickness-depth":
-      return `${scene.defaultControls.cloudDepthMultiplier}x`;
+      return `${controls.cloudDepthMultiplier}x`;
     case "optical-depth-scattering":
-      return `${scene.defaultControls.opticalDepthMultiplier}x`;
+      return `${controls.opticalDepthMultiplier}x`;
     case "time-of-day-light-color":
-      return scene.defaultControls.lightColorPreset;
+      return controls.lightColorPreset;
     default:
       return "Deferred";
+  }
+}
+
+function sceneNameForId(sceneId: CloudOpticsSceneId): string {
+  return cloudOpticsSceneForScenario(sceneId)?.name ?? sceneId;
+}
+
+function cloudOpticsViewLabel(viewMode: CloudOpticsViewMode): string {
+  switch (viewMode) {
+    case "rendered-cloud-appearance":
+      return "Rendered cloud appearance view";
+    case "cloud-water-field":
+      return "Cloud water field view";
+    case "optical-depth":
+      return "Optical depth view";
+    case "light-path-shadow":
+      return "Light path / shadow view";
   }
 }
 
