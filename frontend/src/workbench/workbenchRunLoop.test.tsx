@@ -39,6 +39,15 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(dryFailed.frames).toHaveLength(0);
   });
 
+  it("keeps the default Fair-Weather model setup equivalent to the former medium run", () => {
+    const initial = createInitialWorkbenchState(fairWeatherLab);
+
+    expect(initial.modelResolutionSlug).toBe("medium");
+    expect(initial.nextRunConfig.domain).toEqual({ width_m: 10_000, height_m: 3_000 });
+    expect(initial.nextRunConfig.grid).toEqual({ columns: 36, rows: 24 });
+    expect(initial.nextRunConfig.time.duration_seconds).toBe(1_200);
+  });
+
   it("updates the next-run config from primary controls", () => {
     const initial = createInitialWorkbenchState(fairWeatherLab);
     const strongerHeating = updateWorkbenchControl(initial, "surface-heating-strength", 0.012);
@@ -48,6 +57,20 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(multiPatch.nextRunConfig.surface_heating.max_warming_rate_k_per_s).toBe(0.012);
     expect(multiPatch.nextRunConfig.initial_atmosphere.free_atmosphere_relative_humidity).toBe(0.4);
     expect(multiPatch.nextRunConfig.surface_heating.pattern).toBe("two_patches");
+  });
+
+  it("separates resolution, domain size, and run length controls", () => {
+    const initial = createInitialWorkbenchState(fairWeatherLab);
+    const highResolution = updateWorkbenchControl(initial, "model-resolution", "high");
+    const widerDomain = updateWorkbenchControl(highResolution, "domain-width", 12_000);
+    const tallerDomain = updateWorkbenchControl(widerDomain, "domain-height", 4_000);
+    const longerRun = updateWorkbenchControl(tallerDomain, "run-length", 1_800);
+
+    expect(longerRun.modelResolutionSlug).toBe("high");
+    expect(longerRun.nextRunConfig.grid).toEqual({ columns: 54, rows: 36 });
+    expect(longerRun.nextRunConfig.domain).toEqual({ width_m: 12_000, height_m: 4_000 });
+    expect(longerRun.nextRunConfig.surface_heating.patch_center_x_m).toBe(6_000);
+    expect(longerRun.nextRunConfig.time.duration_seconds).toBe(1_800);
   });
 
   it("run action calls the mocked backend start flow with the next-run config", async () => {
@@ -115,6 +138,9 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(html).toContain("No frame displayed yet");
     expect(html).toContain("Scientific field");
     expect(html).toContain("Cloud liquid water");
+    expect(html).toContain("Horizontal distance, x (m)");
+    expect(html).toContain("Height, z (m)");
+    expect(html).toContain("Cloud liquid water - kg/kg");
   });
 
   it("scientific view model renders the selected field from a frame", () => {
@@ -200,6 +226,7 @@ describe("Workbench V2 Fair-Weather run loop", () => {
     expect(html).toContain("Derived diagnostic");
     expect(html).toContain("Experimental 2-D dynamics");
     expect(html).toContain("Simplified warm-cloud condensation");
+    expect(html).toContain("Assumptions &amp; limitations");
   });
 
   it("visualization stage remains mounted when the inspector is closed", () => {

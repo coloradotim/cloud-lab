@@ -58,7 +58,10 @@ These should be visible by default in the Fair-Weather Cumulus setup panel.
 | Free-atmosphere humidity | Moisture above the source layer or mixed layer. | Drier air aloft should limit cloud depth or promote evaporation/suppression. | RH fraction / percent |
 | Stability / lapse rate | Environmental temperature decrease with height. | More stable profiles should suppress vertical development; less stable profiles should allow deeper growth. | K m-1 or stable/neutral/unstable preset |
 | Boundary-layer depth / cap height | Approximate top of the mixed/source layer or capping structure. | A lower/stronger cap can suppress or limit cloud growth; source-layer depth affects moisture supply. | m |
-| Model size / runtime | Practical runtime and resolution preset. | Longer/larger runs can show delayed cloud onset and more mature evolution but cost more time. | S/M/L and minutes |
+| Model resolution | Numerical sampling density for the 2-D slice. | Higher resolution can reveal more structure but costs more local runtime. | Low / Medium / High |
+| Domain width | Horizontal size of the modeled atmospheric slice. | A wider box gives thermals more horizontal room to organize. | m |
+| Domain height | Vertical size of the modeled atmospheric slice. | A taller box can show deeper growth when runtime and physics allow it. | m |
+| Run length | How long the model evolves before the run completes. | Longer runs can show delayed cloud onset and more mature evolution but cost more time. | s / minutes |
 
 ### Secondary Controls
 
@@ -77,8 +80,7 @@ These should not be default-visible.
 
 | Control | Meaning | Why advanced |
 | --- | --- | --- |
-| Domain width/height | Physical simulation domain size. | Important for experiments but not the first learning knob. |
-| Grid columns/rows | Spatial resolution. | Affects numerical behavior and runtime. |
+| Grid columns/rows | Raw spatial resolution. | The default lab should expose Low / Medium / High instead of raw grid dimensions. |
 | Timestep | Numerical integration timestep. | Stability/performance detail. |
 | Frame cadence | Streamed/replayed output cadence. | Visualization/performance detail. |
 | Raw solver type | Selects backend physics core. | Solver choice should be implicit in the lab unless advanced/system mode is active. |

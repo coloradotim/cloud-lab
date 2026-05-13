@@ -48,7 +48,7 @@ The current setup UI is solver-aware and scenario-aware. It keeps scenario selec
 Current setup group concepts:
 
 - selected scenario card: intended phenomenon, thermodynamics, forcing, expected outcome, diagnostics, and limitations
-- basic controls: model size when relevant, surface temperature, source-layer humidity, and runtime
+- basic controls: lab-specific controls such as source-layer humidity, surface forcing, model resolution, domain size, and run length
 - atmosphere / moisture: lapse rate, boundary-layer top, humidity profile, moist source depth, and free-atmosphere humidity
 - surface / motion forcing: heating pattern, heating strength, patch geometry, background wind, or prescribed parcel lift when using `microphysics_lab`
 - saved experiments: local saved configurations for rerunning an experiment
@@ -82,8 +82,9 @@ The current UI exposes the following controls when relevant:
 - Free-atmosphere RH, `free_atmosphere_relative_humidity`: humidity above the moist source layer. Lower values can limit cloud growth and promote drying.
 - Source-layer RH, `relative_humidity`: near-surface/source-layer humidity for Boussinesq cases and parcel humidity for `microphysics_lab`. Higher values reduce how much lifting/cooling is needed before cloud water appears.
 - Domain width and height: resize the 2-D slice while preserving the same schema.
-- Grid columns and rows: adjust spatial resolution. Higher values cost more browser and backend work.
-- Runtime, timestep, and frame cadence: control simulated duration, numerical step size, and streamed frame spacing. Short frame cadence on long runs may accumulate many frames.
+- Model resolution: public lab controls should prefer Low / Medium / High presets that map to grid columns and rows internally.
+- Grid columns and rows: raw spatial resolution. These should stay advanced/custom unless a lab explicitly needs them.
+- Runtime, timestep, and frame cadence: run length controls simulated duration; timestep and frame cadence are numerical/output details. Short frame cadence on long runs may accumulate many frames.
 - Background wind, `u_m_per_s`: horizontal wind that advects and tilts resolved Boussinesq structures.
 - Prescribed lift, `w_m_per_s`: in `microphysics_lab`, imposed parcel lift. This is prescribed forcing, not a predicted updraft. In `boussinesq_2d`, vertical motion is predicted from surface heating/dynamics and imposed lift is not a primary public control.
 - Random seed: preserves reproducible perturbations and run-to-run comparisons.

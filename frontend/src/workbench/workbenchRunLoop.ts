@@ -2,10 +2,8 @@ import type { LabDefinition, LabScenarioDefinition } from "../labs/labTypes";
 import { clampFrameIndex, replayEventTargets, replayStatus } from "../replay";
 import { evaluateScenarioRun, type ScenarioDiagnostics } from "../scenarioDiagnostics";
 import {
-  BOUSSINESQ_MODEL_SIZES,
   BUILT_IN_SCENARIOS,
   type BuiltInScenario,
-  type BoussinesqModelSize,
   celsiusToKelvin,
   cloneConfig,
   normalizeConfig,
@@ -20,7 +18,10 @@ export type WorkbenchControlId =
   | "free-atmosphere-humidity"
   | "stability-lapse-rate"
   | "boundary-layer-depth-cap-height"
-  | "model-size-runtime";
+  | "model-resolution"
+  | "domain-width"
+  | "domain-height"
+  | "run-length";
 
 export type WorkbenchControlValue = number | string;
 
@@ -37,7 +38,7 @@ export type WorkbenchRunSummary = {
 
 export type WorkbenchState = {
   selectedScenarioId: string;
-  modelSizeSlug: string;
+  modelResolutionSlug: WorkbenchResolutionSlug;
   nextRunConfig: SimulationConfig;
   frames: SimulationFrame[];
   displayedFrameIndex: number;
@@ -75,7 +76,37 @@ export type WorkbenchProfileRow = {
   verticalVelocityMPerS: number | null;
 };
 
-const DEFAULT_MODEL_SIZE_SLUG = "medium";
+export type WorkbenchResolutionSlug = "low" | "medium" | "high";
+
+export type WorkbenchResolutionPreset = {
+  slug: WorkbenchResolutionSlug;
+  name: string;
+  description: string;
+  grid: SimulationConfig["grid"];
+};
+
+export const WORKBENCH_RESOLUTION_PRESETS: WorkbenchResolutionPreset[] = [
+  {
+    slug: "low",
+    name: "Low",
+    description: "Fastest interactive grid for quick checks.",
+    grid: { columns: 30, rows: 20 },
+  },
+  {
+    slug: "medium",
+    name: "Medium",
+    description: "Balanced default grid for Fair-Weather exploration.",
+    grid: { columns: 36, rows: 24 },
+  },
+  {
+    slug: "high",
+    name: "High",
+    description: "Finer local inspection; slower on a laptop.",
+    grid: { columns: 54, rows: 36 },
+  },
+];
+
+const DEFAULT_MODEL_RESOLUTION_SLUG: WorkbenchResolutionSlug = "medium";
 const DEFAULT_BASE_CONFIG: SimulationConfig = normalizeConfig({
   schema_version: "sim-config-v1",
   solver_type: "boussinesq_2d",
@@ -108,8 +139,8 @@ export function createInitialWorkbenchState(lab: LabDefinition): WorkbenchState 
 
   return {
     selectedScenarioId: scenarioId,
-    modelSizeSlug: DEFAULT_MODEL_SIZE_SLUG,
-    nextRunConfig: applyModelSize(config, DEFAULT_MODEL_SIZE_SLUG),
+    modelResolutionSlug: DEFAULT_MODEL_RESOLUTION_SLUG,
+    nextRunConfig: applyResolution(config, DEFAULT_MODEL_RESOLUTION_SLUG),
     frames: [],
     displayedFrameIndex: 0,
     isReplayPaused: false,
@@ -129,8 +160,12 @@ export function builtInScenarioForId(scenarioId: string): BuiltInScenario | null
   return BUILT_IN_SCENARIOS.find((scenario) => scenario.slug === scenarioId) ?? null;
 }
 
-export function modelSizeForSlug(modelSizeSlug: string): BoussinesqModelSize | null {
-  return BOUSSINESQ_MODEL_SIZES.find((size) => size.slug === modelSizeSlug) ?? null;
+export function resolutionPresetForSlug(
+  resolutionSlug: string,
+): WorkbenchResolutionPreset | null {
+  return (
+    WORKBENCH_RESOLUTION_PRESETS.find((preset) => preset.slug === resolutionSlug) ?? null
+  );
 }
 
 export function selectWorkbenchScenario(
@@ -146,7 +181,10 @@ export function selectWorkbenchScenario(
   return resetBufferedRun({
     ...state,
     selectedScenarioId: scenario.id,
-    nextRunConfig: applyModelSize(configForScenario(scenario.id, state.nextRunConfig), state.modelSizeSlug),
+    nextRunConfig: applyResolution(
+      configForScenario(scenario.id, state.nextRunConfig),
+      state.modelResolutionSlug,
+    ),
     saveMessage: null,
   });
 }
@@ -157,7 +195,7 @@ export function updateWorkbenchControl(
   value: WorkbenchControlValue,
 ): WorkbenchState {
   const config = cloneConfig(state.nextRunConfig);
-  let modelSizeSlug = state.modelSizeSlug;
+  let modelResolutionSlug = state.modelResolutionSlug;
 
   switch (controlId) {
     case "surface-heating-strength":
@@ -178,15 +216,25 @@ export function updateWorkbenchControl(
     case "boundary-layer-depth-cap-height":
       config.initial_atmosphere.boundary_layer_depth_m = Number(value);
       break;
-    case "model-size-runtime":
-      modelSizeSlug = String(value);
+    case "model-resolution":
+      modelResolutionSlug = String(value) as WorkbenchResolutionSlug;
+      break;
+    case "domain-width":
+      config.domain.width_m = Number(value);
+      config.surface_heating.patch_center_x_m = Number(value) / 2;
+      break;
+    case "domain-height":
+      config.domain.height_m = Number(value);
+      break;
+    case "run-length":
+      config.time.duration_seconds = Number(value);
       break;
   }
 
   return resetBufferedRun({
     ...state,
-    modelSizeSlug,
-    nextRunConfig: applyModelSize(normalizeConfig(config), modelSizeSlug),
+    modelResolutionSlug,
+    nextRunConfig: applyResolution(normalizeConfig(config), modelResolutionSlug),
     saveMessage: null,
   });
 }
@@ -417,9 +465,12 @@ function configForScenario(scenarioId: string, baseConfig: SimulationConfig): Si
   return scenario ? scenario.apply(baseConfig) : baseConfig;
 }
 
-function applyModelSize(config: SimulationConfig, modelSizeSlug: string): SimulationConfig {
-  const modelSize = modelSizeForSlug(modelSizeSlug);
-  return modelSize ? modelSize.apply(config) : config;
+function applyResolution(
+  config: SimulationConfig,
+  resolutionSlug: WorkbenchResolutionSlug,
+): SimulationConfig {
+  const preset = resolutionPresetForSlug(resolutionSlug);
+  return preset ? normalizeConfig({ ...config, grid: preset.grid }) : config;
 }
 
 function resetBufferedRun(state: WorkbenchState): WorkbenchState {
