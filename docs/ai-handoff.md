@@ -182,6 +182,14 @@ Post-#166 status:
 - The solver now evaporates pre-existing transported cloud water against the emitted cell's local pressure-aware saturation state while preserving lifted-parcel condensation.
 - The reproduction no longer shows the old majority-subsaturated-cloud-water failure, but it still reports return-flow cloud-water warnings. `boussinesq_2d` remains Yellow.
 
+Post-#157 status:
+
+- Lower Atmosphere Cloud Basics now has an explicit return-flow / boundary cloud-water diagnostic policy.
+- Large below-LCL cloud-water fractions are hard failures; smaller below-LCL fractions are warnings.
+- Low-level return-flow, boundary, top-sponge, lateral-boundary, and boundary-connected cloud water are warnings or scenario-specific interpretation signals, not renderer masks.
+- Backend diagnostics expose artifact-policy check statuses and boundary-region fractions; frontend inspector diagnostics surface the same warning categories.
+- This policy does not tune scenarios, hide cloud water, or resolve the remaining return-flow/stabilizer trust gap. `boussinesq_2d` remains Yellow; deeper causes remain with #159 and successor-core decisions remain with #160.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.

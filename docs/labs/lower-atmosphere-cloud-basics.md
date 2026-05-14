@@ -151,12 +151,32 @@ These should not be presented as app failures. They are physically meaningful ou
 | Below-LCL cloud-water fraction | Flags physically questionable condensate placement. | Warning, possible future hard failure |
 | Boundary cloud fraction | Flags boundary/sponge artifacts. | Warning |
 | Low-level return-flow cloud water | Flags cloud in implausible circulation regions. | Warning |
+| Top sponge cloud fraction | Flags cloud water reaching the top sponge/lid region. | Warning |
+| Lateral-boundary cloud fraction | Flags cloud water touching side boundaries. | Warning |
+| Cloud regions touching boundaries | Flags cloud regions connected to model boundaries. | Warning / scenario-specific interpretation |
 | Subsaturated cloud-water fraction | Flags cloud liquid water in cells whose local pressure-aware RH is below saturation. | Warning; regression check for long runs |
 | Diagnostic evaporation tendency | Shows whether existing cloud water should be evaporating in subsaturated cells. | Display / validation diagnostic |
 | Expected vs observed status | Summarizes whether the run matched the scenario contract. | Display + scenario contract |
 | Dry failed cloud check | Confirms dry-failed scenario produced motion but little/no cloud. | Hard failure for scenario tests |
 
 Diagnostics should be deterministic and not AI-generated. Explanatory text may be generated from deterministic diagnostic states.
+
+### Return-Flow / Boundary Artifact Policy
+
+Lower Atmosphere Cloud Basics should surface suspicious cloud-water placement
+instead of hiding it in the renderer.
+
+| Signal | Policy |
+| --- | --- |
+| Below-LCL cloud-water fraction | Warning for small fractions; hard failure when a large fraction of cloud water is below the expected LCL because that contradicts the lab's cloud-base promise. |
+| Low-level return-flow cloud fraction | Warning. It may indicate closed-cell recirculation or transport artifacts, especially in long multi-thermal runs. It is not a hard failure by itself while `boussinesq_2d` remains Yellow. |
+| Boundary cloud fraction | Warning. Boundary-attached cloud may be a boundary-condition or sponge artifact and should be interpreted cautiously. |
+| Top sponge cloud fraction | Warning. Cloud reaching the top sponge/lid region should be treated as possible lid interaction, not as trustworthy cloud-top structure. |
+| Lateral-boundary cloud fraction | Warning. Cloud touching side boundaries should be interpreted as possible side-boundary influence. |
+| Humid low-cloud contrast near the lower boundary | Scenario-specific interpretation. Low cloud is physically expected in this contrast case, but boundary/lateral/top artifacts should still be disclosed. |
+
+Renderer rule: scientific and appearance views must not erase, clip, or mask
+cloud water to make these warnings disappear.
 
 ## Visualization Modes
 

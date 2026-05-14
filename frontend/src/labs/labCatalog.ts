@@ -227,10 +227,34 @@ const fairWeatherDiagnostics: LabDiagnosticDefinition[] = [
     kind: "warning",
   },
   {
+    id: "top-sponge-cloud-fraction",
+    label: "Top sponge cloud fraction",
+    purpose: "Flags cloud water reaching the lid/sponge region.",
+    kind: "warning",
+  },
+  {
+    id: "lateral-boundary-cloud-fraction",
+    label: "Lateral-boundary cloud fraction",
+    purpose: "Flags cloud water touching side boundaries.",
+    kind: "warning",
+  },
+  {
+    id: "boundary-connected-cloud-regions",
+    label: "Boundary-connected cloud regions",
+    purpose: "Flags cloud regions connected to model boundaries.",
+    kind: "warning",
+  },
+  {
     id: "low-level-return-flow-cloud-water",
     label: "Low-level return-flow cloud water",
     purpose: "Flags cloud in implausible circulation regions.",
     kind: "warning",
+  },
+  {
+    id: "cloud-artifact-policy-status",
+    label: "Cloud artifact policy status",
+    purpose: "Summarizes below-LCL, return-flow, top-sponge, and boundary warnings.",
+    kind: "scenario-contract",
   },
   {
     id: "expected-vs-observed-status",

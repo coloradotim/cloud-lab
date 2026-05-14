@@ -11,6 +11,7 @@ from app.sim.boussinesq_2d import (
     CONDENSATION_FRACTION_PER_STEP,
     EVAPORATION_FRACTION_PER_STEP,
     SUBSATURATED_CLOUD_EVAPORATION_FRACTION_PER_STEP,
+    TOP_SPONGE_DEPTH_CELLS,
 )
 from app.sim.presets import fair_weather_cumulus_preset
 from app.sim.schemas import (
@@ -52,6 +53,10 @@ BASE_SPREAD_WARN_CELLS = 2.0
 BASE_SPREAD_FAIL_CELLS = 4.0
 SUBSATURATED_RH_THRESHOLD = 0.99
 NEAR_SURFACE_DEPTH_M = 250.0
+BOUNDARY_CLOUD_WARN_FRACTION = 0.10
+RETURN_FLOW_CLOUD_WARN_FRACTION = 0.10
+TOP_BOUNDARY_CLOUD_WARN_FRACTION = 0.02
+LATERAL_BOUNDARY_CLOUD_WARN_FRACTION = 0.05
 
 ValidationStatus = str
 
@@ -142,6 +147,7 @@ class BoussinesqThermodynamicDiagnostics:
     mixed_layer: MixedLayerDiagnostics
     cloud_regions: CloudRegionDiagnostics
     cloud_water_persistence: CloudWaterPersistenceDiagnostics
+    cloud_artifact_policy: CloudArtifactPolicyDiagnostics
     boundary_cloud_fraction: float
     return_flow_cloud_fraction: float
     status: ValidationStatus
@@ -177,6 +183,30 @@ class CloudWaterPersistenceDiagnostics:
     max_cloud_water_in_subsaturated_air_kg_per_kg: float
     subsaturated_cloud_min_height_m: float | None
     subsaturated_cloud_max_height_m: float | None
+
+
+@dataclass(frozen=True)
+class CloudArtifactPolicyItem:
+    key: str
+    label: str
+    fraction: float
+    status: ValidationStatus
+    interpretation: str
+
+
+@dataclass(frozen=True)
+class CloudArtifactPolicyDiagnostics:
+    status: ValidationStatus
+    checks: tuple[CloudArtifactPolicyItem, ...]
+    boundary_cloud_fraction: float
+    return_flow_cloud_fraction: float
+    below_lcl_cloud_fraction: float
+    top_boundary_cloud_fraction: float
+    lateral_boundary_cloud_fraction: float
+    lower_boundary_cloud_fraction: float
+    cloud_regions_touching_boundary_count: int
+    cloud_regions_touching_boundary_fraction: float
+    notes: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -621,6 +651,10 @@ def compute_boussinesq_thermodynamic_diagnostics(
     boundary_cloud = _boundary_cloud_fraction(final)
     return_flow_cloud = _return_flow_cloud_fraction(final)
     persistence = compute_cloud_water_persistence_diagnostics(frames, expected_lcl_m=lcl_m)
+    artifact_policy = compute_cloud_artifact_policy_diagnostics(
+        frames,
+        expected_lcl_m=lcl_m,
+    )
     lifted_path = lifted_saturation_sanity_path(
         initial.config.initial_atmosphere.surface_temperature_k,
         initial.config.initial_atmosphere.relative_humidity,
@@ -664,12 +698,11 @@ def compute_boussinesq_thermodynamic_diagnostics(
     if not lifted_path.saturation_decreases or not lifted_path.relative_humidity_increases:
         notes.append("synthetic lifted-path saturation sanity check failed")
         status_rank = max(status_rank, 2)
-    if boundary_cloud > 0.10:
-        notes.append("more than 10% of cloud water is in boundary rows or columns")
+    if artifact_policy.status == "fail":
+        status_rank = max(status_rank, 2)
+    elif artifact_policy.status == "warn":
         status_rank = max(status_rank, 1)
-    if return_flow_cloud > 0.10:
-        notes.append("more than 10% of cloud water is in low-level return-flow regions")
-        status_rank = max(status_rank, 1)
+    notes.extend(artifact_policy.notes)
     if persistence.cloud_water_in_subsaturated_air_mass_fraction > 0.05:
         notes.append("cloud water persists in diagnostically subsaturated air")
         status_rank = max(status_rank, 1)
@@ -708,10 +741,115 @@ def compute_boussinesq_thermodynamic_diagnostics(
         mixed_layer=mixed_layer,
         cloud_regions=regions,
         cloud_water_persistence=persistence,
+        cloud_artifact_policy=artifact_policy,
         boundary_cloud_fraction=boundary_cloud,
         return_flow_cloud_fraction=return_flow_cloud,
         status=status,
         notes=tuple(notes),
+    )
+
+
+def compute_cloud_artifact_policy_diagnostics(
+    frames: list[SimulationFrame],
+    *,
+    expected_lcl_m: float | None = None,
+) -> CloudArtifactPolicyDiagnostics:
+    if not frames:
+        raise ValueError("at least one frame is required")
+
+    final = frames[-1]
+    lcl_m = (
+        expected_lcl_m
+        if expected_lcl_m is not None
+        else compute_lcl_height_m(
+            final.config.initial_atmosphere.surface_temperature_k,
+            final.config.initial_atmosphere.relative_humidity,
+        )
+    )
+    persistence = compute_cloud_water_persistence_diagnostics(frames, expected_lcl_m=lcl_m)
+    boundary_fractions = _boundary_cloud_fractions(final)
+    touching_regions, total_regions = _cloud_region_boundary_touch_count(final)
+    touching_fraction = touching_regions / total_regions if total_regions > 0 else 0.0
+
+    checks = (
+        _policy_item(
+            "below_lcl_cloud_fraction",
+            "Below-LCL cloud-water fraction",
+            persistence.cloud_water_below_lcl_fraction,
+            warn_at=BELOW_LCL_WARN_FRACTION,
+            fail_at=BELOW_LCL_FAIL_FRACTION,
+            warn_text="Cloud water below the expected LCL is a thermodynamic warning.",
+            fail_text="A large fraction of cloud water is below the expected LCL.",
+            ok_text="Below-LCL cloud water is not meaningful in this frame set.",
+        ),
+        _policy_item(
+            "return_flow_cloud_fraction",
+            "Low-level return-flow cloud fraction",
+            persistence.cloud_water_in_return_flow_fraction,
+            warn_at=RETURN_FLOW_CLOUD_WARN_FRACTION,
+            fail_at=None,
+            warn_text=(
+                "Low-level return-flow cloud water is a Yellow-status circulation-artifact "
+                "warning, not a hard failure by itself."
+            ),
+            ok_text="Low-level return-flow cloud water is not meaningful in this frame set.",
+        ),
+        _policy_item(
+            "boundary_cloud_fraction",
+            "Boundary cloud fraction",
+            boundary_fractions["all"],
+            warn_at=BOUNDARY_CLOUD_WARN_FRACTION,
+            fail_at=None,
+            warn_text="Cloud water near model boundaries should be interpreted cautiously.",
+            ok_text="Boundary cloud water is not meaningful in this frame set.",
+        ),
+        _policy_item(
+            "top_boundary_cloud_fraction",
+            "Top sponge cloud fraction",
+            boundary_fractions["top"],
+            warn_at=TOP_BOUNDARY_CLOUD_WARN_FRACTION,
+            fail_at=None,
+            warn_text="Cloud water reaches the top sponge region; inspect lid effects.",
+            ok_text="Top sponge cloud water is not meaningful in this frame set.",
+        ),
+        _policy_item(
+            "lateral_boundary_cloud_fraction",
+            "Lateral-boundary cloud fraction",
+            boundary_fractions["lateral"],
+            warn_at=LATERAL_BOUNDARY_CLOUD_WARN_FRACTION,
+            fail_at=None,
+            warn_text="Cloud water touches lateral boundaries; inspect side-boundary effects.",
+            ok_text="Lateral-boundary cloud water is not meaningful in this frame set.",
+        ),
+        CloudArtifactPolicyItem(
+            key="boundary_connected_cloud_regions",
+            label="Boundary-connected cloud regions",
+            fraction=touching_fraction,
+            status="warn" if touching_regions > 0 else "pass",
+            interpretation=(
+                "One or more cloud regions touch model boundaries; interpret as scenario-specific "
+                "artifact context."
+                if touching_regions > 0
+                else "No cloud regions touch model boundaries."
+            ),
+        ),
+    )
+    status_rank = max(_status_rank(item.status) for item in checks)
+    status: ValidationStatus = ("pass", "warn", "fail")[status_rank]
+    notes = tuple(item.interpretation for item in checks if item.status != "pass")
+
+    return CloudArtifactPolicyDiagnostics(
+        status=status,
+        checks=checks,
+        boundary_cloud_fraction=boundary_fractions["all"],
+        return_flow_cloud_fraction=persistence.cloud_water_in_return_flow_fraction,
+        below_lcl_cloud_fraction=persistence.cloud_water_below_lcl_fraction,
+        top_boundary_cloud_fraction=boundary_fractions["top"],
+        lateral_boundary_cloud_fraction=boundary_fractions["lateral"],
+        lower_boundary_cloud_fraction=boundary_fractions["lower"],
+        cloud_regions_touching_boundary_count=touching_regions,
+        cloud_regions_touching_boundary_fraction=touching_fraction,
+        notes=notes,
     )
 
 
@@ -1414,6 +1552,154 @@ def _return_flow_cloud_fraction(frame: SimulationFrame) -> float:
     return return_flow / total
 
 
+def _policy_item(
+    key: str,
+    label: str,
+    fraction: float,
+    *,
+    warn_at: float,
+    fail_at: float | None,
+    warn_text: str,
+    ok_text: str,
+    fail_text: str | None = None,
+) -> CloudArtifactPolicyItem:
+    if fail_at is not None and fraction >= fail_at:
+        return CloudArtifactPolicyItem(
+            key=key,
+            label=label,
+            fraction=fraction,
+            status="fail",
+            interpretation=fail_text or warn_text,
+        )
+    if fraction >= warn_at:
+        return CloudArtifactPolicyItem(
+            key=key,
+            label=label,
+            fraction=fraction,
+            status="warn",
+            interpretation=warn_text,
+        )
+    return CloudArtifactPolicyItem(
+        key=key,
+        label=label,
+        fraction=fraction,
+        status="pass",
+        interpretation=ok_text,
+    )
+
+
+def _status_rank(status: ValidationStatus) -> int:
+    if status == "fail":
+        return 2
+    if status == "warn":
+        return 1
+    return 0
+
+
+def _boundary_cloud_fractions(frame: SimulationFrame) -> dict[str, float]:
+    cloud = frame.fields.cloud_liquid_water_kg_per_kg.values
+    total = sum(
+        value for row in cloud for value in row if value > THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG
+    )
+    if total == 0.0:
+        return {"all": 0.0, "top": 0.0, "lateral": 0.0, "lower": 0.0}
+
+    boundary = 0.0
+    top = 0.0
+    lateral = 0.0
+    lower = 0.0
+    top_start = max(0, frame.grid.rows - TOP_SPONGE_DEPTH_CELLS)
+
+    for row_index, row in enumerate(cloud):
+        for column_index, value in enumerate(row):
+            if value <= THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG:
+                continue
+            is_top = row_index >= top_start
+            is_lower = row_index == 0
+            is_lateral = column_index == 0 or column_index == frame.grid.columns - 1
+            if is_top:
+                top += value
+            if is_lower:
+                lower += value
+            if is_lateral:
+                lateral += value
+            if is_top or is_lower or is_lateral:
+                boundary += value
+
+    return {
+        "all": boundary / total,
+        "top": top / total,
+        "lateral": lateral / total,
+        "lower": lower / total,
+    }
+
+
+def _cloud_region_boundary_touch_count(frame: SimulationFrame) -> tuple[int, int]:
+    cloud = frame.fields.cloud_liquid_water_kg_per_kg.values
+    rows = frame.grid.rows
+    columns = frame.grid.columns
+    visited = [[False for _column in range(columns)] for _row in range(rows)]
+    total_regions = 0
+    touching_regions = 0
+    top_start = max(0, rows - TOP_SPONGE_DEPTH_CELLS)
+
+    for row_index in range(rows):
+        for column_index in range(columns):
+            if (
+                visited[row_index][column_index]
+                or cloud[row_index][column_index] <= THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG
+            ):
+                continue
+            total_regions += 1
+            if _cloud_region_touches_boundary(cloud, visited, row_index, column_index, top_start):
+                touching_regions += 1
+
+    return touching_regions, total_regions
+
+
+def _cloud_region_touches_boundary(
+    cloud: list[list[float]],
+    visited: list[list[bool]],
+    start_row: int,
+    start_column: int,
+    top_start: int,
+) -> bool:
+    rows = len(cloud)
+    columns = len(cloud[0]) if rows else 0
+    stack = [(start_row, start_column)]
+    touches_boundary = False
+
+    while stack:
+        row_index, column_index = stack.pop()
+        if (
+            row_index < 0
+            or row_index >= rows
+            or column_index < 0
+            or column_index >= columns
+            or visited[row_index][column_index]
+            or cloud[row_index][column_index] <= THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG
+        ):
+            continue
+        visited[row_index][column_index] = True
+        if (
+            row_index == 0
+            or row_index >= top_start
+            or column_index == 0
+            or column_index == columns - 1
+        ):
+            touches_boundary = True
+        stack.extend(
+            [
+                (row_index + 1, column_index),
+                (row_index - 1, column_index),
+                (row_index, column_index + 1),
+                (row_index, column_index - 1),
+            ]
+        )
+
+    return touches_boundary
+
+
 def _cloud_water_lifetime_after_subsaturation(frames: list[SimulationFrame]) -> float | None:
     longest_seconds = 0.0
     current_start: float | None = None
@@ -1496,6 +1782,7 @@ def _thermodynamic_diagnostics_to_dict(
         "cloud_water_persistence": _cloud_water_persistence_to_dict(
             diagnostics.cloud_water_persistence
         ),
+        "cloud_artifact_policy": _cloud_artifact_policy_to_dict(diagnostics.cloud_artifact_policy),
         "boundary_cloud_fraction": diagnostics.boundary_cloud_fraction,
         "return_flow_cloud_fraction": diagnostics.return_flow_cloud_fraction,
         "status": diagnostics.status,
@@ -1535,6 +1822,37 @@ def _cloud_water_persistence_to_dict(
         ),
         "subsaturated_cloud_min_height_m": diagnostics.subsaturated_cloud_min_height_m,
         "subsaturated_cloud_max_height_m": diagnostics.subsaturated_cloud_max_height_m,
+    }
+
+
+def _cloud_artifact_policy_to_dict(
+    diagnostics: CloudArtifactPolicyDiagnostics,
+) -> dict[str, Any]:
+    return {
+        "status": diagnostics.status,
+        "checks": [
+            {
+                "key": check.key,
+                "label": check.label,
+                "fraction": check.fraction,
+                "status": check.status,
+                "interpretation": check.interpretation,
+            }
+            for check in diagnostics.checks
+        ],
+        "boundary_cloud_fraction": diagnostics.boundary_cloud_fraction,
+        "return_flow_cloud_fraction": diagnostics.return_flow_cloud_fraction,
+        "below_lcl_cloud_fraction": diagnostics.below_lcl_cloud_fraction,
+        "top_boundary_cloud_fraction": diagnostics.top_boundary_cloud_fraction,
+        "lateral_boundary_cloud_fraction": diagnostics.lateral_boundary_cloud_fraction,
+        "lower_boundary_cloud_fraction": diagnostics.lower_boundary_cloud_fraction,
+        "cloud_regions_touching_boundary_count": (
+            diagnostics.cloud_regions_touching_boundary_count
+        ),
+        "cloud_regions_touching_boundary_fraction": (
+            diagnostics.cloud_regions_touching_boundary_fraction
+        ),
+        "notes": list(diagnostics.notes),
     }
 
 

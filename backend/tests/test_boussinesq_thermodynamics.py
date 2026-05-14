@@ -5,6 +5,7 @@ from app.sim import (
     SimulationFrame,
     build_grid_metadata,
     compute_boussinesq_thermodynamic_diagnostics,
+    compute_cloud_artifact_policy_diagnostics,
     compute_cloud_region_diagnostics,
     compute_cloud_water_persistence_diagnostics,
     compute_initialized_profile_diagnostics,
@@ -257,6 +258,86 @@ def test_cloud_water_persistence_diagnostics_classify_subsaturated_return_flow()
         pytest.approx(1.0)
     )
     assert any("subsaturated air" in note for note in thermo.notes)
+
+
+def test_cloud_artifact_policy_clean_case_passes() -> None:
+    frame = _frame(
+        cloud=[
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 3e-6, 4e-6, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ]
+    )
+
+    policy = compute_cloud_artifact_policy_diagnostics([frame])
+
+    assert policy.status == "pass"
+    assert policy.boundary_cloud_fraction == 0.0
+    assert policy.return_flow_cloud_fraction == 0.0
+    assert policy.cloud_regions_touching_boundary_count == 0
+    assert policy.notes == ()
+
+
+def test_cloud_artifact_policy_warns_for_return_flow() -> None:
+    frame = _frame(
+        cloud=[
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 3e-6, 4e-6, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ],
+        vertical_velocity=[
+            [0.1, 0.1, 0.1, 0.1],
+            [0.1, -0.1, -0.1, 0.1],
+            [0.1, 0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1, 0.1],
+        ],
+    )
+
+    policy = compute_cloud_artifact_policy_diagnostics([frame])
+
+    assert policy.status == "warn"
+    assert policy.return_flow_cloud_fraction == pytest.approx(1.0)
+    assert any("return-flow" in note for note in policy.notes)
+
+
+def test_cloud_artifact_policy_warns_for_boundary_cloud() -> None:
+    frame = _frame(
+        cloud=[
+            [0.0, 0.0, 0.0, 0.0],
+            [3e-6, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 4e-6, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ]
+    )
+
+    policy = compute_cloud_artifact_policy_diagnostics([frame])
+
+    assert policy.status == "warn"
+    assert policy.boundary_cloud_fraction == pytest.approx(1.0)
+    assert policy.lateral_boundary_cloud_fraction == pytest.approx(3 / 7)
+    assert policy.top_boundary_cloud_fraction == pytest.approx(4 / 7)
+    assert policy.cloud_regions_touching_boundary_count == 2
+    assert any("boundaries" in note for note in policy.notes)
+
+
+def test_cloud_artifact_policy_fails_for_large_below_lcl_fraction() -> None:
+    frame = _frame(
+        relative_humidity=0.30,
+        cloud=[
+            [0.0, 5e-6, 0.0, 0.0],
+            [0.0, 0.0, 2e-6, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ],
+    )
+
+    policy = compute_cloud_artifact_policy_diagnostics([frame])
+
+    assert policy.status == "fail"
+    assert policy.below_lcl_cloud_fraction == pytest.approx(1.0)
+    assert any("below the expected LCL" in note for note in policy.notes)
 
 
 def _frame(

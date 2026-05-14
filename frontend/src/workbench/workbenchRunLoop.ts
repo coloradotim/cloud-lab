@@ -1,6 +1,10 @@
 import type { LabDefinition, LabScenarioDefinition } from "../labs/labTypes";
 import { clampFrameIndex, replayEventTargets, replayStatus } from "../replay";
-import { evaluateScenarioRun, type ScenarioDiagnostics } from "../scenarioDiagnostics";
+import {
+  artifactPolicyNotes,
+  evaluateScenarioRun,
+  type ScenarioDiagnostics,
+} from "../scenarioDiagnostics";
 import {
   BUILT_IN_SCENARIOS,
   type BuiltInScenario,
@@ -64,6 +68,11 @@ export type WorkbenchInspectorSummary = {
   nearLclCloudFraction: number | null;
   aboveLclCloudFraction: number | null;
   boundaryCloudFraction: number | null;
+  topBoundaryCloudFraction: number | null;
+  lateralBoundaryCloudFraction: number | null;
+  boundaryConnectedCloudRegionFraction: number | null;
+  returnFlowCloudFraction: number | null;
+  artifactWarnings: string[];
   returnFlowWarning: string;
   dryFailedOutcome: string;
 };
@@ -439,6 +448,11 @@ export function buildWorkbenchInspectorSummary(
     nearLclCloudFraction: lclBands.near,
     aboveLclCloudFraction: lclBands.above,
     boundaryCloudFraction: observations?.boundaryCloudFraction ?? null,
+    topBoundaryCloudFraction: observations?.topBoundaryCloudFraction ?? null,
+    lateralBoundaryCloudFraction: observations?.lateralBoundaryCloudFraction ?? null,
+    boundaryConnectedCloudRegionFraction: observations?.boundaryConnectedCloudRegionFraction ?? null,
+    returnFlowCloudFraction: observations?.returnFlowCloudFraction ?? null,
+    artifactWarnings: observations ? artifactPolicyNotes(observations) : [],
     returnFlowWarning: returnFlowWarningText(frame),
     dryFailedOutcome: dryFailedOutcomeText(state.selectedScenarioId, diagnostics),
   };

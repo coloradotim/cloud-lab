@@ -117,6 +117,13 @@ describe("lab catalog", () => {
         "first-cloud-time",
         "cloud-top-height",
         "max-updraft",
+        "below-lcl-cloud-water-fraction",
+        "boundary-cloud-fraction",
+        "top-sponge-cloud-fraction",
+        "lateral-boundary-cloud-fraction",
+        "boundary-connected-cloud-regions",
+        "low-level-return-flow-cloud-water",
+        "cloud-artifact-policy-status",
         "dry-failed-cloud-outcome",
       ]),
     );

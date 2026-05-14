@@ -39,8 +39,8 @@ describe("scenario diagnostics", () => {
         frameAt(0, { cloudCells: [], updraftCells: [[1, 1, 0.08]] }),
         frameAt(600, {
           cloudCells: [
-            [2, 1, 2e-6],
-            [2, 2, 3e-6],
+            [1, 1, 2e-6],
+            [1, 2, 3e-6],
           ],
           updraftCells: [[1, 1, 0.5]],
         }),
@@ -81,7 +81,7 @@ describe("scenario diagnostics", () => {
       ],
     });
 
-    expect(diagnostics.status).toBe("warning");
+    expect(diagnostics.status).toBe("failed_expectation");
     expect(diagnostics.notes.join(" ")).toContain("immediately");
   });
 
@@ -119,8 +119,74 @@ describe("scenario diagnostics", () => {
       ],
     });
 
-    expect(diagnostics.status).toBe("plausible");
+    expect(diagnostics.status).toBe("warning");
     expect(diagnostics.notes.join(" ")).toContain("not evaluated as classic fair-weather");
+    expect(diagnostics.notes.join(" ")).toContain("model boundaries");
+  });
+
+  it("warns when cloud water appears in low-level return flow", () => {
+    const diagnostics = evaluateScenarioRun({
+      scenario: scenario("multi-thermal-cumulus-field"),
+      config: baseConfig,
+      frames: [
+        frameAt(600, {
+          cloudCells: [
+            [1, 1, 2e-6],
+            [1, 2, 3e-6],
+          ],
+          updraftCells: [
+            [1, 1, -0.2],
+            [1, 2, -0.1],
+            [0, 1, 0.2],
+          ],
+        }),
+      ],
+    });
+
+    expect(diagnostics.status).toBe("warning");
+    expect(diagnostics.observations?.returnFlowCloudFraction).toBe(1);
+    expect(diagnostics.notes.join(" ")).toContain("return-flow regions");
+  });
+
+  it("warns when cloud water touches top or lateral boundaries", () => {
+    const diagnostics = evaluateScenarioRun({
+      scenario: scenario("fair-weather-moderate-base"),
+      config: baseConfig,
+      frames: [
+        frameAt(600, {
+          cloudCells: [
+            [1, 0, 2e-6],
+            [2, 2, 3e-6],
+          ],
+          updraftCells: [[2, 2, 0.3]],
+        }),
+      ],
+    });
+
+    expect(diagnostics.status).toBe("warning");
+    expect(diagnostics.observations?.lateralBoundaryCloudFraction).toBeCloseTo(0.4);
+    expect(diagnostics.observations?.topBoundaryCloudFraction).toBeCloseTo(0.6);
+    expect(diagnostics.notes.join(" ")).toContain("lateral boundaries");
+    expect(diagnostics.notes.join(" ")).toContain("top sponge");
+  });
+
+  it("fails when the below-LCL cloud fraction crosses the hard policy threshold", () => {
+    const diagnostics = evaluateScenarioRun({
+      scenario: scenario("fair-weather-moderate-base"),
+      config: { ...baseConfig, initial_atmosphere: { ...baseConfig.initial_atmosphere, relative_humidity: 0.3 } },
+      frames: [
+        frameAt(600, {
+          cloudCells: [
+            [0, 1, 3e-6],
+            [1, 1, 1e-6],
+          ],
+          updraftCells: [[1, 1, 0.3]],
+        }),
+      ],
+    });
+
+    expect(diagnostics.status).toBe("failed_expectation");
+    expect(diagnostics.notes.join(" ")).toContain("below the estimated LCL");
   });
 
   it("marks microphysics no-lift control plausible when it stays cloud-free and rain-free", () => {
@@ -249,4 +315,3 @@ function field(values: number[][], unit: string, displayName: string) {
     },
   };
 }
-

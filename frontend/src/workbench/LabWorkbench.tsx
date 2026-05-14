@@ -1279,8 +1279,31 @@ function InspectorPanel({
             <dd>{formatFraction(summary.boundaryCloudFraction)}</dd>
           </div>
           <div>
+            <dt>Top / lateral boundary cloud</dt>
+            <dd>
+              {formatFraction(summary.topBoundaryCloudFraction)} /{" "}
+              {formatFraction(summary.lateralBoundaryCloudFraction)}
+            </dd>
+          </div>
+          <div>
+            <dt>Return-flow cloud fraction</dt>
+            <dd>{formatFraction(summary.returnFlowCloudFraction)}</dd>
+          </div>
+          <div>
+            <dt>Boundary-connected regions</dt>
+            <dd>{formatFraction(summary.boundaryConnectedCloudRegionFraction)}</dd>
+          </div>
+          <div>
             <dt>Return-flow warning</dt>
             <dd>{summary.returnFlowWarning}</dd>
+          </div>
+          <div>
+            <dt>Artifact policy warnings</dt>
+            <dd>
+              {summary.artifactWarnings.length > 0
+                ? summary.artifactWarnings.join(" ")
+                : "No boundary, return-flow, or below-LCL artifact warnings for the observed frames."}
+            </dd>
           </div>
           <div>
             <dt>Dry-failed-cloud outcome</dt>
