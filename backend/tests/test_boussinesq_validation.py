@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Literal
 
 import pytest
 
@@ -492,7 +493,9 @@ def _lower_atmosphere_suppression_config(
     humidity_layers: list[HumidityLayerConfig] | None = None,
 ) -> SimulationConfig:
     preset = fair_weather_cumulus_preset().config
-    humidity_profile = "custom_layers" if humidity_layers else "surface_moisture"
+    humidity_profile: Literal["custom_layers", "surface_moisture"] = (
+        "custom_layers" if humidity_layers else "surface_moisture"
+    )
     return preset.model_copy(
         update={
             "domain": DomainConfig(width_m=10_000.0, height_m=3_000.0),
