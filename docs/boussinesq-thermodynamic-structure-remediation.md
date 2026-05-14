@@ -297,6 +297,21 @@ This does not resolve the broader Boussinesq trust gap or the known shallow
 cloud-placement xfail. It adds diagnostics and narrows one cloud-water
 persistence mechanism.
 
+## Post-#157 Artifact-Policy Update
+
+Issue #157 did not change solver physics. It converted the remaining
+return-flow and boundary cloud-water concern into an explicit diagnostic policy:
+
+- large below-LCL cloud-water fractions are hard failures
+- smaller below-LCL fractions are warnings
+- low-level return-flow cloud water is a warning
+- boundary, top-sponge, and lateral-boundary cloud water are warnings
+- boundary-connected cloud regions are exposed for scenario-specific
+  interpretation
+
+This keeps the #154 conclusion intact: the humid-reference xfail is still not
+primarily a return-flow or boundary artifact, and the solver remains Yellow.
+
 The current run is physically bounded and numerically sane, but it is not satisfying the old "peak cloud water at boundary-layer top" validation idea. That expectation should remain xfailed until the project decides whether Lower Atmosphere Cloud Basics wants cloud placement relative to LCL, cloud depth, boundary-layer top, or a more nuanced scenario contract.
 
 ## Recommended Remediation

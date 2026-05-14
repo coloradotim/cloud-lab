@@ -247,6 +247,9 @@ Examples:
 - below-LCL cloud-water fraction
 - cloud-water in return-flow regions
 - boundary cloud fraction
+- cloud-water in the top sponge / lid region
+- cloud-water touching lateral boundaries
+- cloud regions touching model boundaries
 - cloud-water in locally subsaturated cells
 - cloud-water in downdraft, near-surface, and near-boundary regions
 - estimated condensation and evaporation tendencies for emitted frames
@@ -270,6 +273,10 @@ Rules:
 - warnings must be surfaced in validation summaries/docs
 - warnings must not be silently ignored
 - warnings can become hard failures after thresholds are calibrated
+- Lower Atmosphere Cloud Basics currently treats low-level return-flow, top
+  sponge, lateral-boundary, and boundary-connected cloud as warnings. A large
+  below-LCL cloud-water fraction is a hard failure because it conflicts with the
+  lab's cloud-base contract.
 
 ### H. Visualization Honesty Tests
 

@@ -22,6 +22,10 @@ export type ScenarioObservation = {
   maxUpdraftMPerS: number;
   immediateSurfaceCloud: boolean;
   boundaryCloudFraction: number;
+  returnFlowCloudFraction: number;
+  topBoundaryCloudFraction: number;
+  lateralBoundaryCloudFraction: number;
+  boundaryConnectedCloudRegionFraction: number;
   belowLclCloudFraction: number | null;
   estimatedLclM: number | null;
   microphysicsTotalWaterDriftConcerning: boolean;
@@ -43,6 +47,12 @@ const SIGNIFICANT_CLOUD_THRESHOLD_KG_PER_KG = 1e-6;
 const RAIN_THRESHOLD_KG_PER_KG = 1e-8;
 const MOTION_THRESHOLD_M_PER_S = 0.03;
 const BOUNDARY_DOMINATED_FRACTION = 0.45;
+const BOUNDARY_WARNING_FRACTION = 0.1;
+const RETURN_FLOW_WARNING_FRACTION = 0.1;
+const TOP_BOUNDARY_WARNING_FRACTION = 0.02;
+const LATERAL_BOUNDARY_WARNING_FRACTION = 0.05;
+const BELOW_LCL_WARNING_FRACTION = 0.05;
+const BELOW_LCL_FAILURE_FRACTION = 0.2;
 
 export function evaluateScenarioRun({
   scenario,
@@ -83,6 +93,31 @@ function evaluateScenarioStatus(
   config: SimulationConfig,
   observations: ScenarioObservation,
 ): { status: ScenarioStatus; notes: string[] } {
+  const base = evaluateScenarioContract(scenario, config, observations);
+  const artifactNotes = artifactPolicyNotes(observations);
+  if (artifactNotes.length === 0) {
+    return base;
+  }
+  if (
+    observations.belowLclCloudFraction !== null &&
+    observations.belowLclCloudFraction >= BELOW_LCL_FAILURE_FRACTION
+  ) {
+    return {
+      status: "failed_expectation",
+      notes: [...base.notes, ...artifactNotes],
+    };
+  }
+  return {
+    status: base.status === "plausible" ? "warning" : base.status,
+    notes: [...base.notes, ...artifactNotes],
+  };
+}
+
+function evaluateScenarioContract(
+  scenario: BuiltInScenario,
+  config: SimulationConfig,
+  observations: ScenarioObservation,
+): { status: ScenarioStatus; notes: string[] } {
   switch (scenario.slug) {
     case "fair-weather-moderate-base":
       return evaluateFairWeather(config, observations);
@@ -104,6 +139,43 @@ function evaluateScenarioStatus(
         notes: ["This scenario has no deterministic diagnostic rule yet."],
       };
   }
+}
+
+export function artifactPolicyNotes(observations: ScenarioObservation): string[] {
+  const notes: string[] = [];
+  if (
+    observations.belowLclCloudFraction !== null &&
+    observations.belowLclCloudFraction >= BELOW_LCL_FAILURE_FRACTION
+  ) {
+    notes.push("A large fraction of cloud water is below the estimated LCL.");
+  } else if (
+    observations.belowLclCloudFraction !== null &&
+    observations.belowLclCloudFraction >= BELOW_LCL_WARNING_FRACTION
+  ) {
+    notes.push("Some cloud water is below the estimated LCL.");
+  }
+  if (observations.returnFlowCloudFraction >= RETURN_FLOW_WARNING_FRACTION) {
+    notes.push(
+      "Some cloud water appears in low-level return-flow regions; treat this as a prototype circulation-artifact warning.",
+    );
+  }
+  if (observations.boundaryCloudFraction >= BOUNDARY_WARNING_FRACTION) {
+    notes.push(
+      "A significant fraction of cloud water touches model boundaries; interpret cloud shape and timing cautiously.",
+    );
+  }
+  if (observations.topBoundaryCloudFraction >= TOP_BOUNDARY_WARNING_FRACTION) {
+    notes.push("Cloud water reaches the top sponge region; inspect lid effects.");
+  }
+  if (observations.lateralBoundaryCloudFraction >= LATERAL_BOUNDARY_WARNING_FRACTION) {
+    notes.push("Cloud water touches lateral boundaries; inspect side-boundary effects.");
+  }
+  if (observations.boundaryConnectedCloudRegionFraction > 0) {
+    notes.push(
+      "One or more cloud regions touch model boundaries; interpret this as scenario-specific artifact context.",
+    );
+  }
+  return [...new Set(notes)];
 }
 
 function evaluateFairWeather(
@@ -301,13 +373,23 @@ function observeRun(frames: SimulationFrame[], config: SimulationConfig): Scenar
   let maxUpdraft = 0;
   let totalCloudMass = 0;
   let boundaryCloudMass = 0;
+  let returnFlowCloudMass = 0;
+  let topBoundaryCloudMass = 0;
+  let lateralBoundaryCloudMass = 0;
   let belowLclCloudMass = 0;
+  let maxBoundaryConnectedRegionFraction = 0;
 
   for (const frame of frames) {
     const cloud = frame.fields.cloud_liquid_water_kg_per_kg?.values ?? [];
     const rain = frame.fields.rain_water_kg_per_kg?.values ?? [];
     const verticalVelocity = frame.fields.vertical_velocity_m_per_s?.values ?? [];
-    const cloudStats = cloudFrameStats(cloud, frame.grid.z_coordinates_m, lcl);
+    const cloudStats = cloudFrameStats(
+      cloud,
+      verticalVelocity,
+      frame.grid.z_coordinates_m,
+      lcl,
+      config.initial_atmosphere.boundary_layer_depth_m,
+    );
 
     if (cloudStats.maxValue > maxCloud) {
       maxCloud = cloudStats.maxValue;
@@ -321,8 +403,15 @@ function observeRun(frames: SimulationFrame[], config: SimulationConfig): Scenar
       maxCloudTop = Math.max(maxCloudTop ?? cloudStats.cloudTopM, cloudStats.cloudTopM);
     }
     maxRegionCount = Math.max(maxRegionCount, cloudRegionCount(cloud));
+    maxBoundaryConnectedRegionFraction = Math.max(
+      maxBoundaryConnectedRegionFraction,
+      cloudRegionBoundaryTouchFraction(cloud),
+    );
     totalCloudMass += cloudStats.totalMass;
     boundaryCloudMass += cloudStats.boundaryMass;
+    returnFlowCloudMass += cloudStats.returnFlowMass;
+    topBoundaryCloudMass += cloudStats.topBoundaryMass;
+    lateralBoundaryCloudMass += cloudStats.lateralBoundaryMass;
     belowLclCloudMass += cloudStats.belowLclMass;
 
     const rainMax = maxFieldValue(rain);
@@ -351,6 +440,11 @@ function observeRun(frames: SimulationFrame[], config: SimulationConfig): Scenar
     maxUpdraftMPerS: maxUpdraft,
     immediateSurfaceCloud: hasImmediateSurfaceCloud(frames[0]),
     boundaryCloudFraction: totalCloudMass > 0 ? boundaryCloudMass / totalCloudMass : 0,
+    returnFlowCloudFraction: totalCloudMass > 0 ? returnFlowCloudMass / totalCloudMass : 0,
+    topBoundaryCloudFraction: totalCloudMass > 0 ? topBoundaryCloudMass / totalCloudMass : 0,
+    lateralBoundaryCloudFraction:
+      totalCloudMass > 0 ? lateralBoundaryCloudMass / totalCloudMass : 0,
+    boundaryConnectedCloudRegionFraction: maxBoundaryConnectedRegionFraction,
     belowLclCloudFraction:
       lcl === null || totalCloudMass <= 0 ? null : belowLclCloudMass / totalCloudMass,
     estimatedLclM: lcl,
@@ -362,14 +456,23 @@ function observeRun(frames: SimulationFrame[], config: SimulationConfig): Scenar
   };
 }
 
-function cloudFrameStats(values: number[][], heights: number[], lcl: number | null) {
+function cloudFrameStats(
+  values: number[][],
+  verticalVelocity: number[][],
+  heights: number[],
+  lcl: number | null,
+  boundaryLayerDepthM: number,
+) {
   let maxValue = 0;
   let totalMass = 0;
   let boundaryMass = 0;
+  let returnFlowMass = 0;
+  let topBoundaryMass = 0;
+  let lateralBoundaryMass = 0;
   let belowLclMass = 0;
   let cloudBaseM: number | null = null;
   let cloudTopM: number | null = null;
-  const lastRow = values.length - 1;
+  const topStartRow = Math.max(0, values.length - 2);
 
   for (let rowIndex = 0; rowIndex < values.length; rowIndex += 1) {
     const row = values[rowIndex];
@@ -382,13 +485,20 @@ function cloudFrameStats(values: number[][], heights: number[], lcl: number | nu
         continue;
       }
       totalMass += value;
-      if (
-        rowIndex === 0 ||
-        rowIndex === lastRow ||
-        columnIndex === 0 ||
-        columnIndex === lastColumn
-      ) {
+      const touchesTop = rowIndex >= topStartRow;
+      const touchesLower = rowIndex === 0;
+      const touchesLateral = columnIndex === 0 || columnIndex === lastColumn;
+      if (touchesTop || touchesLower || touchesLateral) {
         boundaryMass += value;
+      }
+      if (touchesTop) {
+        topBoundaryMass += value;
+      }
+      if (touchesLateral) {
+        lateralBoundaryMass += value;
+      }
+      if (height <= boundaryLayerDepthM && (verticalVelocity[rowIndex]?.[columnIndex] ?? 0) < 0) {
+        returnFlowMass += value;
       }
       if (lcl !== null && height < lcl) {
         belowLclMass += value;
@@ -402,6 +512,9 @@ function cloudFrameStats(values: number[][], heights: number[], lcl: number | nu
     maxValue,
     totalMass,
     boundaryMass,
+    returnFlowMass,
+    topBoundaryMass,
+    lateralBoundaryMass,
     belowLclMass,
     cloudBaseM,
     cloudTopM,
@@ -430,13 +543,41 @@ function cloudRegionCount(values: number[][]): number {
   return regions;
 }
 
+function cloudRegionBoundaryTouchFraction(values: number[][]): number {
+  const rows = values.length;
+  const columns = values[0]?.length ?? 0;
+  const visited = Array.from({ length: rows }, () => Array.from({ length: columns }, () => false));
+  const topStartRow = Math.max(0, rows - 2);
+  let regions = 0;
+  let touchingRegions = 0;
+
+  for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+    for (let columnIndex = 0; columnIndex < columns; columnIndex += 1) {
+      if (
+        visited[rowIndex][columnIndex] ||
+        (values[rowIndex][columnIndex] ?? 0) <= CLOUD_THRESHOLD_KG_PER_KG
+      ) {
+        continue;
+      }
+      regions += 1;
+      if (floodCloudRegion(values, visited, rowIndex, columnIndex, topStartRow)) {
+        touchingRegions += 1;
+      }
+    }
+  }
+
+  return regions > 0 ? touchingRegions / regions : 0;
+}
+
 function floodCloudRegion(
   values: number[][],
   visited: boolean[][],
   startRow: number,
   startColumn: number,
-) {
+  topStartRow = Number.POSITIVE_INFINITY,
+): boolean {
   const stack: Array<[number, number]> = [[startRow, startColumn]];
+  let touchesBoundary = false;
   while (stack.length > 0) {
     const [row, column] = stack.pop() ?? [0, 0];
     if (
@@ -450,8 +591,17 @@ function floodCloudRegion(
       continue;
     }
     visited[row][column] = true;
+    if (
+      row === 0 ||
+      row >= topStartRow ||
+      column === 0 ||
+      column === (values[row]?.length ?? 0) - 1
+    ) {
+      touchesBoundary = true;
+    }
     stack.push([row + 1, column], [row - 1, column], [row, column + 1], [row, column - 1]);
   }
+  return touchesBoundary;
 }
 
 function hasImmediateSurfaceCloud(frame: SimulationFrame | undefined): boolean {

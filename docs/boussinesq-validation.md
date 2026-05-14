@@ -190,6 +190,9 @@ The thermodynamic validation suite reports:
 - whether the initialized profile is well mixed enough for simple shared cloud-base assumptions
 - saturation sanity for a dry-adiabatically lifted diagnostic parcel
 - boundary-cloud fraction and low-level return-flow cloud fraction
+- explicit return-flow / boundary artifact-policy statuses for below-LCL cloud,
+  low-level return-flow cloud, boundary cloud, top sponge cloud, and
+  lateral-boundary cloud
 - cloud-water persistence in locally subsaturated air, downdrafts, return flow,
   below the expected LCL, near the surface, and near model boundaries
 - diagnostic condensation and evaporation tendency estimates for the emitted
@@ -280,6 +283,25 @@ below the regression threshold, but still reports a return-flow warning. This is
 not a Green trust result for `boussinesq_2d`. It narrows a specific persistence
 artifact while preserving the documented Yellow status and leaving broader
 return-flow/boundary warning policy to #157.
+
+## Return-Flow / Boundary Cloud-Water Policy
+
+Issue #157 defines how Lower Atmosphere Cloud Basics should classify cloud water
+in regions that may be artifacts of the current 2-D prototype.
+
+| Diagnostic signal | Current policy | Notes |
+| --- | --- | --- |
+| Below-LCL cloud-water fraction | Warning at small fractions; fail at large fractions. | Large below-LCL condensate contradicts the cloud-base teaching contract. |
+| Low-level return-flow cloud fraction | Warning. | This often indicates recirculation or transport limitations in long runs. It is not a hard failure by itself while the solver is Yellow. |
+| Boundary cloud fraction | Warning. | Boundary-attached cloud should be interpreted cautiously. |
+| Top sponge cloud fraction | Warning. | Cloud in the top sponge/lid region may reflect lid interaction. |
+| Lateral-boundary cloud fraction | Warning. | Cloud touching side boundaries may reflect side-boundary influence. |
+| Cloud regions touching boundaries | Warning / scenario-specific context. | Region connectivity helps distinguish isolated interior cloud from boundary-connected cloud. |
+
+The policy is diagnostic. It does not hide cloud water, change renderer
+thresholds, tune scenarios, or claim that the artifact is solved. Deeper causes,
+including stabilizer/damping influence or successor-core needs, remain in #159
+and #160.
 
 ## Current Read
 

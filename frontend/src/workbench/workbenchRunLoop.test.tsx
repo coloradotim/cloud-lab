@@ -217,6 +217,7 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(available.maxCloudWaterKgPerKg).toBe(2e-6);
     expect(available.profileRows.length).toBeGreaterThan(0);
     expect(available.returnFlowWarning).toContain("low-level return-flow");
+    expect(available.artifactWarnings.join(" ")).toContain("top sponge");
   });
 
   it("inspector profile/probe empty states and truth labels render cleanly", () => {
