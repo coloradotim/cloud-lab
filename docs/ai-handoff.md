@@ -190,6 +190,14 @@ Post-#157 status:
 - Backend diagnostics expose artifact-policy check statuses and boundary-region fractions; frontend inspector diagnostics surface the same warning categories.
 - This policy does not tune scenarios, hide cloud water, or resolve the remaining return-flow/stabilizer trust gap. `boussinesq_2d` remains Yellow; deeper causes remain with #159 and successor-core decisions remain with #160.
 
+Post-#158 status:
+
+- Lower Atmosphere Cloud Basics now has an explicit resolution/domain/runtime sensitivity validation matrix.
+- Baseline shallow cloud remains cloud-forming across supported resolution/domain/runtime variants; dry failed remains cloud-free; capped/suppressed remains suppressed.
+- Short `600 s` runtime is diagnostic-only for cloud-forming scenarios because it can end before delayed cloud onset.
+- The default `36 x 24`, `10 km x 3 km`, `1200 s` envelope remains recommended.
+- `boussinesq_2d` remains Yellow because high-resolution, smaller-domain, and long-runtime baseline runs show material sensitivity and artifact warnings.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.

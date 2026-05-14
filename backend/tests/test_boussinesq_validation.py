@@ -22,8 +22,11 @@ from app.sim import (
     compute_cloud_water_persistence_diagnostics,
     compute_divergence_field,
     fair_weather_cumulus_preset,
+    lower_atmosphere_sensitivity_scenarios,
+    lower_atmosphere_sensitivity_variants,
     run_boussinesq_scenario_validation,
     run_boussinesq_thermodynamic_validation,
+    run_lower_atmosphere_sensitivity_validation,
     run_simulation,
 )
 from app.sim.schemas import SimulationConfig, SimulationFrame
@@ -364,6 +367,75 @@ def test_boussinesq_scenario_validation_cases_report_expected_regimes() -> None:
     assert 0.002 <= isolated["cloud_coverage_fraction"] <= 0.20
     assert deck["cloud_coverage_fraction"] > isolated["cloud_coverage_fraction"]
     assert (deep["cloud_top_height_m"] or 0.0) > (isolated["cloud_top_height_m"] or 0.0)
+
+
+def test_lower_atmosphere_sensitivity_matrix_definitions_separate_controls() -> None:
+    scenarios = lower_atmosphere_sensitivity_scenarios()
+
+    assert [scenario.slug for scenario in scenarios] == [
+        "fair-weather-moderate-base",
+        "dry-failed-cumulus",
+        "dry-cap-suppressed-cumulus",
+    ]
+
+    variants = lower_atmosphere_sensitivity_variants(scenarios[0].config)
+    assert [(variant.axis, variant.slug) for variant in variants] == [
+        ("resolution", "low"),
+        ("resolution", "medium"),
+        ("resolution", "high"),
+        ("domain", "smaller-shallower"),
+        ("domain", "default"),
+        ("domain", "wider-taller"),
+        ("runtime", "short"),
+        ("runtime", "standard"),
+        ("runtime", "long"),
+    ]
+
+    low_resolution = next(variant for variant in variants if variant.slug == "low")
+    smaller_domain = next(variant for variant in variants if variant.slug == "smaller-shallower")
+    short_runtime = next(variant for variant in variants if variant.slug == "short")
+
+    assert low_resolution.config.domain == scenarios[0].config.domain
+    assert low_resolution.config.time == scenarios[0].config.time
+    assert low_resolution.config.grid.columns == 30
+    assert smaller_domain.config.grid == scenarios[0].config.grid
+    assert smaller_domain.config.time == scenarios[0].config.time
+    assert smaller_domain.config.domain.width_m == 8_000
+    assert short_runtime.config.domain == scenarios[0].config.domain
+    assert short_runtime.config.grid == scenarios[0].config.grid
+    assert short_runtime.config.time.duration_seconds == 600
+    assert short_runtime.supported is False
+
+
+def test_lower_atmosphere_sensitivity_validation_reports_required_matrix() -> None:
+    report = run_lower_atmosphere_sensitivity_validation()
+
+    assert report["schema_version"] == "lower-atmosphere-sensitivity-validation-v1"
+    assert report["lab"] == "Lower Atmosphere Cloud Basics"
+    assert report["axes"] == ["resolution", "domain", "runtime"]
+    assert len(report["results"]) == 27
+
+    results = report["results"]
+    assert {
+        (result["scenario_slug"], result["axis"], result["variant_slug"]) for result in results
+    } == {
+        (scenario.slug, variant.axis, variant.slug)
+        for scenario in lower_atmosphere_sensitivity_scenarios()
+        for variant in lower_atmosphere_sensitivity_variants(scenario.config)
+    }
+
+    baseline_supported = [
+        result
+        for result in results
+        if result["scenario_slug"] == "fair-weather-moderate-base" and result["supported"]
+    ]
+    dry_supported = [
+        result for result in results if result["scenario_slug"] == "dry-failed-cumulus"
+    ]
+
+    assert baseline_supported
+    assert all(result["max_cloud_liquid_water_kg_per_kg"] > 1e-8 for result in baseline_supported)
+    assert all(result["max_cloud_liquid_water_kg_per_kg"] <= 1e-8 for result in dry_supported)
 
 
 def test_boussinesq_thermodynamic_validation_cases_have_numeric_lcl_and_distribution() -> None:
