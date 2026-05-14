@@ -41,6 +41,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/boussinesq-solver.md` — Boussinesq 2-D physics core implementation notes.
 - `docs/boussinesq-validation.md` — current Boussinesq validation gate and diagnostics.
 - `docs/fair-weather-resolution-domain-sensitivity.md` — Lower Atmosphere Cloud Basics fair-weather scenario-family sensitivity report for resolution, domain size, and runtime.
+- `docs/boussinesq-stabilizer-audit.md` — audit of Boussinesq stabilizers, safety caps, damping/diffusion influence, and top-sponge sensitivity for Lower Atmosphere Cloud Basics.
 - `docs/minimal-solver.md` — legacy/internal educational 2-D solver.
 - `docs/microphysics-lab.md` — controlled warm-cloud microphysics lab mode.
 - `docs/microphysics-comparison.md` — comparison of simple saturation adjustment and current bulk microphysics lab behavior.

@@ -2,16 +2,29 @@ from __future__ import annotations
 
 import argparse
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from math import isfinite, sqrt
 from typing import Any
 
+from app.sim import boussinesq_2d as boussinesq_solver
 from app.sim.boussinesq_2d import (
     CONDENSATION_FRACTION_PER_STEP,
     EVAPORATION_FRACTION_PER_STEP,
+    KINEMATIC_VISCOSITY_M2_PER_S,
+    MAX_ABS_THETA_PERTURBATION_K,
+    MAX_ABS_VELOCITY_M_PER_S,
+    MAX_ABS_VORTICITY_PER_SECOND,
+    MAX_CLOUD_LIQUID_WATER_KG_PER_KG,
+    MAX_WATER_VAPOR_KG_PER_KG,
+    MOISTURE_DIFFUSIVITY_M2_PER_S,
     SUBSATURATED_CLOUD_EVAPORATION_FRACTION_PER_STEP,
+    THERMAL_DIFFUSIVITY_M2_PER_S,
+    THERMAL_RELAXATION_PER_SECOND,
     TOP_SPONGE_DEPTH_CELLS,
+    VELOCITY_DAMPING_PER_SECOND,
+    VORTICITY_DAMPING_PER_SECOND,
 )
 from app.sim.presets import fair_weather_cumulus_preset
 from app.sim.schemas import (
@@ -57,6 +70,14 @@ BOUNDARY_CLOUD_WARN_FRACTION = 0.10
 RETURN_FLOW_CLOUD_WARN_FRACTION = 0.10
 TOP_BOUNDARY_CLOUD_WARN_FRACTION = 0.02
 LATERAL_BOUNDARY_CLOUD_WARN_FRACTION = 0.05
+STABILIZER_CAP_WARN_FRACTION = 0.50
+STABILIZER_CAP_FAIL_FRACTION = 0.90
+STABILIZER_MATERIAL_CLOUD_RATIO_LOW = 0.50
+STABILIZER_MATERIAL_CLOUD_RATIO_HIGH = 2.00
+STABILIZER_MATERIAL_UPDRAFT_RATIO_LOW = 0.70
+STABILIZER_MATERIAL_UPDRAFT_RATIO_HIGH = 1.30
+STABILIZER_MATERIAL_CLOUD_TOP_DELTA_M = 250.0
+STABILIZER_MATERIAL_ONSET_DELTA_SECONDS = 180.0
 
 ValidationStatus = str
 
@@ -119,6 +140,52 @@ class LowerAtmosphereSensitivityResult:
     near_lcl_cloud_fraction: float
     above_lcl_cloud_fraction: float
     thermodynamic_status: ValidationStatus
+    notes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class BoussinesqStabilizerAuditCase:
+    slug: str
+    name: str
+    role: str
+    config: SimulationConfig
+
+
+@dataclass(frozen=True)
+class BoussinesqStabilizerAuditVariant:
+    slug: str
+    name: str
+    description: str
+    overrides: dict[str, float]
+
+
+@dataclass(frozen=True)
+class BoussinesqStabilizerAuditResult:
+    case_slug: str
+    case_name: str
+    case_role: str
+    variant_slug: str
+    variant_name: str
+    status: ValidationStatus
+    max_velocity_cap_fraction: float
+    max_theta_cap_fraction: float
+    max_vorticity_cap_fraction: float
+    max_vapor_cap_fraction: float
+    max_cloud_cap_fraction: float
+    max_updraft_m_per_s: float
+    max_cloud_liquid_water_kg_per_kg: float
+    total_cloud_liquid_water_kg_per_kg: float
+    cloud_top_height_m: float | None
+    first_cloud_time_seconds: float | None
+    boundary_cloud_fraction: float
+    return_flow_cloud_fraction: float
+    top_boundary_cloud_fraction: float
+    lateral_boundary_cloud_fraction: float
+    below_lcl_cloud_fraction: float
+    cloud_water_ratio_vs_default: float | None
+    updraft_ratio_vs_default: float | None
+    cloud_top_delta_m_vs_default: float | None
+    first_cloud_time_delta_seconds_vs_default: float | None
     notes: tuple[str, ...]
 
 
@@ -771,6 +838,217 @@ def evaluate_lower_atmosphere_sensitivity_case(
         near_lcl_cloud_fraction=thermodynamics.near_lcl_cloud_fraction,
         above_lcl_cloud_fraction=thermodynamics.above_lcl_cloud_fraction,
         thermodynamic_status=thermodynamics.status,
+        notes=notes,
+    )
+
+
+def boussinesq_stabilizer_audit_cases() -> list[BoussinesqStabilizerAuditCase]:
+    reference_cases = {case.slug: case for case in boussinesq_reference_cases()}
+    lower_atmosphere_cases = {
+        scenario.slug: scenario for scenario in lower_atmosphere_sensitivity_scenarios()
+    }
+
+    return [
+        BoussinesqStabilizerAuditCase(
+            slug="quiet-atmosphere",
+            name="Quiet atmosphere / no forcing",
+            role="clean no-forcing control",
+            config=reference_cases["quiet-atmosphere"].config,
+        ),
+        BoussinesqStabilizerAuditCase(
+            slug="dry-thermal-bubble",
+            name="Dry thermal bubble",
+            role="dry buoyant-motion control",
+            config=reference_cases["dry-thermal-bubble"].config,
+        ),
+        BoussinesqStabilizerAuditCase(
+            slug="fair-weather-moderate-base",
+            name="Lower Atmosphere baseline shallow cloud",
+            role="single-patch Lower Atmosphere Cloud Basics baseline",
+            config=lower_atmosphere_cases["fair-weather-moderate-base"].config,
+        ),
+        BoussinesqStabilizerAuditCase(
+            slug="multi-thermal-cumulus-field",
+            name="Multi-thermal cloud field",
+            role="paired thermal / multi-region cloud reference",
+            config=reference_cases["isolated-fair-weather-cumulus"].config,
+        ),
+        BoussinesqStabilizerAuditCase(
+            slug="dry-cap-suppressed-cumulus",
+            name="Capped / suppressed cloud",
+            role="stable/capped Lower Atmosphere scenario",
+            config=lower_atmosphere_cases["dry-cap-suppressed-cumulus"].config,
+        ),
+    ]
+
+
+def boussinesq_stabilizer_audit_variants() -> list[BoussinesqStabilizerAuditVariant]:
+    return [
+        BoussinesqStabilizerAuditVariant(
+            slug="default",
+            name="Default stabilizers",
+            description=(
+                "Current production Boussinesq stabilizer, damping, diffusion, and sponge values."
+            ),
+            overrides={},
+        ),
+        BoussinesqStabilizerAuditVariant(
+            slug="half-damping-diffusion",
+            name="Half damping / diffusion",
+            description=(
+                "Diagnostic-only run with thermal/moisture diffusion, viscosity, "
+                "vorticity damping, thermal relaxation, and velocity damping reduced by half."
+            ),
+            overrides={
+                "THERMAL_DIFFUSIVITY_M2_PER_S": THERMAL_DIFFUSIVITY_M2_PER_S * 0.5,
+                "MOISTURE_DIFFUSIVITY_M2_PER_S": MOISTURE_DIFFUSIVITY_M2_PER_S * 0.5,
+                "KINEMATIC_VISCOSITY_M2_PER_S": KINEMATIC_VISCOSITY_M2_PER_S * 0.5,
+                "VORTICITY_DAMPING_PER_SECOND": VORTICITY_DAMPING_PER_SECOND * 0.5,
+                "THERMAL_RELAXATION_PER_SECOND": THERMAL_RELAXATION_PER_SECOND * 0.5,
+                "VELOCITY_DAMPING_PER_SECOND": VELOCITY_DAMPING_PER_SECOND * 0.5,
+            },
+        ),
+        BoussinesqStabilizerAuditVariant(
+            slug="no-top-sponge",
+            name="No top sponge relaxation",
+            description=(
+                "Diagnostic-only run with top sponge relaxation disabled while leaving other "
+                "stabilizers unchanged."
+            ),
+            overrides={"TOP_SPONGE_RELAXATION_PER_SECOND": 0.0},
+        ),
+    ]
+
+
+def run_boussinesq_stabilizer_audit() -> dict[str, Any]:
+    results: list[BoussinesqStabilizerAuditResult] = []
+    for case in boussinesq_stabilizer_audit_cases():
+        default_result: BoussinesqStabilizerAuditResult | None = None
+        for variant in boussinesq_stabilizer_audit_variants():
+            result = evaluate_boussinesq_stabilizer_audit_case(
+                case,
+                variant,
+                default_result=default_result,
+            )
+            if variant.slug == "default":
+                default_result = result
+            results.append(result)
+
+    return {
+        "schema_version": "boussinesq-stabilizer-audit-v1",
+        "lab": "Lower Atmosphere Cloud Basics",
+        "status_policy": {
+            "cap_warn_fraction": STABILIZER_CAP_WARN_FRACTION,
+            "cap_fail_fraction": STABILIZER_CAP_FAIL_FRACTION,
+            "material_cloud_ratio_low": STABILIZER_MATERIAL_CLOUD_RATIO_LOW,
+            "material_cloud_ratio_high": STABILIZER_MATERIAL_CLOUD_RATIO_HIGH,
+            "material_updraft_ratio_low": STABILIZER_MATERIAL_UPDRAFT_RATIO_LOW,
+            "material_updraft_ratio_high": STABILIZER_MATERIAL_UPDRAFT_RATIO_HIGH,
+            "material_cloud_top_delta_m": STABILIZER_MATERIAL_CLOUD_TOP_DELTA_M,
+            "material_onset_delta_seconds": STABILIZER_MATERIAL_ONSET_DELTA_SECONDS,
+        },
+        "variants": [
+            {
+                "slug": variant.slug,
+                "name": variant.name,
+                "description": variant.description,
+                "overrides": variant.overrides,
+            }
+            for variant in boussinesq_stabilizer_audit_variants()
+        ],
+        "results": [_boussinesq_stabilizer_audit_result_to_dict(result) for result in results],
+    }
+
+
+def evaluate_boussinesq_stabilizer_audit_case(
+    case: BoussinesqStabilizerAuditCase,
+    variant: BoussinesqStabilizerAuditVariant,
+    *,
+    default_result: BoussinesqStabilizerAuditResult | None = None,
+) -> BoussinesqStabilizerAuditResult:
+    frames, max_abs_vorticity = _run_boussinesq_with_stabilizer_overrides(
+        case.config,
+        variant.overrides,
+    )
+    final = frames[-1]
+    dynamics = compute_boussinesq_diagnostics(final)
+    thermodynamics = compute_boussinesq_thermodynamic_diagnostics(frames)
+    artifact_policy = thermodynamics.cloud_artifact_policy
+
+    velocity_cap_fraction = dynamics.max_velocity_m_per_s / MAX_ABS_VELOCITY_M_PER_S
+    theta_cap_fraction = (
+        max(
+            abs(dynamics.max_temperature_perturbation_k),
+            abs(dynamics.min_temperature_perturbation_k),
+        )
+        / MAX_ABS_THETA_PERTURBATION_K
+    )
+    vorticity_cap_fraction = max_abs_vorticity / MAX_ABS_VORTICITY_PER_SECOND
+    vapor_cap_fraction = dynamics.max_water_vapor_kg_per_kg / MAX_WATER_VAPOR_KG_PER_KG
+    cloud_cap_fraction = (
+        dynamics.max_cloud_liquid_water_kg_per_kg / MAX_CLOUD_LIQUID_WATER_KG_PER_KG
+    )
+
+    cloud_ratio = _ratio_or_none(
+        dynamics.max_cloud_liquid_water_kg_per_kg,
+        default_result.max_cloud_liquid_water_kg_per_kg if default_result else None,
+    )
+    updraft_ratio = _ratio_or_none(
+        dynamics.max_abs_vertical_velocity_m_per_s,
+        default_result.max_updraft_m_per_s if default_result else None,
+    )
+    cloud_top_delta = _optional_delta(
+        dynamics.cloud_top_height_m,
+        default_result.cloud_top_height_m if default_result else None,
+    )
+    onset_delta = _optional_delta(
+        thermodynamics.first_cloud_time_seconds,
+        default_result.first_cloud_time_seconds if default_result else None,
+    )
+
+    status, notes = _boussinesq_stabilizer_audit_status(
+        variant,
+        dynamics,
+        artifact_policy,
+        cap_fractions=(
+            velocity_cap_fraction,
+            theta_cap_fraction,
+            vorticity_cap_fraction,
+            vapor_cap_fraction,
+            cloud_cap_fraction,
+        ),
+        cloud_ratio=cloud_ratio,
+        updraft_ratio=updraft_ratio,
+        cloud_top_delta_m=cloud_top_delta,
+        onset_delta_seconds=onset_delta,
+    )
+
+    return BoussinesqStabilizerAuditResult(
+        case_slug=case.slug,
+        case_name=case.name,
+        case_role=case.role,
+        variant_slug=variant.slug,
+        variant_name=variant.name,
+        status=status,
+        max_velocity_cap_fraction=velocity_cap_fraction,
+        max_theta_cap_fraction=theta_cap_fraction,
+        max_vorticity_cap_fraction=vorticity_cap_fraction,
+        max_vapor_cap_fraction=vapor_cap_fraction,
+        max_cloud_cap_fraction=cloud_cap_fraction,
+        max_updraft_m_per_s=dynamics.max_abs_vertical_velocity_m_per_s,
+        max_cloud_liquid_water_kg_per_kg=dynamics.max_cloud_liquid_water_kg_per_kg,
+        total_cloud_liquid_water_kg_per_kg=dynamics.total_cloud_liquid_water_kg_per_kg,
+        cloud_top_height_m=dynamics.cloud_top_height_m,
+        first_cloud_time_seconds=thermodynamics.first_cloud_time_seconds,
+        boundary_cloud_fraction=artifact_policy.boundary_cloud_fraction,
+        return_flow_cloud_fraction=artifact_policy.return_flow_cloud_fraction,
+        top_boundary_cloud_fraction=artifact_policy.top_boundary_cloud_fraction,
+        lateral_boundary_cloud_fraction=artifact_policy.lateral_boundary_cloud_fraction,
+        below_lcl_cloud_fraction=artifact_policy.below_lcl_cloud_fraction,
+        cloud_water_ratio_vs_default=cloud_ratio,
+        updraft_ratio_vs_default=updraft_ratio,
+        cloud_top_delta_m_vs_default=cloud_top_delta,
+        first_cloud_time_delta_seconds_vs_default=onset_delta,
         notes=notes,
     )
 
@@ -2169,6 +2447,41 @@ def _lower_atmosphere_sensitivity_result_to_dict(
     }
 
 
+def _boussinesq_stabilizer_audit_result_to_dict(
+    result: BoussinesqStabilizerAuditResult,
+) -> dict[str, Any]:
+    return {
+        "case_slug": result.case_slug,
+        "case_name": result.case_name,
+        "case_role": result.case_role,
+        "variant_slug": result.variant_slug,
+        "variant_name": result.variant_name,
+        "status": result.status,
+        "max_velocity_cap_fraction": result.max_velocity_cap_fraction,
+        "max_theta_cap_fraction": result.max_theta_cap_fraction,
+        "max_vorticity_cap_fraction": result.max_vorticity_cap_fraction,
+        "max_vapor_cap_fraction": result.max_vapor_cap_fraction,
+        "max_cloud_cap_fraction": result.max_cloud_cap_fraction,
+        "max_updraft_m_per_s": result.max_updraft_m_per_s,
+        "max_cloud_liquid_water_kg_per_kg": result.max_cloud_liquid_water_kg_per_kg,
+        "total_cloud_liquid_water_kg_per_kg": result.total_cloud_liquid_water_kg_per_kg,
+        "cloud_top_height_m": result.cloud_top_height_m,
+        "first_cloud_time_seconds": result.first_cloud_time_seconds,
+        "boundary_cloud_fraction": result.boundary_cloud_fraction,
+        "return_flow_cloud_fraction": result.return_flow_cloud_fraction,
+        "top_boundary_cloud_fraction": result.top_boundary_cloud_fraction,
+        "lateral_boundary_cloud_fraction": result.lateral_boundary_cloud_fraction,
+        "below_lcl_cloud_fraction": result.below_lcl_cloud_fraction,
+        "cloud_water_ratio_vs_default": result.cloud_water_ratio_vs_default,
+        "updraft_ratio_vs_default": result.updraft_ratio_vs_default,
+        "cloud_top_delta_m_vs_default": result.cloud_top_delta_m_vs_default,
+        "first_cloud_time_delta_seconds_vs_default": (
+            result.first_cloud_time_delta_seconds_vs_default
+        ),
+        "notes": list(result.notes),
+    }
+
+
 def _cloud_coverage_fraction(frame: SimulationFrame) -> float:
     cloudy_cells = sum(
         1
@@ -2401,6 +2714,132 @@ def _lower_atmosphere_sensitivity_status(
     return ("pass", "warn", "fail")[status_rank], tuple(notes)
 
 
+def _boussinesq_stabilizer_audit_status(
+    variant: BoussinesqStabilizerAuditVariant,
+    dynamics: BoussinesqDiagnostics,
+    artifact_policy: CloudArtifactPolicyDiagnostics,
+    *,
+    cap_fractions: tuple[float, float, float, float, float],
+    cloud_ratio: float | None,
+    updraft_ratio: float | None,
+    cloud_top_delta_m: float | None,
+    onset_delta_seconds: float | None,
+) -> tuple[ValidationStatus, tuple[str, ...]]:
+    notes: list[str] = []
+    status_rank = 0
+
+    if dynamics.non_finite_value_count:
+        notes.append("non-finite values appeared in final frame")
+        status_rank = max(status_rank, 2)
+    if dynamics.min_moisture_kg_per_kg < -1e-12:
+        notes.append("negative moisture appeared in final frame")
+        status_rank = max(status_rank, 2)
+
+    cap_labels = (
+        "velocity safety cap",
+        "theta perturbation safety cap",
+        "vorticity safety cap",
+        "water-vapor safety cap",
+        "cloud-water safety cap",
+    )
+    for label, fraction in zip(cap_labels, cap_fractions, strict=True):
+        if fraction >= STABILIZER_CAP_FAIL_FRACTION:
+            notes.append(f"{label} is close enough to dominate this run")
+            status_rank = max(status_rank, 2)
+        elif fraction >= STABILIZER_CAP_WARN_FRACTION:
+            notes.append(f"{label} has material headroom usage")
+            status_rank = max(status_rank, 1)
+
+    if artifact_policy.top_boundary_cloud_fraction >= TOP_BOUNDARY_CLOUD_WARN_FRACTION:
+        notes.append("cloud water reaches the top sponge/lid warning zone")
+        status_rank = max(status_rank, 1)
+    if artifact_policy.boundary_cloud_fraction >= BOUNDARY_CLOUD_WARN_FRACTION:
+        notes.append("cloud water reaches emitted-frame boundaries")
+        status_rank = max(status_rank, 1)
+
+    if variant.slug == "default":
+        if not notes:
+            notes.append("default run has stabilizer headroom and no boundary/sponge warning")
+        return ("pass", "warn", "fail")[status_rank], tuple(notes)
+
+    if cloud_ratio is not None and (
+        cloud_ratio < STABILIZER_MATERIAL_CLOUD_RATIO_LOW
+        or cloud_ratio > STABILIZER_MATERIAL_CLOUD_RATIO_HIGH
+    ):
+        notes.append("cloud-water response changes materially under diagnostic stabilizer override")
+        status_rank = max(status_rank, 1)
+    if updraft_ratio is not None and (
+        updraft_ratio < STABILIZER_MATERIAL_UPDRAFT_RATIO_LOW
+        or updraft_ratio > STABILIZER_MATERIAL_UPDRAFT_RATIO_HIGH
+    ):
+        notes.append("updraft strength changes materially under diagnostic stabilizer override")
+        status_rank = max(status_rank, 1)
+    if (
+        cloud_top_delta_m is not None
+        and abs(cloud_top_delta_m) >= STABILIZER_MATERIAL_CLOUD_TOP_DELTA_M
+    ):
+        notes.append("cloud-top height changes materially under diagnostic stabilizer override")
+        status_rank = max(status_rank, 1)
+    if (
+        onset_delta_seconds is not None
+        and abs(onset_delta_seconds) >= STABILIZER_MATERIAL_ONSET_DELTA_SECONDS
+    ):
+        notes.append("first-cloud timing changes materially under diagnostic stabilizer override")
+        status_rank = max(status_rank, 1)
+
+    if not notes:
+        notes.append("diagnostic override did not materially change coarse cloud outcome")
+
+    return ("pass", "warn", "fail")[status_rank], tuple(notes)
+
+
+def _run_boussinesq_with_stabilizer_overrides(
+    config: SimulationConfig,
+    overrides: dict[str, float],
+) -> tuple[list[SimulationFrame], float]:
+    with _temporary_boussinesq_constants(overrides):
+        state = boussinesq_solver.initialize_state(config)
+        frames = [boussinesq_solver.state_to_frame(config, state)]
+        max_abs_vorticity = _max_abs(state.vorticity_per_second)
+        next_frame_time = config.time.frame_interval_seconds
+        max_steps = int(config.time.duration_seconds / config.time.time_step_seconds)
+
+        for _step_index in range(max_steps):
+            state = boussinesq_solver.step_state(config, state)
+            max_abs_vorticity = max(max_abs_vorticity, _max_abs(state.vorticity_per_second))
+            if state.time_seconds + 1e-9 >= next_frame_time:
+                frames.append(boussinesq_solver.state_to_frame(config, state))
+                next_frame_time += config.time.frame_interval_seconds
+
+        return frames, max_abs_vorticity
+
+
+@contextmanager
+def _temporary_boussinesq_constants(overrides: dict[str, float]) -> Iterator[None]:
+    original_values = {name: getattr(boussinesq_solver, name) for name in overrides}
+    try:
+        for name, value in overrides.items():
+            setattr(boussinesq_solver, name, value)
+        yield
+    finally:
+        for name, value in original_values.items():
+            setattr(boussinesq_solver, name, value)
+
+
+def _ratio_or_none(numerator: float, denominator: float | None) -> float | None:
+    if denominator is None:
+        return None
+    if denominator == 0.0:
+        return None
+    return numerator / denominator
+
+
+def _optional_delta(value: float | None, baseline: float | None) -> float | None:
+    if value is None or baseline is None:
+        return None
+    return value - baseline
+
+
 def _max_abs(grid: list[list[float]]) -> float:
     return max(abs(value) for row in grid for value in row)
 
@@ -2469,6 +2908,11 @@ def main() -> None:
         action="store_true",
         help="Run Lower Atmosphere Cloud Basics resolution/domain/runtime sensitivity matrix.",
     )
+    parser.add_argument(
+        "--stabilizers",
+        action="store_true",
+        help="Run Boussinesq stabilizer, safety-cap, damping, and sponge audit.",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     args = parser.parse_args()
 
@@ -2490,6 +2934,11 @@ def main() -> None:
 
     if args.sensitivity:
         report = run_lower_atmosphere_sensitivity_validation()
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+
+    if args.stabilizers:
+        report = run_boussinesq_stabilizer_audit()
         print(json.dumps(report, indent=2, sort_keys=True))
         return
 

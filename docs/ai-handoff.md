@@ -198,6 +198,16 @@ Post-#158 status:
 - The default `36 x 24`, `10 km x 3 km`, `1200 s` envelope remains recommended.
 - `boussinesq_2d` remains Yellow because high-resolution, smaller-domain, and long-runtime baseline runs show material sensitivity and artifact warnings.
 
+Post-#159 status:
+
+- A dedicated stabilizer audit exists in `docs/boussinesq-stabilizer-audit.md`.
+- Backend validation can run the audit with `cd backend && .venv/bin/python -m app.sim.validation --stabilizers --json`.
+- The audit covers quiet, dry thermal, single-patch baseline, paired multi-thermal, and capped/suppressed cases under default, half damping/diffusion, and no-top-sponge variants.
+- The default single-patch Lower Atmosphere baseline reaches the theta perturbation safety cap, so the current baseline thermal amplitude is partly cap-shaped.
+- Reducing damping/diffusion by half materially changes cloud amount, updraft strength, onset timing, and cloud-top height, and can push several fields to their caps.
+- Disabling top sponge relaxation did not materially change the audited normal-height Lower Atmosphere cases.
+- `boussinesq_2d` remains Yellow; #160 successor-dynamics design is still relevant if Cloud Lab needs a more trusted cloud-resolving core.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.
