@@ -207,6 +207,20 @@ cd backend
 
 Use `--json` for machine-readable output.
 
+Run the Lower Atmosphere Cloud Basics resolution/domain/runtime sensitivity
+matrix with:
+
+```bash
+cd backend
+.venv/bin/python -m app.sim.validation --sensitivity --json
+```
+
+The #158 report is documented in
+`docs/fair-weather-resolution-domain-sensitivity.md`. It keeps the current
+default envelope but preserves Yellow status because cloud amount, updraft
+strength, and artifact warnings remain sensitive in high-resolution,
+smaller-domain, and long-runtime baseline runs.
+
 ## Thermal Bubble Benchmark
 
 The dedicated thermal bubble benchmark is a dry, quiescent Boussinesq sanity case. It directly initializes a Gaussian positive temperature perturbation rather than using surface heating.

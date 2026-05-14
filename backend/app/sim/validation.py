@@ -79,6 +79,50 @@ class BoussinesqModelSize:
 
 
 @dataclass(frozen=True)
+class LowerAtmosphereSensitivityScenario:
+    slug: str
+    name: str
+    expected_outcome: str
+    config: SimulationConfig
+
+
+@dataclass(frozen=True)
+class LowerAtmosphereSensitivityVariant:
+    axis: str
+    slug: str
+    name: str
+    description: str
+    supported: bool
+    config: SimulationConfig
+
+
+@dataclass(frozen=True)
+class LowerAtmosphereSensitivityResult:
+    scenario_slug: str
+    scenario_name: str
+    axis: str
+    variant_slug: str
+    variant_name: str
+    supported: bool
+    status: ValidationStatus
+    first_cloud_time_seconds: float | None
+    first_cloud_height_m: float | None
+    expected_lcl_m: float
+    cloud_base_m: float | None
+    cloud_top_m: float | None
+    max_cloud_liquid_water_kg_per_kg: float
+    total_cloud_liquid_water_kg_per_kg: float
+    max_updraft_m_per_s: float
+    boundary_cloud_fraction: float
+    return_flow_cloud_fraction: float
+    below_lcl_cloud_fraction: float
+    near_lcl_cloud_fraction: float
+    above_lcl_cloud_fraction: float
+    thermodynamic_status: ValidationStatus
+    notes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class BoussinesqDiagnostics:
     max_abs_horizontal_velocity_m_per_s: float
     max_abs_vertical_velocity_m_per_s: float
@@ -526,6 +570,209 @@ def boussinesq_thermodynamic_validation_cases() -> list[BoussinesqThermodynamicV
             config=layered,
         ),
     ]
+
+
+def lower_atmosphere_sensitivity_scenarios() -> list[LowerAtmosphereSensitivityScenario]:
+    base = fair_weather_cumulus_preset().config
+    return [
+        LowerAtmosphereSensitivityScenario(
+            slug="fair-weather-moderate-base",
+            name="Fair-weather cumulus / baseline shallow cloud",
+            expected_outcome="cloud_forming",
+            config=_lower_atmosphere_config(
+                base,
+                relative_humidity=0.85,
+                free_atmosphere_relative_humidity=0.55,
+                boundary_layer_depth_m=1_500.0,
+                moist_source_layer_depth_m=800.0,
+                lapse_rate=0.0065,
+                heating_rate=0.024,
+                heating_pattern="single_patch",
+                wind_u=0.15,
+                seed=17,
+            ),
+        ),
+        LowerAtmosphereSensitivityScenario(
+            slug="dry-failed-cumulus",
+            name="Dry failed cumulus",
+            expected_outcome="mostly_cloud_free",
+            config=_lower_atmosphere_config(
+                base,
+                relative_humidity=0.35,
+                free_atmosphere_relative_humidity=0.25,
+                boundary_layer_depth_m=1_000.0,
+                moist_source_layer_depth_m=500.0,
+                lapse_rate=0.0075,
+                heating_rate=0.012,
+                heating_pattern="single_patch",
+                wind_u=0.0,
+                seed=13,
+            ),
+        ),
+        LowerAtmosphereSensitivityScenario(
+            slug="dry-cap-suppressed-cumulus",
+            name="Capped / suppressed cloud",
+            expected_outcome="suppressed_or_limited",
+            config=_lower_atmosphere_config(
+                base,
+                surface_temperature_k=300.15,
+                relative_humidity=0.82,
+                free_atmosphere_relative_humidity=0.35,
+                boundary_layer_depth_m=1_200.0,
+                moist_source_layer_depth_m=700.0,
+                lapse_rate=0.0045,
+                heating_rate=0.018,
+                heating_pattern="single_patch",
+                humidity_profile="dry_cap",
+                wind_u=0.1,
+                seed=31,
+            ),
+        ),
+    ]
+
+
+def lower_atmosphere_sensitivity_variants(
+    base_config: SimulationConfig,
+) -> list[LowerAtmosphereSensitivityVariant]:
+    return [
+        LowerAtmosphereSensitivityVariant(
+            axis="resolution",
+            slug="low",
+            name="Low resolution",
+            description="30 x 20 grid with default domain and runtime.",
+            supported=True,
+            config=_apply_sensitivity_grid(base_config, columns=30, rows=20),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="resolution",
+            slug="medium",
+            name="Medium resolution",
+            description="36 x 24 default grid with default domain and runtime.",
+            supported=True,
+            config=_apply_sensitivity_grid(base_config, columns=36, rows=24),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="resolution",
+            slug="high",
+            name="High resolution",
+            description="54 x 36 grid with default domain and runtime.",
+            supported=True,
+            config=_apply_sensitivity_grid(base_config, columns=54, rows=36),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="domain",
+            slug="smaller-shallower",
+            name="Smaller / shallower domain",
+            description="8 km x 2.5 km domain with default grid and runtime.",
+            supported=True,
+            config=_apply_sensitivity_domain(base_config, width_m=8_000.0, height_m=2_500.0),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="domain",
+            slug="default",
+            name="Default domain",
+            description="10 km x 3 km domain with default grid and runtime.",
+            supported=True,
+            config=_apply_sensitivity_domain(base_config, width_m=10_000.0, height_m=3_000.0),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="domain",
+            slug="wider-taller",
+            name="Wider / taller domain",
+            description="12 km x 4 km domain with default grid and runtime.",
+            supported=True,
+            config=_apply_sensitivity_domain(base_config, width_m=12_000.0, height_m=4_000.0),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="runtime",
+            slug="short",
+            name="Short runtime",
+            description="600 s run with default domain and grid.",
+            supported=False,
+            config=_apply_sensitivity_time(base_config, duration_seconds=600.0),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="runtime",
+            slug="standard",
+            name="Standard runtime",
+            description="1200 s run with default domain and grid.",
+            supported=True,
+            config=_apply_sensitivity_time(base_config, duration_seconds=1_200.0),
+        ),
+        LowerAtmosphereSensitivityVariant(
+            axis="runtime",
+            slug="long",
+            name="Long runtime",
+            description="1800 s run with default domain and grid.",
+            supported=True,
+            config=_apply_sensitivity_time(base_config, duration_seconds=1_800.0),
+        ),
+    ]
+
+
+def run_lower_atmosphere_sensitivity_validation() -> dict[str, Any]:
+    results = []
+    for scenario in lower_atmosphere_sensitivity_scenarios():
+        for variant in lower_atmosphere_sensitivity_variants(scenario.config):
+            frames = run_simulation(variant.config)
+            result = evaluate_lower_atmosphere_sensitivity_case(scenario, variant, frames)
+            results.append(_lower_atmosphere_sensitivity_result_to_dict(result))
+
+    return {
+        "schema_version": "lower-atmosphere-sensitivity-validation-v1",
+        "lab": "Lower Atmosphere Cloud Basics",
+        "scenario_family": "fair-weather cumulus / baseline shallow cloud",
+        "axes": ["resolution", "domain", "runtime"],
+        "results": results,
+    }
+
+
+def evaluate_lower_atmosphere_sensitivity_case(
+    scenario: LowerAtmosphereSensitivityScenario,
+    variant: LowerAtmosphereSensitivityVariant,
+    frames: list[SimulationFrame],
+) -> LowerAtmosphereSensitivityResult:
+    if not frames:
+        raise ValueError("at least one frame is required")
+
+    final = frames[-1]
+    dynamics = compute_boussinesq_diagnostics(final)
+    thermodynamics = compute_boussinesq_thermodynamic_diagnostics(frames)
+    status, notes = _lower_atmosphere_sensitivity_status(
+        scenario,
+        variant,
+        dynamics,
+        thermodynamics,
+    )
+
+    return LowerAtmosphereSensitivityResult(
+        scenario_slug=scenario.slug,
+        scenario_name=scenario.name,
+        axis=variant.axis,
+        variant_slug=variant.slug,
+        variant_name=variant.name,
+        supported=variant.supported,
+        status=status,
+        first_cloud_time_seconds=thermodynamics.first_cloud_time_seconds,
+        first_cloud_height_m=thermodynamics.first_cloud_height_m,
+        expected_lcl_m=thermodynamics.expected_lcl_m,
+        cloud_base_m=(
+            min(thermodynamics.cloud_regions.cloud_base_heights_m)
+            if thermodynamics.cloud_regions.cloud_base_heights_m
+            else None
+        ),
+        cloud_top_m=dynamics.cloud_top_height_m,
+        max_cloud_liquid_water_kg_per_kg=dynamics.max_cloud_liquid_water_kg_per_kg,
+        total_cloud_liquid_water_kg_per_kg=dynamics.total_cloud_liquid_water_kg_per_kg,
+        max_updraft_m_per_s=dynamics.max_abs_vertical_velocity_m_per_s,
+        boundary_cloud_fraction=thermodynamics.cloud_artifact_policy.boundary_cloud_fraction,
+        return_flow_cloud_fraction=thermodynamics.cloud_artifact_policy.return_flow_cloud_fraction,
+        below_lcl_cloud_fraction=thermodynamics.below_lcl_cloud_fraction,
+        near_lcl_cloud_fraction=thermodynamics.near_lcl_cloud_fraction,
+        above_lcl_cloud_fraction=thermodynamics.above_lcl_cloud_fraction,
+        thermodynamic_status=thermodynamics.status,
+        notes=notes,
+    )
 
 
 def run_boussinesq_thermodynamic_validation() -> dict[str, Any]:
@@ -1893,6 +2140,35 @@ def _scenario_diagnostics_to_dict(
     }
 
 
+def _lower_atmosphere_sensitivity_result_to_dict(
+    result: LowerAtmosphereSensitivityResult,
+) -> dict[str, Any]:
+    return {
+        "scenario_slug": result.scenario_slug,
+        "scenario_name": result.scenario_name,
+        "axis": result.axis,
+        "variant_slug": result.variant_slug,
+        "variant_name": result.variant_name,
+        "supported": result.supported,
+        "status": result.status,
+        "first_cloud_time_seconds": result.first_cloud_time_seconds,
+        "first_cloud_height_m": result.first_cloud_height_m,
+        "expected_lcl_m": result.expected_lcl_m,
+        "cloud_base_m": result.cloud_base_m,
+        "cloud_top_m": result.cloud_top_m,
+        "max_cloud_liquid_water_kg_per_kg": result.max_cloud_liquid_water_kg_per_kg,
+        "total_cloud_liquid_water_kg_per_kg": result.total_cloud_liquid_water_kg_per_kg,
+        "max_updraft_m_per_s": result.max_updraft_m_per_s,
+        "boundary_cloud_fraction": result.boundary_cloud_fraction,
+        "return_flow_cloud_fraction": result.return_flow_cloud_fraction,
+        "below_lcl_cloud_fraction": result.below_lcl_cloud_fraction,
+        "near_lcl_cloud_fraction": result.near_lcl_cloud_fraction,
+        "above_lcl_cloud_fraction": result.above_lcl_cloud_fraction,
+        "thermodynamic_status": result.thermodynamic_status,
+        "notes": list(result.notes),
+    }
+
+
 def _cloud_coverage_fraction(frame: SimulationFrame) -> float:
     cloudy_cells = sum(
         1
@@ -1972,6 +2248,159 @@ def _reference_config(
     )
 
 
+def _lower_atmosphere_config(
+    base: SimulationConfig,
+    *,
+    relative_humidity: float,
+    free_atmosphere_relative_humidity: float,
+    boundary_layer_depth_m: float,
+    moist_source_layer_depth_m: float,
+    lapse_rate: float,
+    heating_rate: float,
+    heating_pattern: SurfaceHeatingPattern,
+    wind_u: float,
+    seed: int,
+    humidity_profile: HumidityProfilePattern = "surface_moisture",
+    surface_temperature_k: float = 298.15,
+) -> SimulationConfig:
+    return base.model_copy(
+        update={
+            "solver_type": "boussinesq_2d",
+            "domain": DomainConfig(width_m=10_000.0, height_m=3_000.0),
+            "grid": GridConfig(columns=36, rows=24),
+            "time": TimeConfig(
+                time_step_seconds=2.0,
+                duration_seconds=1_200.0,
+                frame_interval_seconds=30.0,
+            ),
+            "initial_atmosphere": InitialAtmosphereConfig(
+                surface_temperature_k=surface_temperature_k,
+                lapse_rate_k_per_m=lapse_rate,
+                relative_humidity=relative_humidity,
+                boundary_layer_depth_m=boundary_layer_depth_m,
+                moist_source_layer_depth_m=moist_source_layer_depth_m,
+                free_atmosphere_relative_humidity=free_atmosphere_relative_humidity,
+                humidity_profile=humidity_profile,
+            ),
+            "surface_heating": SurfaceHeatingConfig(
+                max_warming_rate_k_per_s=heating_rate,
+                patch_center_x_m=5_000.0,
+                patch_width_m=2_000.0,
+                pattern=heating_pattern,
+            ),
+            "background_wind": BackgroundWindConfig(u_m_per_s=wind_u, w_m_per_s=0.0),
+            "seed": seed,
+        }
+    )
+
+
+def _apply_sensitivity_grid(
+    config: SimulationConfig,
+    *,
+    columns: int,
+    rows: int,
+) -> SimulationConfig:
+    return config.model_copy(update={"grid": GridConfig(columns=columns, rows=rows)})
+
+
+def _apply_sensitivity_domain(
+    config: SimulationConfig,
+    *,
+    width_m: float,
+    height_m: float,
+) -> SimulationConfig:
+    return config.model_copy(
+        update={
+            "domain": DomainConfig(width_m=width_m, height_m=height_m),
+            "surface_heating": config.surface_heating.model_copy(
+                update={"patch_center_x_m": width_m / 2.0}
+            ),
+        }
+    )
+
+
+def _apply_sensitivity_time(
+    config: SimulationConfig,
+    *,
+    duration_seconds: float,
+) -> SimulationConfig:
+    return config.model_copy(
+        update={
+            "time": TimeConfig(
+                time_step_seconds=config.time.time_step_seconds,
+                duration_seconds=duration_seconds,
+                frame_interval_seconds=config.time.frame_interval_seconds,
+            )
+        }
+    )
+
+
+def _lower_atmosphere_sensitivity_status(
+    scenario: LowerAtmosphereSensitivityScenario,
+    variant: LowerAtmosphereSensitivityVariant,
+    dynamics: BoussinesqDiagnostics,
+    thermodynamics: BoussinesqThermodynamicDiagnostics,
+) -> tuple[ValidationStatus, tuple[str, ...]]:
+    notes: list[str] = []
+    status_rank = 0
+
+    if not variant.supported:
+        notes.append(
+            "variant is diagnostic-only and not part of the recommended supported envelope"
+        )
+        status_rank = max(status_rank, 1)
+    if dynamics.non_finite_value_count:
+        notes.append("non-finite values appeared in final frame")
+        status_rank = max(status_rank, 2)
+    if dynamics.min_moisture_kg_per_kg < -1e-12:
+        notes.append("negative moisture appeared in final frame")
+        status_rank = max(status_rank, 2)
+
+    if scenario.expected_outcome == "cloud_forming":
+        if dynamics.max_cloud_liquid_water_kg_per_kg <= THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG:
+            notes.append("baseline shallow-cloud scenario did not form cloud")
+            status_rank = max(status_rank, 2 if variant.supported else 1)
+        else:
+            notes.append("baseline shallow-cloud scenario formed cloud")
+    elif scenario.expected_outcome == "mostly_cloud_free":
+        if dynamics.max_cloud_liquid_water_kg_per_kg > THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG:
+            notes.append("dry failed scenario produced cloud water")
+            status_rank = max(status_rank, 2)
+        else:
+            notes.append("dry failed scenario remained cloud-free")
+        if dynamics.max_abs_vertical_velocity_m_per_s < 0.03:
+            notes.append("dry failed scenario did not develop much thermal motion")
+            status_rank = max(status_rank, 1)
+    elif scenario.expected_outcome == "suppressed_or_limited":
+        if (
+            dynamics.cloud_top_height_m is not None
+            and dynamics.cloud_top_height_m
+            > scenario.config.initial_atmosphere.boundary_layer_depth_m
+            + variant.config.domain.height_m / variant.config.grid.rows
+        ):
+            notes.append("capped scenario cloud rose above the cap tolerance")
+            status_rank = max(status_rank, 1)
+        elif dynamics.max_cloud_liquid_water_kg_per_kg <= THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG:
+            notes.append("capped scenario fully suppressed cloud")
+        else:
+            notes.append("capped scenario kept cloud limited below or near the cap")
+
+    if thermodynamics.cloud_artifact_policy.status == "fail":
+        notes.append("artifact policy produced a hard failure")
+        status_rank = max(status_rank, 2)
+    elif thermodynamics.cloud_artifact_policy.status == "warn":
+        notes.append("artifact policy produced warnings")
+        status_rank = max(status_rank, 1)
+    if thermodynamics.status == "fail":
+        notes.append("thermodynamic diagnostics failed")
+        status_rank = max(status_rank, 2)
+    elif thermodynamics.status == "warn":
+        notes.append("thermodynamic diagnostics warned")
+        status_rank = max(status_rank, 1)
+
+    return ("pass", "warn", "fail")[status_rank], tuple(notes)
+
+
 def _max_abs(grid: list[list[float]]) -> float:
     return max(abs(value) for row in grid for value in row)
 
@@ -2035,6 +2464,11 @@ def main() -> None:
         action="store_true",
         help="Run coarse expected-regime diagnostics for named Boussinesq scenarios.",
     )
+    parser.add_argument(
+        "--sensitivity",
+        action="store_true",
+        help="Run Lower Atmosphere Cloud Basics resolution/domain/runtime sensitivity matrix.",
+    )
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON.")
     args = parser.parse_args()
 
@@ -2052,6 +2486,11 @@ def main() -> None:
             print(json.dumps(report, indent=2, sort_keys=True))
         else:
             print(format_boussinesq_scenario_summary(report))
+        return
+
+    if args.sensitivity:
+        report = run_lower_atmosphere_sensitivity_validation()
+        print(json.dumps(report, indent=2, sort_keys=True))
         return
 
     parser.print_help()

@@ -229,6 +229,7 @@ Examples:
 - dry thermal bubble
 - Boussinesq divergence checks
 - Boussinesq thermodynamic structure diagnostics
+- Lower Atmosphere Cloud Basics resolution/domain/runtime sensitivity matrix
 - microphysics validation cases
 - surface/moisture initialization sanity checks
 

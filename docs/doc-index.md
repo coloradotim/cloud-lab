@@ -40,6 +40,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/next-physics-core.md` — physics-core strategy; not the product roadmap.
 - `docs/boussinesq-solver.md` — Boussinesq 2-D physics core implementation notes.
 - `docs/boussinesq-validation.md` — current Boussinesq validation gate and diagnostics.
+- `docs/fair-weather-resolution-domain-sensitivity.md` — Lower Atmosphere Cloud Basics fair-weather scenario-family sensitivity report for resolution, domain size, and runtime.
 - `docs/minimal-solver.md` — legacy/internal educational 2-D solver.
 - `docs/microphysics-lab.md` — controlled warm-cloud microphysics lab mode.
 - `docs/microphysics-comparison.md` — comparison of simple saturation adjustment and current bulk microphysics lab behavior.
