@@ -24,6 +24,7 @@ REFERENCE_TEMPERATURE_K = 300.0
 LATENT_HEATING_K_PER_KG_PER_KG = 1_200.0
 CONDENSATION_FRACTION_PER_STEP = 0.28
 EVAPORATION_FRACTION_PER_STEP = 0.35
+SUBSATURATED_CLOUD_EVAPORATION_FRACTION_PER_STEP = 0.08
 CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S = 0.002
 CONDENSATION_CONTINUATION_CLOUD_THRESHOLD_KG_PER_KG = 1e-5
 THERMAL_DIFFUSIVITY_M2_PER_S = 22.0
@@ -489,22 +490,32 @@ def _condense(
                 grid.z_coordinates_m[row_index],
                 surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
             )
-            qsat = saturation_specific_humidity_kg_per_kg(saturation_temperature_k, pressure_pa)
-            excess = max(0.0, updated_vapor[row_index][column_index] - qsat)
-            deficit = max(0.0, qsat - updated_vapor[row_index][column_index])
+            condensation_saturation = saturation_specific_humidity_kg_per_kg(
+                saturation_temperature_k,
+                pressure_pa,
+            )
+            local_saturation = saturation_specific_humidity_kg_per_kg(temperature_k, pressure_pa)
+            excess = max(0.0, updated_vapor[row_index][column_index] - condensation_saturation)
             existing_cloud = updated_cloud[row_index][column_index]
             can_condense = (
                 vertical_velocity[row_index][column_index] > CONDENSATION_UPDRAFT_THRESHOLD_M_PER_S
                 or existing_cloud >= CONDENSATION_CONTINUATION_CLOUD_THRESHOLD_KG_PER_KG
             )
             condensed = excess * CONDENSATION_FRACTION_PER_STEP if can_condense else 0.0
+            vapor_after_condensation = updated_vapor[row_index][column_index] - condensed
+            local_deficit = max(0.0, local_saturation - vapor_after_condensation)
             evaporated = min(
                 existing_cloud,
-                deficit * EVAPORATION_FRACTION_PER_STEP,
+                local_deficit * EVAPORATION_FRACTION_PER_STEP
+                + (
+                    existing_cloud * SUBSATURATED_CLOUD_EVAPORATION_FRACTION_PER_STEP
+                    if local_deficit > 0.0
+                    else 0.0
+                ),
             )
             updated_vapor[row_index][column_index] = max(
                 0.0,
-                updated_vapor[row_index][column_index] - condensed + evaporated,
+                vapor_after_condensation + evaporated,
             )
             updated_cloud[row_index][column_index] += condensed - evaporated
             updated_temperature[row_index][column_index] = (

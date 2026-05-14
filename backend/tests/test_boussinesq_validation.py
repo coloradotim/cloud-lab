@@ -19,6 +19,7 @@ from app.sim import (
     compute_boussinesq_diagnostics,
     compute_boussinesq_thermodynamic_diagnostics,
     compute_cloud_region_diagnostics,
+    compute_cloud_water_persistence_diagnostics,
     compute_divergence_field,
     fair_weather_cumulus_preset,
     run_boussinesq_scenario_validation,
@@ -251,7 +252,7 @@ def test_two_hot_patch_case_keeps_separate_cloud_cells_before_merger() -> None:
     frames = run_simulation(case.config)
     early = _frame_at(frames, 120.0)
     developing = _frame_at(frames, 480.0)
-    two_cell_frame = _frame_at(frames, 1080.0)
+    two_cell_frame = _frame_at(frames, 1110.0)
 
     assert _cloud_coverage(early, BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG) == 0.0
     assert _cloud_coverage(developing, BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG) == 0.0
@@ -452,6 +453,37 @@ def test_low_strong_cap_suppresses_cloud_development_against_high_weak_cap() -> 
         or low_strong_metrics.cloud_top_height_m
         <= (low_strong_cap.initial_atmosphere.boundary_layer_depth_m + low_cap_tolerance_m)
     )
+
+
+def test_long_two_patch_run_reports_and_limits_subsaturated_cloud_persistence() -> None:
+    config = fair_weather_cumulus_preset().config.model_copy(
+        update={
+            "time": TimeConfig(
+                time_step_seconds=2.0,
+                duration_seconds=4_800.0,
+                frame_interval_seconds=120.0,
+            )
+        }
+    )
+
+    frames = run_simulation(config)
+    dynamics = compute_boussinesq_diagnostics(frames[-1])
+    thermodynamics = compute_boussinesq_thermodynamic_diagnostics(frames)
+    persistence = compute_cloud_water_persistence_diagnostics(
+        frames,
+        expected_lcl_m=thermodynamics.expected_lcl_m,
+    )
+
+    assert dynamics.max_cloud_liquid_water_kg_per_kg > 0.0
+    assert persistence.cloud_water_in_subsaturated_air_mass_fraction < 0.25
+    assert persistence.cloud_water_in_subsaturated_air_cell_fraction < 0.15
+    assert persistence.cloud_water_in_return_flow_fraction > 0.10
+    assert persistence.cloud_water_lifetime_after_subsaturation_seconds is not None
+    assert persistence.evaporation_tendency_total_kg_per_kg_per_s > 0.0
+    assert persistence.subsaturated_cloud_min_height_m is not None
+    assert persistence.subsaturated_cloud_max_height_m is not None
+    assert any("return-flow regions" in note for note in thermodynamics.notes)
+    assert any("subsaturated air" in note for note in thermodynamics.notes)
 
 
 def test_layered_moisture_case_reports_non_mixed_source_layer_context() -> None:

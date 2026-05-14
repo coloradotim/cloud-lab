@@ -258,6 +258,45 @@ negative moisture
 non-finite fields
 ```
 
+## Post-#166 Cloud-Water Persistence Update
+
+Issue #166 investigated a separate long-run Lower Atmosphere Cloud Basics
+artifact: cloud liquid water persisting or descending into diagnostically
+subsaturated lower-atmosphere / return-flow regions in a 4800 s paired-thermal
+run.
+
+The targeted reproduction showed that the issue was not only renderer scaling.
+Before remediation, the final frame placed most cloud-water mass in locally
+subsaturated cells by the pressure-aware RH diagnostic, and a meaningful
+fraction of cloud water was in low-level return flow.
+
+The mechanism was narrower than a full solver rewrite:
+
+- condensation appropriately used the prototype's lifted-parcel cooling signal
+  to allow cloud formation in rising parcels
+- evaporation also used that lifted/cooler saturation target
+- as a result, pre-existing transported cloud water could survive in emitted
+  cells whose local temperature, water vapor, and pressure indicated
+  subsaturation
+
+#166 changed evaporation so pre-existing transported cloud water evaporates
+against the emitted cell's local pressure-aware saturation state, while fresh
+lifted-parcel condensation remains possible. The long reproduction now reports
+substantially lower subsaturated cloud-water mass, but it still warns about
+low-level return-flow cloud water.
+
+Updated classification:
+
+```text
+inadequate local evaporation contributed to the artifact; remaining long-run
+return-flow cloud water is a prototype recirculation / no-sedimentation /
+no-removal limitation
+```
+
+This does not resolve the broader Boussinesq trust gap or the known shallow
+cloud-placement xfail. It adds diagnostics and narrows one cloud-water
+persistence mechanism.
+
 The current run is physically bounded and numerically sane, but it is not satisfying the old "peak cloud water at boundary-layer top" validation idea. That expectation should remain xfailed until the project decides whether Lower Atmosphere Cloud Basics wants cloud placement relative to LCL, cloud depth, boundary-layer top, or a more nuanced scenario contract.
 
 ## Recommended Remediation

@@ -151,6 +151,8 @@ These should not be presented as app failures. They are physically meaningful ou
 | Below-LCL cloud-water fraction | Flags physically questionable condensate placement. | Warning, possible future hard failure |
 | Boundary cloud fraction | Flags boundary/sponge artifacts. | Warning |
 | Low-level return-flow cloud water | Flags cloud in implausible circulation regions. | Warning |
+| Subsaturated cloud-water fraction | Flags cloud liquid water in cells whose local pressure-aware RH is below saturation. | Warning; regression check for long runs |
+| Diagnostic evaporation tendency | Shows whether existing cloud water should be evaporating in subsaturated cells. | Display / validation diagnostic |
 | Expected vs observed status | Summarizes whether the run matched the scenario contract. | Display + scenario contract |
 | Dry failed cloud check | Confirms dry-failed scenario produced motion but little/no cloud. | Hard failure for scenario tests |
 
