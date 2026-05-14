@@ -7,6 +7,11 @@ from dataclasses import dataclass
 from math import isfinite, sqrt
 from typing import Any
 
+from app.sim.boussinesq_2d import (
+    CONDENSATION_FRACTION_PER_STEP,
+    EVAPORATION_FRACTION_PER_STEP,
+    SUBSATURATED_CLOUD_EVAPORATION_FRACTION_PER_STEP,
+)
 from app.sim.presets import fair_weather_cumulus_preset
 from app.sim.schemas import (
     BackgroundWindConfig,
@@ -45,6 +50,8 @@ BELOW_LCL_WARN_FRACTION = 0.05
 BELOW_LCL_FAIL_FRACTION = 0.20
 BASE_SPREAD_WARN_CELLS = 2.0
 BASE_SPREAD_FAIL_CELLS = 4.0
+SUBSATURATED_RH_THRESHOLD = 0.99
+NEAR_SURFACE_DEPTH_M = 250.0
 
 ValidationStatus = str
 
@@ -134,6 +141,7 @@ class BoussinesqThermodynamicDiagnostics:
     lifted_path_relative_humidity_increases: bool
     mixed_layer: MixedLayerDiagnostics
     cloud_regions: CloudRegionDiagnostics
+    cloud_water_persistence: CloudWaterPersistenceDiagnostics
     boundary_cloud_fraction: float
     return_flow_cloud_fraction: float
     status: ValidationStatus
@@ -151,6 +159,24 @@ class BoussinesqScenarioDiagnostics:
     boundary_layer_depth_m: float
     status: ValidationStatus
     notes: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class CloudWaterPersistenceDiagnostics:
+    cloud_water_in_subsaturated_air_fraction: float
+    cloud_water_in_subsaturated_air_mass_fraction: float
+    cloud_water_in_subsaturated_air_cell_fraction: float
+    cloud_water_in_downdraft_fraction: float
+    cloud_water_in_return_flow_fraction: float
+    cloud_water_below_lcl_fraction: float
+    cloud_water_near_surface_fraction: float
+    cloud_water_near_boundary_fraction: float
+    cloud_water_lifetime_after_subsaturation_seconds: float | None
+    evaporation_tendency_total_kg_per_kg_per_s: float
+    condensation_tendency_total_kg_per_kg_per_s: float
+    max_cloud_water_in_subsaturated_air_kg_per_kg: float
+    subsaturated_cloud_min_height_m: float | None
+    subsaturated_cloud_max_height_m: float | None
 
 
 @dataclass(frozen=True)
@@ -594,6 +620,7 @@ def compute_boussinesq_thermodynamic_diagnostics(
     max_height = _max_cloud_height(final)
     boundary_cloud = _boundary_cloud_fraction(final)
     return_flow_cloud = _return_flow_cloud_fraction(final)
+    persistence = compute_cloud_water_persistence_diagnostics(frames, expected_lcl_m=lcl_m)
     lifted_path = lifted_saturation_sanity_path(
         initial.config.initial_atmosphere.surface_temperature_k,
         initial.config.initial_atmosphere.relative_humidity,
@@ -643,6 +670,9 @@ def compute_boussinesq_thermodynamic_diagnostics(
     if return_flow_cloud > 0.10:
         notes.append("more than 10% of cloud water is in low-level return-flow regions")
         status_rank = max(status_rank, 1)
+    if persistence.cloud_water_in_subsaturated_air_mass_fraction > 0.05:
+        notes.append("cloud water persists in diagnostically subsaturated air")
+        status_rank = max(status_rank, 1)
     if (
         mixed_layer.well_mixed
         and regions.cloud_base_spread_m is not None
@@ -677,10 +707,145 @@ def compute_boussinesq_thermodynamic_diagnostics(
         lifted_path_relative_humidity_increases=lifted_path.relative_humidity_increases,
         mixed_layer=mixed_layer,
         cloud_regions=regions,
+        cloud_water_persistence=persistence,
         boundary_cloud_fraction=boundary_cloud,
         return_flow_cloud_fraction=return_flow_cloud,
         status=status,
         notes=tuple(notes),
+    )
+
+
+def compute_cloud_water_persistence_diagnostics(
+    frames: list[SimulationFrame],
+    *,
+    expected_lcl_m: float | None = None,
+) -> CloudWaterPersistenceDiagnostics:
+    if not frames:
+        raise ValueError("at least one frame is required")
+
+    final = frames[-1]
+    lcl_m = (
+        expected_lcl_m
+        if expected_lcl_m is not None
+        else compute_lcl_height_m(
+            final.config.initial_atmosphere.surface_temperature_k,
+            final.config.initial_atmosphere.relative_humidity,
+        )
+    )
+    total_cloud = 0.0
+    cloudy_cells = 0
+    subsaturated_cloud = 0.0
+    subsaturated_cells = 0
+    downdraft_cloud = 0.0
+    return_flow_cloud = 0.0
+    below_lcl_cloud = 0.0
+    near_surface_cloud = 0.0
+    boundary_cloud = 0.0
+    evaporation_tendency_total = 0.0
+    condensation_tendency_total = 0.0
+    max_subsaturated_cloud = 0.0
+    subsaturated_heights: list[float] = []
+
+    for row_index, row in enumerate(final.fields.cloud_liquid_water_kg_per_kg.values):
+        z_m = final.grid.z_coordinates_m[row_index]
+        pressure_pa = pressure_at_height_pa(
+            z_m,
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=final.config.initial_atmosphere.surface_temperature_k,
+        )
+        for column_index, cloud in enumerate(row):
+            if cloud <= THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG:
+                continue
+
+            total_cloud += cloud
+            cloudy_cells += 1
+            temperature = final.fields.temperature_k.values[row_index][column_index]
+            vapor = final.fields.water_vapor_kg_per_kg.values[row_index][column_index]
+            saturation = pressure_aware_saturation_specific_humidity_kg_per_kg(
+                temperature,
+                pressure_pa,
+            )
+            relative_humidity = vapor / max(saturation, 1e-12)
+            vertical_velocity = final.fields.vertical_velocity_m_per_s.values[row_index][
+                column_index
+            ]
+            is_boundary = (
+                row_index == 0
+                or row_index == final.grid.rows - 1
+                or column_index == 0
+                or column_index == final.grid.columns - 1
+            )
+
+            if relative_humidity < SUBSATURATED_RH_THRESHOLD:
+                subsaturated_cloud += cloud
+                subsaturated_cells += 1
+                max_subsaturated_cloud = max(max_subsaturated_cloud, cloud)
+                subsaturated_heights.append(z_m)
+
+            if vertical_velocity < 0.0:
+                downdraft_cloud += cloud
+                if z_m <= final.config.initial_atmosphere.boundary_layer_depth_m:
+                    return_flow_cloud += cloud
+            if z_m < lcl_m:
+                below_lcl_cloud += cloud
+            if z_m <= NEAR_SURFACE_DEPTH_M:
+                near_surface_cloud += cloud
+            if is_boundary:
+                boundary_cloud += cloud
+
+            local_deficit = max(0.0, saturation - vapor)
+            local_excess = max(0.0, vapor - saturation)
+            evaporation_tendency_total += (
+                min(
+                    cloud,
+                    local_deficit * EVAPORATION_FRACTION_PER_STEP
+                    + (
+                        cloud * SUBSATURATED_CLOUD_EVAPORATION_FRACTION_PER_STEP
+                        if local_deficit > 0.0
+                        else 0.0
+                    ),
+                )
+                / final.config.time.time_step_seconds
+            )
+            condensation_tendency_total += (
+                local_excess * CONDENSATION_FRACTION_PER_STEP / final.config.time.time_step_seconds
+            )
+
+    lifetime_after_subsaturation = _cloud_water_lifetime_after_subsaturation(frames)
+    if total_cloud == 0.0:
+        return CloudWaterPersistenceDiagnostics(
+            cloud_water_in_subsaturated_air_fraction=0.0,
+            cloud_water_in_subsaturated_air_mass_fraction=0.0,
+            cloud_water_in_subsaturated_air_cell_fraction=0.0,
+            cloud_water_in_downdraft_fraction=0.0,
+            cloud_water_in_return_flow_fraction=0.0,
+            cloud_water_below_lcl_fraction=0.0,
+            cloud_water_near_surface_fraction=0.0,
+            cloud_water_near_boundary_fraction=0.0,
+            cloud_water_lifetime_after_subsaturation_seconds=lifetime_after_subsaturation,
+            evaporation_tendency_total_kg_per_kg_per_s=0.0,
+            condensation_tendency_total_kg_per_kg_per_s=0.0,
+            max_cloud_water_in_subsaturated_air_kg_per_kg=0.0,
+            subsaturated_cloud_min_height_m=None,
+            subsaturated_cloud_max_height_m=None,
+        )
+
+    subsaturated_cell_fraction = subsaturated_cells / cloudy_cells if cloudy_cells else 0.0
+    return CloudWaterPersistenceDiagnostics(
+        cloud_water_in_subsaturated_air_fraction=subsaturated_cloud / total_cloud,
+        cloud_water_in_subsaturated_air_mass_fraction=subsaturated_cloud / total_cloud,
+        cloud_water_in_subsaturated_air_cell_fraction=subsaturated_cell_fraction,
+        cloud_water_in_downdraft_fraction=downdraft_cloud / total_cloud,
+        cloud_water_in_return_flow_fraction=return_flow_cloud / total_cloud,
+        cloud_water_below_lcl_fraction=below_lcl_cloud / total_cloud,
+        cloud_water_near_surface_fraction=near_surface_cloud / total_cloud,
+        cloud_water_near_boundary_fraction=boundary_cloud / total_cloud,
+        cloud_water_lifetime_after_subsaturation_seconds=lifetime_after_subsaturation,
+        evaporation_tendency_total_kg_per_kg_per_s=evaporation_tendency_total,
+        condensation_tendency_total_kg_per_kg_per_s=condensation_tendency_total,
+        max_cloud_water_in_subsaturated_air_kg_per_kg=max_subsaturated_cloud,
+        subsaturated_cloud_min_height_m=min(subsaturated_heights) if subsaturated_heights else None,
+        subsaturated_cloud_max_height_m=max(subsaturated_heights) if subsaturated_heights else None,
     )
 
 
@@ -1249,6 +1414,49 @@ def _return_flow_cloud_fraction(frame: SimulationFrame) -> float:
     return return_flow / total
 
 
+def _cloud_water_lifetime_after_subsaturation(frames: list[SimulationFrame]) -> float | None:
+    longest_seconds = 0.0
+    current_start: float | None = None
+    current_end: float | None = None
+
+    for frame in frames:
+        if _frame_has_subsaturated_cloud_water(frame):
+            if current_start is None:
+                current_start = frame.time_seconds
+            current_end = frame.time_seconds
+        else:
+            if current_start is not None and current_end is not None:
+                longest_seconds = max(longest_seconds, current_end - current_start)
+            current_start = None
+            current_end = None
+
+    if current_start is not None and current_end is not None:
+        longest_seconds = max(longest_seconds, current_end - current_start)
+    return longest_seconds if longest_seconds > 0.0 else None
+
+
+def _frame_has_subsaturated_cloud_water(frame: SimulationFrame) -> bool:
+    for row_index, row in enumerate(frame.fields.cloud_liquid_water_kg_per_kg.values):
+        z_m = frame.grid.z_coordinates_m[row_index]
+        pressure_pa = pressure_at_height_pa(
+            z_m,
+            surface_pressure_pa=BOUSSINESQ_REFERENCE_SURFACE_PRESSURE_PA,
+            scale_temperature_k=frame.config.initial_atmosphere.surface_temperature_k,
+        )
+        for column_index, cloud in enumerate(row):
+            if cloud <= THERMODYNAMIC_CLOUD_THRESHOLD_KG_PER_KG:
+                continue
+            temperature = frame.fields.temperature_k.values[row_index][column_index]
+            vapor = frame.fields.water_vapor_kg_per_kg.values[row_index][column_index]
+            saturation = pressure_aware_saturation_specific_humidity_kg_per_kg(
+                temperature,
+                pressure_pa,
+            )
+            if vapor / max(saturation, 1e-12) < SUBSATURATED_RH_THRESHOLD:
+                return True
+    return False
+
+
 def _thermodynamic_diagnostics_to_dict(
     diagnostics: BoussinesqThermodynamicDiagnostics,
 ) -> dict[str, Any]:
@@ -1285,10 +1493,48 @@ def _thermodynamic_diagnostics_to_dict(
         "cloud_top_heights_m": list(diagnostics.cloud_regions.cloud_top_heights_m),
         "cloud_base_spread_m": diagnostics.cloud_regions.cloud_base_spread_m,
         "cloud_top_spread_m": diagnostics.cloud_regions.cloud_top_spread_m,
+        "cloud_water_persistence": _cloud_water_persistence_to_dict(
+            diagnostics.cloud_water_persistence
+        ),
         "boundary_cloud_fraction": diagnostics.boundary_cloud_fraction,
         "return_flow_cloud_fraction": diagnostics.return_flow_cloud_fraction,
         "status": diagnostics.status,
         "notes": list(diagnostics.notes),
+    }
+
+
+def _cloud_water_persistence_to_dict(
+    diagnostics: CloudWaterPersistenceDiagnostics,
+) -> dict[str, Any]:
+    return {
+        "cloud_water_in_subsaturated_air_fraction": (
+            diagnostics.cloud_water_in_subsaturated_air_fraction
+        ),
+        "cloud_water_in_subsaturated_air_mass_fraction": (
+            diagnostics.cloud_water_in_subsaturated_air_mass_fraction
+        ),
+        "cloud_water_in_subsaturated_air_cell_fraction": (
+            diagnostics.cloud_water_in_subsaturated_air_cell_fraction
+        ),
+        "cloud_water_in_downdraft_fraction": diagnostics.cloud_water_in_downdraft_fraction,
+        "cloud_water_in_return_flow_fraction": diagnostics.cloud_water_in_return_flow_fraction,
+        "cloud_water_below_lcl_fraction": diagnostics.cloud_water_below_lcl_fraction,
+        "cloud_water_near_surface_fraction": diagnostics.cloud_water_near_surface_fraction,
+        "cloud_water_near_boundary_fraction": diagnostics.cloud_water_near_boundary_fraction,
+        "cloud_water_lifetime_after_subsaturation_seconds": (
+            diagnostics.cloud_water_lifetime_after_subsaturation_seconds
+        ),
+        "evaporation_tendency_total_kg_per_kg_per_s": (
+            diagnostics.evaporation_tendency_total_kg_per_kg_per_s
+        ),
+        "condensation_tendency_total_kg_per_kg_per_s": (
+            diagnostics.condensation_tendency_total_kg_per_kg_per_s
+        ),
+        "max_cloud_water_in_subsaturated_air_kg_per_kg": (
+            diagnostics.max_cloud_water_in_subsaturated_air_kg_per_kg
+        ),
+        "subsaturated_cloud_min_height_m": diagnostics.subsaturated_cloud_min_height_m,
+        "subsaturated_cloud_max_height_m": diagnostics.subsaturated_cloud_max_height_m,
     }
 
 

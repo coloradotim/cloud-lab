@@ -6,6 +6,7 @@ from app.sim import (
     build_grid_metadata,
     compute_boussinesq_thermodynamic_diagnostics,
     compute_cloud_region_diagnostics,
+    compute_cloud_water_persistence_diagnostics,
     compute_initialized_profile_diagnostics,
     compute_lcl_height_m,
     compute_mixed_layer_diagnostics,
@@ -215,6 +216,47 @@ def test_thermodynamic_diagnostics_classify_synthetic_cloud_below_lcl() -> None:
 
     assert diagnostics.status == "fail"
     assert any("below expected LCL" in note for note in diagnostics.notes)
+
+
+def test_cloud_water_persistence_diagnostics_classify_subsaturated_return_flow() -> None:
+    clear = _frame(time_seconds=0.0)
+    cloudy = _frame(
+        time_seconds=30.0,
+        relative_humidity=0.30,
+        vapor=[
+            [0.004, 0.004, 0.004, 0.004],
+            [0.004, 0.004, 0.004, 0.004],
+            [0.004, 0.004, 0.004, 0.004],
+            [0.004, 0.004, 0.004, 0.004],
+        ],
+        cloud=[
+            [0.0, 2e-6, 0.0, 0.0],
+            [0.0, 3e-6, 0.0, 0.0],
+            [0.0, 0.0, 5e-6, 0.0],
+            [0.0, 0.0, 0.0, 0.0],
+        ],
+        vertical_velocity=[
+            [0.1, -0.1, 0.1, 0.1],
+            [0.1, -0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1, 0.1],
+            [0.1, 0.1, 0.1, 0.1],
+        ],
+    )
+
+    diagnostics = compute_cloud_water_persistence_diagnostics([clear, cloudy])
+    thermo = compute_boussinesq_thermodynamic_diagnostics([clear, cloudy])
+
+    assert diagnostics.cloud_water_in_subsaturated_air_mass_fraction == pytest.approx(1.0)
+    assert diagnostics.cloud_water_in_downdraft_fraction == pytest.approx(0.5)
+    assert diagnostics.cloud_water_in_return_flow_fraction == pytest.approx(0.5)
+    assert diagnostics.cloud_water_near_boundary_fraction == pytest.approx(0.2)
+    assert diagnostics.cloud_water_lifetime_after_subsaturation_seconds is None
+    assert diagnostics.evaporation_tendency_total_kg_per_kg_per_s > 0.0
+    assert diagnostics.condensation_tendency_total_kg_per_kg_per_s == 0.0
+    assert thermo.cloud_water_persistence.cloud_water_in_subsaturated_air_mass_fraction == (
+        pytest.approx(1.0)
+    )
+    assert any("subsaturated air" in note for note in thermo.notes)
 
 
 def _frame(

@@ -247,6 +247,9 @@ Examples:
 - below-LCL cloud-water fraction
 - cloud-water in return-flow regions
 - boundary cloud fraction
+- cloud-water in locally subsaturated cells
+- cloud-water in downdraft, near-surface, and near-boundary regions
+- estimated condensation and evaporation tendencies for emitted frames
 - cloud-base spread
 - cloud-top spread
 - cloud-water centroid
@@ -255,6 +258,12 @@ Examples:
 - rain timing
 - region merger timing
 - source-layer mixedness
+
+For long Lower Atmosphere Cloud Basics / multi-thermal Boussinesq runs, tests
+may use diagnostic warning thresholds rather than hard Green/Red claims. A
+regression should fail when meaningful cloud-water mass again persists in
+locally subsaturated air, while return-flow and boundary artifact policy remains
+warning-oriented unless a scenario contract explicitly makes it a hard failure.
 
 Rules:
 

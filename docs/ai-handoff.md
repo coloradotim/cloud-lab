@@ -175,6 +175,13 @@ Post-#156 status:
 - Current solver behavior passes the controlled lapse-rate pair and low/strong-cap versus high/weak-cap pair without solver physics changes.
 - This narrows the stability-suppression trust gap but does not make `boussinesq_2d` broadly trusted.
 
+Post-#166 status:
+
+- A 4800 s Lower Atmosphere Cloud Basics paired-thermal reproduction exists for cloud-water persistence in subsaturated descending/return-flow regions.
+- Backend diagnostics now report subsaturated, downdraft, return-flow, below-LCL, near-surface, and near-boundary cloud-water fractions, plus estimated condensation/evaporation tendencies and approximate subsaturated-cloud lifetime.
+- The solver now evaporates pre-existing transported cloud water against the emitted cell's local pressure-aware saturation state while preserving lifted-parcel condensation.
+- The reproduction no longer shows the old majority-subsaturated-cloud-water failure, but it still reports return-flow cloud-water warnings. `boussinesq_2d` remains Yellow.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.

@@ -190,6 +190,10 @@ The thermodynamic validation suite reports:
 - whether the initialized profile is well mixed enough for simple shared cloud-base assumptions
 - saturation sanity for a dry-adiabatically lifted diagnostic parcel
 - boundary-cloud fraction and low-level return-flow cloud fraction
+- cloud-water persistence in locally subsaturated air, downdrafts, return flow,
+  below the expected LCL, near the surface, and near model boundaries
+- diagnostic condensation and evaporation tendency estimates for the emitted
+  frame state
 
 Run the thermodynamic structure report with:
 
@@ -224,6 +228,58 @@ Lower Atmosphere Cloud Basics uses stability and cap controls to teach that heat
 - Cloud in the capped case should remain below or near the cap. The test does not require cloud to form in the capped member; complete suppression is an acceptable prototype outcome.
 
 Current #156 paired validation status: the solver passes the dedicated lapse-rate and cap-suppression relationship tests without changing solver physics or public scenario defaults. This does not make `boussinesq_2d` Green; it narrows one Yellow trust gap by adding explicit relationship coverage.
+
+## Subsaturated / Return-Flow Cloud-Water Persistence
+
+Issue #166 added a long paired-thermal reproduction for Lower Atmosphere Cloud
+Basics using the current multi-thermal backend preset shape:
+
+```text
+solver: boussinesq_2d
+domain: 10 km x 3 km
+grid: 36 x 24
+runtime: 4800 s
+timestep: 2 s
+frame interval: 120 s
+heating: two patches, 0.024 K s-1
+source RH: 0.85
+free-atmosphere RH: 0.55
+source layer: 800 m
+boundary-layer depth: 1500 m
+seed: preset default
+```
+
+Before #166, this reproduction placed roughly two thirds of final cloud-water
+mass in diagnostically subsaturated air and more than 10% in low-level return
+flow. The main mechanism was a mismatch in the prototype saturation adjustment:
+condensation used a lifted-parcel cooling signal, and evaporation used the same
+cooled saturation target. That allowed transported cloud water to remain
+defensible to the solver even when the emitted local cell was subsaturated.
+
+The #166 remediation keeps lifted-parcel condensation available, but evaporates
+pre-existing transported cloud water against the emitted cell's local
+pressure-aware saturation state. Dedicated diagnostics now report:
+
+- cloud-water mass and cell fractions in subsaturated air
+- cloud-water fractions in downdrafts, low-level return flow, below the LCL,
+  near the surface, and near model boundaries
+- maximum cloud water in subsaturated air and its height range
+- estimated condensation and evaporation tendencies
+- approximate contiguous lifetime of subsaturated cloud-water presence in
+  emitted frames
+
+Post-remediation classification:
+
+```text
+inadequate local evaporation was a contributor; long-run return-flow cloud water
+remains a prototype recirculation/no-removal warning
+```
+
+The long reproduction now keeps the final subsaturated cloud-water mass fraction
+below the regression threshold, but still reports a return-flow warning. This is
+not a Green trust result for `boussinesq_2d`. It narrows a specific persistence
+artifact while preserving the documented Yellow status and leaving broader
+return-flow/boundary warning policy to #157.
 
 ## Current Read
 
