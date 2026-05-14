@@ -70,6 +70,8 @@ All reference cases use `solver_type = "boussinesq_2d"` and the shared frame sch
 | Dry thermal bubble | Check buoyant circulation without cloud physics. | RH 0.45, heating 0.016 K/s, no background wind, 15 minute run. | Warm perturbation and circulation develop; cloud water remains zero. |
 | Humid lifted thermal | Check uplift, cooling, and saturation adjustment. | RH 0.98, heating 0.022 K/s, light wind, 20 minute run. | Updraft and bounded cloud water appear near or above the boundary-layer top; moisture stays non-negative. |
 | Stable stratification suppression | Check environmental stability response. | RH 0.45, heating 0.016 K/s, lapse rate 0.0035 K/m. | Vertical development is weaker than the less-stable dry thermal case. |
+| Lower-atmosphere lapse-rate suppression pair | Check stability as a controlled relationship. | Same warm-cloud setup, source humidity, heating, domain, resolution, runtime, and seed; only lapse rate changes from less-stable `0.0075 K m-1` to stable `0.0035 K m-1`. | Stable case has weaker max updraft, less total cloud water, and delayed or suppressed cloud onset. |
+| Lower-atmosphere cap suppression pair | Check cap placement/strength as a controlled relationship. | Same warm-cloud setup, source humidity, heating, lapse rate, domain, resolution, runtime, and seed; only cap layer changes from high/weak to low/strong. | Low/strong cap reduces cloud amount and delays or suppresses onset relative to high/weak cap; any cloud remains below or near the cap. |
 | Fair-weather Boussinesq baseline | Manual comparison baseline. | RH 1.0, heating 0.014 K/s, light wind. | Conservative plume and cloud-water response for visual inspection. |
 
 ## Model Sizes
@@ -211,6 +213,17 @@ The test tracks max vertical velocity, the positive-temperature centroid height,
 - comparable left and right horizontal circulation strength
 
 Failure usually means the solver has broken one of the core dry-buoyancy behaviors.
+
+## Stable / Capped Suppression Validation
+
+Lower Atmosphere Cloud Basics uses stability and cap controls to teach that heating and moisture are not enough by themselves. The validation contract is directional rather than a fixed morphology target:
+
+- A more stable lapse-rate case should produce weaker vertical response than the less-stable paired case.
+- The stable case should produce lower cloud potential: less total cloud water, lower cloud top, later cloud onset, or no cloud.
+- A low/strong cap should reduce cloud amount or depth relative to a high/weak cap with the same low-level thermodynamics and heating.
+- Cloud in the capped case should remain below or near the cap. The test does not require cloud to form in the capped member; complete suppression is an acceptable prototype outcome.
+
+Current #156 paired validation status: the solver passes the dedicated lapse-rate and cap-suppression relationship tests without changing solver physics or public scenario defaults. This does not make `boussinesq_2d` Green; it narrows one Yellow trust gap by adding explicit relationship coverage.
 
 ## Current Read
 

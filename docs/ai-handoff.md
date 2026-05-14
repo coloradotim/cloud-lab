@@ -169,6 +169,12 @@ Boussinesq-dependent work gate:
 - Do not live-couple Evolving Boundary Layer into Boussinesq yet.
 - Continue non-Boussinesq paths.
 
+Post-#156 status:
+
+- Dedicated paired stable/capped suppression validation exists for Lower Atmosphere Cloud Basics.
+- Current solver behavior passes the controlled lapse-rate pair and low/strong-cap versus high/weak-cap pair without solver physics changes.
+- This narrows the stability-suppression trust gap but does not make `boussinesq_2d` broadly trusted.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.
