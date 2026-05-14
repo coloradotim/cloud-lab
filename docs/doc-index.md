@@ -39,6 +39,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/scientific-roadmap.md` — physics maturity path in service of the lab roadmap.
 - `docs/next-physics-core.md` — physics-core strategy; not the product roadmap.
 - `docs/boussinesq-solver.md` — Boussinesq 2-D physics core implementation notes.
+- `docs/boussinesq-numerical-method.md` — authoritative numerical-method contract for the current `boussinesq_2d` solver and its Yellow trust boundaries.
 - `docs/boussinesq-validation.md` — current Boussinesq validation gate and diagnostics.
 - `docs/fair-weather-resolution-domain-sensitivity.md` — Lower Atmosphere Cloud Basics fair-weather scenario-family sensitivity report for resolution, domain size, and runtime.
 - `docs/boussinesq-stabilizer-audit.md` — audit of Boussinesq stabilizers, safety caps, damping/diffusion influence, and top-sponge sensitivity for Lower Atmosphere Cloud Basics.

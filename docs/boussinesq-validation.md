@@ -10,6 +10,11 @@ It does not prove atmospheric realism. The solver still uses simple transport, f
 
 For the broader test taxonomy, hard-failure policy, diagnostic-warning policy, and process for updating physics expectations, see the [testing and validation plan](testing-and-validation.md).
 
+For the numerical-method contract that explains the actual `boussinesq_2d`
+operator sequence, state-variable classifications, boundary behavior,
+stabilizer/cap meanings, and Yellow trust implications, see
+`docs/boussinesq-numerical-method.md`.
+
 For product direction, see `docs/lab-roadmap.md`.
 
 ## Role In The Lab Roadmap

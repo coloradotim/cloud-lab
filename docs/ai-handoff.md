@@ -146,7 +146,7 @@ Continue non-Boussinesq paths:
 
 `#150` is closed. It created the approved remediation backlog:
 
-1. `#153` — Audit Fair-Weather Cumulus scenario presets against physical intent
+1. `#153` — Audit lower-atmosphere / fair-weather scenario presets against physical intent
 2. `#154` — Diagnose Boussinesq humid-cloud thermodynamic structure failure
 3. `#155` — Implement pressure-aware saturation and LCL thermodynamics for `boussinesq_2d`
 4. `#156` — Add stable/capped suppression validation and remediate failures
@@ -207,6 +207,13 @@ Post-#159 status:
 - Reducing damping/diffusion by half materially changes cloud amount, updraft strength, onset timing, and cloud-top height, and can push several fields to their caps.
 - Disabling top sponge relaxation did not materially change the audited normal-height Lower Atmosphere cases.
 - `boussinesq_2d` remains Yellow; #160 successor-dynamics design is still relevant if Cloud Lab needs a more trusted cloud-resolving core.
+
+Post-#172 status:
+
+- `docs/boussinesq-numerical-method.md` is the authoritative numerical-method contract for the current `boussinesq_2d` solver.
+- It classifies solver state variables, the actual timestep/operator sequence, spatial discretization, boundary behavior, thermodynamics/moisture handling, stabilizers/caps, supported operating envelope, invariants, and validation claims.
+- Current trust assessment is B: `boussinesq_2d` can remain a Yellow-labeled prototype engine for controlled Lower Atmosphere Cloud Basics experiments, but it should not support polished future Boussinesq-dependent labs as a trusted foundation right now.
+- #160 should use the contract to decide whether to keep `boussinesq_2d` as a Yellow scaffold, refactor/recalibrate it with explicit numerical acceptance criteria, design a pseudo-anelastic/anelastic successor, use prescribed/profile-coupled dynamics, or evaluate an external/PDE framework.
 
 ## Do Not Do Without Explicit User Direction
 
