@@ -325,6 +325,7 @@ These comparisons should eventually support saved runs, side-by-side views, and 
 - stronger heating should generally increase vertical response
 - drier free atmosphere should generally reduce/limit cloud depth or amount
 - more stable profile should generally suppress vertical growth compared with less-stable case
+- lower/stronger cap should delay, limit, or suppress cloud development compared with a higher/weaker cap under the same low-level heating and moisture
 
 ## Known Limitations
 

@@ -205,6 +205,7 @@ Examples:
 - lifted humid parcel condenses.
 - heating offsets lift and delays or reduces condensation.
 - dry cap/stable layer suppresses cloud depth or cloud amount compared with a comparable uncapped case.
+- paired stable/capped validation changes only the stability or cap structure being tested; humidity, heating, domain, resolution, runtime, and seed remain fixed.
 - multi-thermal forcing creates multiple thermal/cloud regions for at least part of the run, when that is the scenario's stated purpose.
 
 Hard failure policy:

@@ -1,8 +1,18 @@
+from dataclasses import dataclass
+from typing import Literal
+
 import pytest
 
 from app.sim import (
     DIVERGENCE_VELOCITY_FLOOR_M_PER_S,
+    BackgroundWindConfig,
     BoussinesqReferenceCase,
+    DomainConfig,
+    GridConfig,
+    HumidityLayerConfig,
+    InitialAtmosphereConfig,
+    SurfaceHeatingConfig,
+    TimeConfig,
     boussinesq_model_sizes,
     boussinesq_reference_cases,
     boussinesq_thermodynamic_validation_cases,
@@ -10,6 +20,7 @@ from app.sim import (
     compute_boussinesq_thermodynamic_diagnostics,
     compute_cloud_region_diagnostics,
     compute_divergence_field,
+    fair_weather_cumulus_preset,
     run_boussinesq_scenario_validation,
     run_boussinesq_thermodynamic_validation,
     run_simulation,
@@ -33,6 +44,16 @@ MAX_REFERENCE_CLOUD_WATER_KG_PER_KG = 0.008
 MAX_DEEP_REFERENCE_VELOCITY_M_PER_S = 6.0
 MAX_DEEP_REFERENCE_CLOUD_WATER_KG_PER_KG = 0.011
 BEHAVIOR_CLOUD_THRESHOLD_KG_PER_KG = 1e-5
+
+
+@dataclass(frozen=True)
+class SuppressionMetrics:
+    max_abs_vertical_velocity_m_per_s: float
+    cloud_top_height_m: float | None
+    max_cloud_liquid_water_kg_per_kg: float
+    total_cloud_water_kg_per_kg: float
+    first_cloud_time_seconds: float | None
+    first_cloud_height_m: float | None
 
 
 def test_boussinesq_reference_cases_map_to_valid_configs() -> None:
@@ -374,6 +395,65 @@ def test_drier_thermodynamic_case_has_higher_expected_lcl_than_humid_case() -> N
     assert warmer_drier.expected_lcl_m > humid.expected_lcl_m
 
 
+def test_lapse_rate_pair_suppresses_vertical_response_and_cloud_potential() -> None:
+    less_stable = _lower_atmosphere_suppression_config(lapse_rate_k_per_m=0.0075)
+    stable = _lower_atmosphere_suppression_config(lapse_rate_k_per_m=0.0035)
+
+    less_stable_metrics = _run_suppression_case(less_stable)
+    stable_metrics = _run_suppression_case(stable)
+
+    assert (
+        stable_metrics.max_abs_vertical_velocity_m_per_s
+        < less_stable_metrics.max_abs_vertical_velocity_m_per_s
+    )
+    assert stable_metrics.total_cloud_water_kg_per_kg < (
+        less_stable_metrics.total_cloud_water_kg_per_kg
+    )
+    assert _cloud_onset_is_delayed_or_suppressed(stable_metrics, less_stable_metrics)
+
+
+def test_low_strong_cap_suppresses_cloud_development_against_high_weak_cap() -> None:
+    high_weak_cap = _lower_atmosphere_suppression_config(
+        surface_temperature_k=300.15,
+        lapse_rate_k_per_m=0.0065,
+        relative_humidity=0.94,
+        heating_rate_k_per_s=0.024,
+        boundary_layer_depth_m=1_800.0,
+        moist_source_layer_depth_m=700.0,
+        humidity_layers=[
+            HumidityLayerConfig(bottom_m=1_500.0, top_m=1_900.0, relative_humidity=0.70)
+        ],
+    )
+    low_strong_cap = _lower_atmosphere_suppression_config(
+        surface_temperature_k=300.15,
+        lapse_rate_k_per_m=0.0065,
+        relative_humidity=0.94,
+        heating_rate_k_per_s=0.024,
+        boundary_layer_depth_m=900.0,
+        moist_source_layer_depth_m=700.0,
+        humidity_layers=[
+            HumidityLayerConfig(bottom_m=750.0, top_m=1_200.0, relative_humidity=0.35)
+        ],
+    )
+
+    high_weak_metrics = _run_suppression_case(high_weak_cap)
+    low_strong_metrics = _run_suppression_case(low_strong_cap)
+    low_cap_tolerance_m = low_strong_cap.domain.height_m / low_strong_cap.grid.rows
+
+    assert low_strong_metrics.total_cloud_water_kg_per_kg < (
+        high_weak_metrics.total_cloud_water_kg_per_kg
+    )
+    assert low_strong_metrics.max_cloud_liquid_water_kg_per_kg < (
+        high_weak_metrics.max_cloud_liquid_water_kg_per_kg
+    )
+    assert _cloud_onset_is_delayed_or_suppressed(low_strong_metrics, high_weak_metrics)
+    assert (
+        low_strong_metrics.cloud_top_height_m is None
+        or low_strong_metrics.cloud_top_height_m
+        <= (low_strong_cap.initial_atmosphere.boundary_layer_depth_m + low_cap_tolerance_m)
+    )
+
+
 def test_layered_moisture_case_reports_non_mixed_source_layer_context() -> None:
     case = next(
         case
@@ -399,4 +479,75 @@ def _cloud_coverage(frame: SimulationFrame, threshold_kg_per_kg: float) -> float
     cloud = frame.fields.cloud_liquid_water_kg_per_kg.values
     return sum(1 for row in cloud for value in row if value > threshold_kg_per_kg) / (
         frame.grid.rows * frame.grid.columns
+    )
+
+
+def _lower_atmosphere_suppression_config(
+    *,
+    surface_temperature_k: float = 298.15,
+    lapse_rate_k_per_m: float,
+    relative_humidity: float = 0.82,
+    heating_rate_k_per_s: float = 0.018,
+    boundary_layer_depth_m: float = 1_500.0,
+    moist_source_layer_depth_m: float = 800.0,
+    humidity_layers: list[HumidityLayerConfig] | None = None,
+) -> SimulationConfig:
+    preset = fair_weather_cumulus_preset().config
+    humidity_profile: Literal["custom_layers", "surface_moisture"] = (
+        "custom_layers" if humidity_layers else "surface_moisture"
+    )
+    return preset.model_copy(
+        update={
+            "domain": DomainConfig(width_m=10_000.0, height_m=3_000.0),
+            "grid": GridConfig(columns=36, rows=24),
+            "time": TimeConfig(
+                time_step_seconds=2.0,
+                duration_seconds=1_200.0,
+                frame_interval_seconds=30.0,
+            ),
+            "initial_atmosphere": InitialAtmosphereConfig(
+                surface_temperature_k=surface_temperature_k,
+                lapse_rate_k_per_m=lapse_rate_k_per_m,
+                relative_humidity=relative_humidity,
+                boundary_layer_depth_m=boundary_layer_depth_m,
+                moist_source_layer_depth_m=moist_source_layer_depth_m,
+                free_atmosphere_relative_humidity=0.55,
+                humidity_profile=humidity_profile,
+                humidity_layers=humidity_layers or [],
+            ),
+            "surface_heating": SurfaceHeatingConfig(
+                max_warming_rate_k_per_s=heating_rate_k_per_s,
+                patch_center_x_m=5_000.0,
+                patch_width_m=2_000.0,
+                pattern="single_patch",
+            ),
+            "background_wind": BackgroundWindConfig(u_m_per_s=0.1, w_m_per_s=0.0),
+            "seed": 31,
+        }
+    )
+
+
+def _run_suppression_case(config: SimulationConfig) -> SuppressionMetrics:
+    frames = run_simulation(config)
+    dynamics = compute_boussinesq_diagnostics(frames[-1])
+    thermodynamics = compute_boussinesq_thermodynamic_diagnostics(frames)
+    return SuppressionMetrics(
+        max_abs_vertical_velocity_m_per_s=dynamics.max_abs_vertical_velocity_m_per_s,
+        cloud_top_height_m=dynamics.cloud_top_height_m,
+        max_cloud_liquid_water_kg_per_kg=dynamics.max_cloud_liquid_water_kg_per_kg,
+        total_cloud_water_kg_per_kg=dynamics.total_cloud_liquid_water_kg_per_kg,
+        first_cloud_time_seconds=thermodynamics.first_cloud_time_seconds,
+        first_cloud_height_m=thermodynamics.first_cloud_height_m,
+    )
+
+
+def _cloud_onset_is_delayed_or_suppressed(
+    suppressed: SuppressionMetrics,
+    control: SuppressionMetrics,
+) -> bool:
+    if control.first_cloud_time_seconds is None:
+        return False
+    return (
+        suppressed.first_cloud_time_seconds is None
+        or suppressed.first_cloud_time_seconds > control.first_cloud_time_seconds
     )
