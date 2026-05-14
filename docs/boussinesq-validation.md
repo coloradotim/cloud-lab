@@ -96,13 +96,14 @@ The evidence supports continuing to use it for selected labs and controlled visu
 - the dry thermal-bubble benchmark rises, stays cloud-free, and develops symmetric circulation
 - humid cases produce bounded condensate and preserve non-negative moisture
 - active-flow reference cases pass whole-frame nondimensional divergence gates
-- normal reference cases do not hit the public velocity, temperature, cloud-water, or vapor safety caps
+- normal reference cases do not hit the public velocity, cloud-water, or vapor safety caps
 - seeded runs are reproducible
 
 The evidence does not support treating it as a quantitatively credible CFD core:
 
 - the humid reference case still places peak cloud water below the boundary-layer top
 - the model uses strong prototype stabilizers, simple saturation adjustment, and a diagnostic boundary extrapolation because emitted frames do not carry ghost cells
+- the Lower Atmosphere baseline reaches the theta perturbation safety cap under default constants, and reduced damping/diffusion materially changes cloud amount, timing, and depth
 
 Recommendation: use `boussinesq_2d` where it supports labs, especially Lower Atmosphere Cloud Basics and possibly early Orographic/Terrain Clouds. Do not integrate advanced microphysics on top of it as though the dynamics are solved. Thermodynamic placement of cloud water remains a science gate.
 
@@ -220,6 +221,19 @@ The #158 report is documented in
 default envelope but preserves Yellow status because cloud amount, updraft
 strength, and artifact warnings remain sensitive in high-resolution,
 smaller-domain, and long-runtime baseline runs.
+
+Run the Boussinesq stabilizer, safety-cap, damping, and sponge audit with:
+
+```bash
+cd backend
+.venv/bin/python -m app.sim.validation --stabilizers --json
+```
+
+The #159 report is documented in `docs/boussinesq-stabilizer-audit.md`. It
+keeps `boussinesq_2d` Yellow because the default single-patch Lower Atmosphere
+baseline reaches the theta perturbation cap and diagnostic reductions to
+damping/diffusion materially change cloud outcomes. The top sponge did not
+materially affect the audited normal-height Lower Atmosphere cases.
 
 ## Thermal Bubble Benchmark
 

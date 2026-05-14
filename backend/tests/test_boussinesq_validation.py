@@ -15,6 +15,8 @@ from app.sim import (
     TimeConfig,
     boussinesq_model_sizes,
     boussinesq_reference_cases,
+    boussinesq_stabilizer_audit_cases,
+    boussinesq_stabilizer_audit_variants,
     boussinesq_thermodynamic_validation_cases,
     compute_boussinesq_diagnostics,
     compute_boussinesq_thermodynamic_diagnostics,
@@ -25,6 +27,7 @@ from app.sim import (
     lower_atmosphere_sensitivity_scenarios,
     lower_atmosphere_sensitivity_variants,
     run_boussinesq_scenario_validation,
+    run_boussinesq_stabilizer_audit,
     run_boussinesq_thermodynamic_validation,
     run_lower_atmosphere_sensitivity_validation,
     run_simulation,
@@ -436,6 +439,63 @@ def test_lower_atmosphere_sensitivity_validation_reports_required_matrix() -> No
     assert baseline_supported
     assert all(result["max_cloud_liquid_water_kg_per_kg"] > 1e-8 for result in baseline_supported)
     assert all(result["max_cloud_liquid_water_kg_per_kg"] <= 1e-8 for result in dry_supported)
+
+
+def test_boussinesq_stabilizer_audit_definitions_cover_lab_scenarios() -> None:
+    cases = boussinesq_stabilizer_audit_cases()
+    variants = boussinesq_stabilizer_audit_variants()
+
+    assert [case.slug for case in cases] == [
+        "quiet-atmosphere",
+        "dry-thermal-bubble",
+        "fair-weather-moderate-base",
+        "multi-thermal-cumulus-field",
+        "dry-cap-suppressed-cumulus",
+    ]
+    assert [variant.slug for variant in variants] == [
+        "default",
+        "half-damping-diffusion",
+        "no-top-sponge",
+    ]
+    assert variants[0].overrides == {}
+    assert variants[1].overrides["THERMAL_DIFFUSIVITY_M2_PER_S"] > 0.0
+
+
+def test_boussinesq_stabilizer_audit_reports_cap_proximity_and_sensitivity() -> None:
+    report = run_boussinesq_stabilizer_audit()
+
+    assert report["schema_version"] == "boussinesq-stabilizer-audit-v1"
+    assert report["lab"] == "Lower Atmosphere Cloud Basics"
+    results = report["results"]
+    assert len(results) == (
+        len(boussinesq_stabilizer_audit_cases()) * len(boussinesq_stabilizer_audit_variants())
+    )
+
+    default_results = [result for result in results if result["variant_slug"] == "default"]
+    assert default_results
+    assert all(result["max_velocity_cap_fraction"] < 0.2 for result in default_results)
+    assert all(result["max_theta_cap_fraction"] <= 1.0 for result in default_results)
+    assert any(result["max_theta_cap_fraction"] >= 0.5 for result in default_results)
+    assert all(result["max_vorticity_cap_fraction"] < 1.0 for result in default_results)
+    assert all(result["max_cloud_cap_fraction"] < 0.2 for result in default_results)
+    assert any(
+        "theta perturbation safety cap" in " ".join(result["notes"]) for result in default_results
+    )
+
+    baseline_variants = [
+        result for result in results if result["case_slug"] == "fair-weather-moderate-base"
+    ]
+    assert {result["variant_slug"] for result in baseline_variants} == {
+        "default",
+        "half-damping-diffusion",
+        "no-top-sponge",
+    }
+    assert all(result["status"] in {"pass", "warn", "fail"} for result in results)
+    assert any(
+        result["cloud_water_ratio_vs_default"] is not None
+        for result in baseline_variants
+        if result["variant_slug"] != "default"
+    )
 
 
 def test_boussinesq_thermodynamic_validation_cases_have_numeric_lcl_and_distribution() -> None:
