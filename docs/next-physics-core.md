@@ -73,6 +73,13 @@ The current evidence supports using `boussinesq_2d` for controlled visual experi
 
 It does not support treating it as a quantitatively credible CFD foundation for advanced microphysics.
 
+The numerical-method contract in `docs/boussinesq-numerical-method.md` sharpens
+that boundary after #159: the default single-patch Lower Atmosphere baseline
+reaches the theta perturbation cap, and damping/diffusion materially shape cloud
+amount, onset timing, updraft strength, and cloud-top height. #160 should treat
+that contract as the starting point for deciding whether to keep, refactor, or
+replace the current dynamics path.
+
 Known Boussinesq limitations include:
 
 - simple warm-cloud saturation adjustment

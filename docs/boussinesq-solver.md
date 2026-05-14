@@ -6,6 +6,11 @@ It is useful for selected labs, especially Lower Atmosphere Cloud Basics, but it
 
 For validation status and science gates, see `docs/boussinesq-validation.md`.
 
+For the authoritative numerical-method contract, including state-variable
+classification, operator sequence, boundary behavior, stabilizer/cap
+classification, and #160 handoff criteria, see
+`docs/boussinesq-numerical-method.md`.
+
 For the lab-driven product direction, see `docs/lab-roadmap.md` and `docs/architecture-decisions/ADR-001-lab-driven-product.md`.
 
 ## Role In The Lab Roadmap
