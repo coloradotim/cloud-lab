@@ -344,12 +344,14 @@ Profile setup:
 
 Lift setup:
 
-- moderate lift, comparable to baseline
+- prescribed lift strong enough to test ascent, but weaker than the baseline
+  shallow-cloud case so the default combined flow remains cloud-free
 
 Expected outcome:
 
 - little or no cloud water
-- status: `dry_failed` or `moisture_limited`
+- profile status: `moisture_limited`
+- cloud-column status: `dry_failed` or another clearly cloud-free status
 - deterministic explanation points to high LCL / low RH
 
 Diagnostics:
@@ -593,6 +595,12 @@ orchestration. The inspector now summarizes what happened, why it happened, what
 to try next, key profile/cloud-column numbers, expected-vs-observed scenario
 status, and an honest precipitation placeholder without using freeform AI text.
 
+Issue #203 tightens scenario interpretation. The default `Dry failed cumulus`
+combined flow should remain cloud-free under prescribed lift, while legitimate
+split outcomes such as `profile moisture_limited + column cloud_formed` should
+be labeled as cloud formed under prescribed lift rather than implied free
+convection.
+
 The shell includes:
 
 - the three v2 flow modes: atmosphere evolution, lifted cloud, and combined
@@ -785,10 +793,20 @@ Prescribed lift cooled the parcel enough to reach saturation and form cloud liqu
 Try comparing with a drier profile or weaker lift to see what changes.
 ```
 
+If cloud forms from a profile that was not cloud-favorable, label the split
+outcome explicitly:
+
+```text
+The atmosphere did not become cloud-favorable on its own, but prescribed lift
+cooled the selected profile enough to reach saturation and form cloud. This is
+controlled lift, not predicted free convection.
+```
+
 ### Dry Failed
 
 ```text
-The parcel was lifted, but the profile was too dry for saturation.
+Both the atmosphere evolution and the lifted column remained too dry to form
+meaningful cloud water.
 
 Try increasing humidity or using a profile from later in the atmosphere-evolution run.
 ```

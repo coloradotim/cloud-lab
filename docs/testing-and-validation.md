@@ -168,8 +168,10 @@ npm run test -- lowerAtmosphereV2Scenarios
 These are metadata/contract checks. They ensure the required v2 scenario ids,
 flow-mode compatibility, expected profile/cloud-column/precipitation statuses,
 honesty labels, comparison pairs, and no-Boussinesq-default rule remain intact.
-They do not run profile evolution, cloud-column orchestration, or Boussinesq
-validation.
+They also protect scenario interpretation details such as the default
+`Dry failed cumulus` combined flow remaining cloud-free and deterministic
+expected-vs-observed handling for split profile/column outcomes. They do not run
+Boussinesq validation.
 
 Hard failure policy:
 

@@ -144,7 +144,7 @@ export const lowerAtmosphereV2ScenarioContracts: LowerAtmosphereV2ScenarioContra
         surface_heating_strength: 0.58,
       },
       cloudColumnControls: {
-        updraft_strength_m_per_s: 1.4,
+        updraft_strength_m_per_s: 1,
         lift_duration_seconds: 1200,
         forcing_type: "prescribed_lift",
       },

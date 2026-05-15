@@ -294,6 +294,33 @@ describe("Workbench V2 shell", () => {
     expect(html).not.toContain("boussinesq_2d");
   });
 
+  it("keeps Lower Atmosphere v2 scenario setup copy from duplicating the selected name", () => {
+    const dryFailedScenario = fairWeatherLab.scenarios.find(
+      (scenario) => scenario.id === "lower-atmosphere-v2-dry-failed-cumulus",
+    );
+    if (!dryFailedScenario) {
+      throw new Error("Missing Dry failed cumulus scenario");
+    }
+    const dryFirstLab = {
+      ...fairWeatherLab,
+      scenarios: [
+        dryFailedScenario,
+        ...fairWeatherLab.scenarios.filter((scenario) => scenario.id !== dryFailedScenario.id),
+      ],
+    };
+
+    const html = renderToStaticMarkup(
+      <LabWorkbench lab={dryFirstLab} onBackToLabs={vi.fn()} />,
+    );
+
+    expect(html).toContain("Lower Atmosphere v2 setup");
+    expect(html).toContain("Choose scenario");
+    expect(html).toContain("Why can air rise but fail to form cloud?");
+    expect(html).toContain("Air is lifted, but low humidity keeps the column cloud-free.");
+    expect(html).not.toContain('<h2 id="setup-region-title">Dry failed cumulus</h2>');
+    expect(html.match(/Dry failed cumulus/g)?.length ?? 0).toBeLessThanOrEqual(3);
+  });
+
   it("keeps saved runs and comparison out of large default panels", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,

@@ -15,6 +15,9 @@ import {
 } from "./lowerAtmosphereV2Orchestration";
 
 const baselineContract = lowerAtmosphereV2ScenarioContracts[0];
+const dryFailedContract = lowerAtmosphereV2ScenarioContracts.find(
+  (scenario) => scenario.id === "lower-atmosphere-v2-dry-failed-cumulus",
+);
 
 describe("Lower Atmosphere v2 orchestration", () => {
   it("runs atmosphere-only flow through boundary_layer_1d and does not call cloud-column", async () => {
@@ -64,6 +67,8 @@ describe("Lower Atmosphere v2 orchestration", () => {
     expect(client.runCloudColumn).toHaveBeenCalledOnce();
     expect(result.profileStatus).toBe("complete");
     expect(result.cloudColumnStatus).toBe("complete");
+    expect(result.message).toContain("Generated 3 profile samples and 2 cloud-column samples");
+    expect(result.message).toContain("Use the timeline to inspect the selected profile");
     expect(result.selectedProfileFrameIndex).toBe(2);
     expect(result.cloudColumnProvenance).toMatchObject({
       source_model: "boundary_layer_1d",
@@ -167,6 +172,20 @@ describe("Lower Atmosphere v2 orchestration", () => {
     expect(diagnostics.cloudColumn.available).toBe(false);
   });
 
+  it("keeps the Dry failed cumulus default prescribed lift below the cloud-forming baseline", () => {
+    if (!dryFailedContract) {
+      throw new Error("Missing dry failed scenario contract");
+    }
+
+    const { config } = profileToCloudColumnConfig(sampleFrame(2, "moisture_limited"), dryFailedContract);
+
+    expect(dryFailedContract.expectedProfileStatus).toBe("moisture_limited");
+    expect(dryFailedContract.expectedCloudColumnStatus).toBe("dry_failed");
+    expect(config.forcing.updraft_strength_m_per_s).toBe(1);
+    expect(config.forcing.lift_duration_seconds).toBe(1_200);
+    expect(JSON.stringify(config)).not.toContain("boussinesq");
+  });
+
   it("builds lifted-cloud diagnostics with dry-failed suggestions and precipitation honesty", async () => {
     const state = await runLowerAtmosphereV2Flow(
       createInitialLowerAtmosphereV2State(baselineContract.id),
@@ -180,7 +199,7 @@ describe("Lower Atmosphere v2 orchestration", () => {
       baselineContract,
     );
 
-    expect(diagnostics.resultLabel).toBe("Dry failed");
+    expect(diagnostics.resultLabel).toBe("Dry failed / no cloud");
     expect(diagnostics.cloudColumn.reason).toContain("Deterministic cloud-column diagnostic");
     expect(diagnostics.tryNext).toEqual(
       expect.arrayContaining(["increase humidity", "use a later evolved profile", "increase lift duration"]),
@@ -221,6 +240,125 @@ describe("Lower Atmosphere v2 orchestration", () => {
     );
     expect(diagnostics.precipitation.statusLabel).toBe("Not evaluated");
     expect(JSON.stringify(diagnostics)).not.toContain("boussinesq");
+  });
+
+  it("explains moisture-limited profiles that form cloud only under prescribed lift", async () => {
+    const state = await runLowerAtmosphereV2Flow(
+      createInitialLowerAtmosphereV2State(baselineContract.id),
+      "evolution_lifted_cloud",
+      mockClient(
+        sampleProfileRun([sampleFrame(0), sampleFrame(1, "moisture_limited")]),
+        sampleCloudRun("cloud_formed"),
+      ),
+    );
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "evolution_lifted_cloud",
+      baselineContract,
+    );
+
+    expect(diagnostics.resultLabel).toBe("Cloud formed under prescribed lift");
+    expect(diagnostics.why).toContain("did not become cloud-favorable on its own");
+    expect(diagnostics.why).toContain("controlled lift, not predicted free convection");
+  });
+
+  it("explains cloud-favorable profiles that form cloud under prescribed lift", async () => {
+    const state = await runLowerAtmosphereV2Flow(
+      createInitialLowerAtmosphereV2State(baselineContract.id),
+      "evolution_lifted_cloud",
+      mockClient(
+        sampleProfileRun([sampleFrame(0), sampleFrame(1, "cloud_favorable")]),
+        sampleCloudRun("cloud_formed"),
+      ),
+    );
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "evolution_lifted_cloud",
+      baselineContract,
+    );
+
+    expect(diagnostics.resultLabel).toBe("Cloud formed");
+    expect(diagnostics.why).toContain("environment was cloud-favorable");
+    expect(diagnostics.why).toContain("prescribed lift formed cloud");
+  });
+
+  it("explains when both a moisture-limited profile and lifted column remain too dry", async () => {
+    if (!dryFailedContract) {
+      throw new Error("Missing dry failed scenario contract");
+    }
+    const state = await runLowerAtmosphereV2Flow(
+      createInitialLowerAtmosphereV2State(dryFailedContract.id),
+      "evolution_lifted_cloud",
+      mockClient(
+        sampleProfileRun([sampleFrame(0), sampleFrame(1, "moisture_limited")]),
+        sampleCloudRun("dry_failed"),
+      ),
+    );
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "evolution_lifted_cloud",
+      dryFailedContract,
+    );
+
+    expect(diagnostics.resultLabel).toBe("Dry failed / no cloud");
+    expect(diagnostics.why).toMatch(/both/i);
+    expect(diagnostics.why).toContain("too dry");
+    expect(diagnostics.scenarioCheck.statusLabel).toBe("Matches scenario");
+    expect(diagnostics.scenarioCheck.expectedLabel).toContain("Dry failed / no cloud");
+  });
+
+  it("keeps expected-vs-observed mismatch visible for contradictory dry-failed runs", async () => {
+    if (!dryFailedContract) {
+      throw new Error("Missing dry failed scenario contract");
+    }
+    const state = await runLowerAtmosphereV2Flow(
+      createInitialLowerAtmosphereV2State(dryFailedContract.id),
+      "evolution_lifted_cloud",
+      mockClient(
+        sampleProfileRun([sampleFrame(0), sampleFrame(1, "moisture_limited")]),
+        sampleCloudRun("cloud_formed"),
+      ),
+    );
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "evolution_lifted_cloud",
+      dryFailedContract,
+    );
+
+    expect(diagnostics.scenarioCheck.statusLabel).toBe("Different from expected");
+    expect(diagnostics.scenarioCheck.expectedLabel).toContain("Dry failed / no cloud");
+    expect(diagnostics.scenarioCheck.observedLabel).toContain("Cloud formed under prescribed lift");
+  });
+
+  it("explains cap-suppressed profiles with weak prescribed lift as a cap/lift limitation", async () => {
+    const cappedContract = lowerAtmosphereV2ScenarioContracts.find(
+      (scenario) => scenario.id === "lower-atmosphere-v2-capped-suppressed-cloud",
+    );
+    if (!cappedContract) {
+      throw new Error("Missing capped scenario contract");
+    }
+    const state = await runLowerAtmosphereV2Flow(
+      createInitialLowerAtmosphereV2State(cappedContract.id),
+      "evolution_lifted_cloud",
+      mockClient(
+        sampleProfileRun([sampleFrame(0), sampleFrame(1, "cap_suppressed")]),
+        sampleCloudRun("lift_too_weak"),
+      ),
+    );
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "evolution_lifted_cloud",
+      cappedContract,
+    );
+
+    expect(diagnostics.resultLabel).toBe("Lift too weak / no cloud");
+    expect(diagnostics.why).toContain("cap-suppressed");
+    expect(diagnostics.why).toContain("prescribed lift");
   });
 });
 
