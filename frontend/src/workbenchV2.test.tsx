@@ -11,7 +11,7 @@ import {
   labById,
 } from "./labs/labCatalog";
 import { LabPicker } from "./workbench/LabPicker";
-import { LabWorkbench } from "./workbench/LabWorkbench";
+import { LabWorkbench, WorkbenchErrorFallback } from "./workbench/LabWorkbench";
 
 describe("Workbench V2 lab picker", () => {
   it("renders the initial lab cards from the lab roadmap", () => {
@@ -182,15 +182,31 @@ describe("Evolving Boundary Layer Workbench V2", () => {
     expect(html).toContain("Profile / sounding hero view");
     expect(html).toContain("Temperature profile");
     expect(html).toContain("RH profile");
-    expect(html).toContain("Mixed-layer depth marker");
-    expect(html).toContain("LCL marker");
-    expect(html).toContain("Inversion / cap marker");
+    expect(html).toContain("Initial profile");
+    expect(html).toContain("Profile replay controls");
+    expect(html).toContain("Replay evolution");
+    expect(html).toContain("0.0 h after sunrise");
+    expect(html).toContain("Duration after sunrise");
+    expect(html).toContain("4.0 h after sunrise");
+    expect(html).not.toContain("14400");
+    expect(html).toContain("Mixed-layer depth");
+    expect(html).toContain("LCL");
+    expect(html).toContain("Inversion / cap");
     expect(html).toContain("Cloud formation potential");
+    expect(html).toContain("Scenario check");
+    expect(html).toContain("Expected");
+    expect(html).toContain("Observed");
+    expect(html).toContain("Try next");
     expect(html).toContain("Deterministic limiting reason");
     expect(html).toContain("Mixed-layer depth minus LCL");
     expect(html).toContain("No cloud water in v1");
     expect(html).toContain("Not cloud-resolving");
     expect(html).toContain("No live Boussinesq coupling");
+    expect(html).toContain("Run profile");
+    expect(html).toContain("Status: Ready");
+    expect(html).not.toContain("Mode: single");
+    expect(html).not.toContain("System drawer");
+    expect(html).not.toContain("Stop</button>");
     expect(html).not.toContain("Scientific 2-D field view");
     expect(html).not.toContain("cloud_liquid_water_kg_per_kg");
     expect(html).not.toContain("Experimental 2-D prototype");
@@ -247,7 +263,7 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Run length");
     expect(html).not.toContain("Model size / runtime");
     expect(html).toContain(">Run<");
-    expect(html).toContain(">Stop<");
+    expect(html).not.toContain(">Stop<");
     expect(html).toContain(">Reset<");
     expect(html).toContain("Scientific 2-D field view");
     expect(html).toContain("Expected LCL / cloud base");
@@ -266,6 +282,26 @@ describe("Workbench V2 shell", () => {
     expect(html).not.toContain("Scenario comparison");
     expect(html).not.toContain("Developer details");
     expect(html).not.toContain("Sample output");
+  });
+
+  it("renders local workbench error fallback copy for crash protection", () => {
+    const visualizationFallback = renderToStaticMarkup(
+      <WorkbenchErrorFallback
+        fallbackTitle="Profile visualization failed to render."
+        fallbackBody="Reset the lab or change scenario settings and run again."
+      />,
+    );
+    const inspectorFallback = renderToStaticMarkup(
+      <WorkbenchErrorFallback
+        fallbackTitle="Diagnostics failed to render."
+        fallbackBody="The profile run data may be incomplete or inconsistent."
+      />,
+    );
+
+    expect(visualizationFallback).toContain("Profile visualization failed to render.");
+    expect(visualizationFallback).toContain("Reset the lab or change scenario settings and run again.");
+    expect(inspectorFallback).toContain("Diagnostics failed to render.");
+    expect(inspectorFallback).toContain("The profile run data may be incomplete or inconsistent.");
   });
 
   it("makes the new lab picker the default app entry point without the old giant hero", () => {

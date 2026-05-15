@@ -261,13 +261,13 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(readySave.saveMessage).toContain("ready for the saved-run workflow");
   });
 
-  it("renders one Run/Stop/Reset group and no old default saved-run or comparison panels", () => {
+  it("renders one Run/Reset group at rest and no old default saved-run or comparison panels", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
     expect(matchCount(html, ">Run<")).toBe(1);
-    expect(matchCount(html, ">Stop<")).toBe(1);
+    expect(matchCount(html, ">Stop<")).toBe(0);
     expect(matchCount(html, ">Reset<")).toBe(1);
     expect(html).not.toContain("saved-runs-panel");
     expect(html).not.toContain("comparison-panel");

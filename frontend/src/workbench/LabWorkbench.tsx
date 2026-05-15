@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { Component, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 
 import { CLOUD_OPTICS_BEAUTY_LAB_ID, EVOLVING_BOUNDARY_LAYER_LAB_ID } from "../labs/labCatalog";
 import {
@@ -19,13 +19,26 @@ import {
 } from "../labs/cloudOpticsRenderer";
 import {
   boundaryLayer1DScenarioForId,
+  boundaryLayerDiagnosticViewModel,
   boundaryLayerDisplayedFrame,
   boundaryLayerPreviewFrame,
+  advanceBoundaryLayerReplay,
   createInitialBoundaryLayer1DState,
   defaultBoundaryLayer1DClient,
+  durationHoursToSeconds,
+  durationSecondsToHours,
+  formatHoursAfterSunrise,
+  markBoundaryLayerComputing,
+  markBoundaryLayerRunReady,
+  pauseBoundaryLayerReplay,
+  playBoundaryLayerReplay,
+  replayBoundaryLayerEvolution,
+  selectBoundaryLayerFrame,
   selectBoundaryLayer1DScenario,
+  selectFinalBoundaryLayerFrame,
   statusLabel,
   updateBoundaryLayer1DControl,
+  usableBoundaryLayerFrames,
   type BoundaryLayer1DClient,
   type BoundaryLayer1DControlId,
   type BoundaryLayer1DFrame,
@@ -119,6 +132,18 @@ export function LabWorkbench({
     return () => cleanupRef.current?.();
   }, [lab]);
 
+  useEffect(() => {
+    if (!isBoundaryLayerLab || boundaryLayerState.status !== "replaying") {
+      return undefined;
+    }
+
+    const replayTimer = window.setInterval(() => {
+      setBoundaryLayerState((current) => advanceBoundaryLayerReplay(current));
+    }, 350);
+
+    return () => window.clearInterval(replayTimer);
+  }, [isBoundaryLayerLab, boundaryLayerState.status]);
+
   async function handleStartRun() {
     if (!canRun) {
       setWorkbench((current) =>
@@ -128,21 +153,10 @@ export function LabWorkbench({
     }
 
     if (isBoundaryLayerLab) {
-      setBoundaryLayerState((current) => ({
-        ...current,
-        status: "starting",
-        message: "Running boundary_layer_1d profile evolution.",
-        saveMessage: null,
-      }));
+      setBoundaryLayerState((current) => markBoundaryLayerComputing(current));
       try {
         const run = await boundaryLayerClient.runProfile(boundaryLayerState.config);
-        setBoundaryLayerState((current) => ({
-          ...current,
-          run,
-          displayedFrameIndex: Math.max(0, run.frames.length - 1),
-          status: "complete",
-          message: `Profile run complete with ${run.frames.length} emitted frames.`,
-        }));
+        setBoundaryLayerState((current) => markBoundaryLayerRunReady(current, run));
       } catch (error) {
         setBoundaryLayerState((current) => ({
           ...current,
@@ -205,9 +219,14 @@ export function LabWorkbench({
   }
 
   const runStatus = isBoundaryLayerLab ? boundaryLayerState.status : workbench.run.status;
-  const isRunning = runStatus === "starting" || runStatus === "running";
+  const isRunning = runStatus === "computing" || runStatus === "starting" || runStatus === "running";
 
   return (
+    <WorkbenchErrorBoundary
+      boundaryKey={`${lab.id}-workbench`}
+      fallbackTitle={`${lab.name} encountered an unexpected UI error.`}
+      fallbackBody="Reset this lab or return to the Lab Picker."
+    >
     <main className="workbench-v2" aria-label={`${lab.name} workbench`}>
       <WorkbenchTopBar
         lab={lab}
@@ -217,6 +236,7 @@ export function LabWorkbench({
         isRunning={isRunning}
         canRun={canRun}
         supportsRun={capabilities.supportsRun}
+        isProfileLab={isBoundaryLayerLab}
         onBackToLabs={onBackToLabs}
         onStartRun={handleStartRun}
         onStopRun={handleStopRun}
@@ -254,6 +274,7 @@ export function LabWorkbench({
           frame={currentFrame}
           boundaryLayerFrame={boundaryLayerFrame}
           boundaryLayerState={boundaryLayerState}
+          setBoundaryLayerState={setBoundaryLayerState}
           workbench={workbench}
           cloudOpticsControls={cloudOpticsControls}
           cloudOpticsViewMode={cloudOpticsViewMode}
@@ -276,12 +297,7 @@ export function LabWorkbench({
       </section>
 
       {capabilities.supportsTimeline || capabilities.supportsReplay ? (
-        isBoundaryLayerLab ? (
-          <BoundaryLayerTimelinePanel
-            state={boundaryLayerState}
-            setState={setBoundaryLayerState}
-          />
-        ) : (
+        isBoundaryLayerLab ? null : (
           <TimelinePanel
             workbench={workbench}
             replayEvents={replayEvents}
@@ -290,6 +306,63 @@ export function LabWorkbench({
         )
       ) : null}
     </main>
+    </WorkbenchErrorBoundary>
+  );
+}
+
+class WorkbenchErrorBoundary extends Component<
+  {
+    boundaryKey: string;
+    fallbackTitle: string;
+    fallbackBody: string;
+    children: ReactNode;
+  },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error): void {
+    if (import.meta.env.DEV) {
+      console.error(error);
+    }
+  }
+
+  componentDidUpdate(previousProps: { boundaryKey: string }): void {
+    if (previousProps.boundaryKey !== this.props.boundaryKey && this.state.hasError) {
+      this.setState({ hasError: false });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <WorkbenchErrorFallback
+          fallbackTitle={this.props.fallbackTitle}
+          fallbackBody={this.props.fallbackBody}
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export function WorkbenchErrorFallback({
+  fallbackTitle,
+  fallbackBody,
+}: {
+  fallbackTitle: string;
+  fallbackBody: string;
+}) {
+  return (
+    <section className="workbench-region workbench-error-fallback" role="alert">
+      <h2>{fallbackTitle}</h2>
+      <p>{fallbackBody}</p>
+    </section>
   );
 }
 
@@ -301,6 +374,7 @@ function WorkbenchTopBar({
   isRunning,
   canRun,
   supportsRun,
+  isProfileLab,
   inspectorOpen,
   onBackToLabs,
   onStartRun,
@@ -316,6 +390,7 @@ function WorkbenchTopBar({
   isRunning: boolean;
   canRun: boolean;
   supportsRun: boolean;
+  isProfileLab: boolean;
   inspectorOpen: boolean;
   onBackToLabs: () => void;
   onStartRun: () => void;
@@ -324,6 +399,8 @@ function WorkbenchTopBar({
   onToggleInspector: () => void;
   onSaveRun: () => void;
 }) {
+  const canStop = isRunning && !isProfileLab;
+
   return (
     <header className="workbench-top-bar">
       <button type="button" className="ghost-button" onClick={onBackToLabs}>
@@ -343,35 +420,41 @@ function WorkbenchTopBar({
               disabled={isRunning || !canRun}
               title={canRun ? undefined : "Run flow is unavailable for this lab."}
             >
-              Run
+              {isProfileLab ? "Run profile" : "Run"}
             </button>
-            <button type="button" onClick={onStopRun} disabled={!isRunning || !canRun}>
-              Stop
-            </button>
+            {canStop ? (
+              <button type="button" onClick={onStopRun} disabled={!canRun}>
+                Stop
+              </button>
+            ) : null}
           </>
         ) : null}
         <button type="button" onClick={onResetRun}>
           {supportsRun ? "Reset" : "Reset controls"}
         </button>
         {supportsRun ? (
-          <span className={`run-state run-state-${runStatus}`}>{runStatusLabel(runStatus)}</span>
+          <span className={`run-state run-state-${runStatus}`}>Status: {runStatusLabel(runStatus)}</span>
         ) : (
           <span className="run-state run-state-idle">Static optics lab</span>
         )}
-        <button type="button" onClick={onToggleInspector} aria-pressed={inspectorOpen}>
-          Inspector
-        </button>
+        {!isProfileLab ? (
+          <button type="button" onClick={onToggleInspector} aria-pressed={inspectorOpen}>
+            Inspector
+          </button>
+        ) : null}
         <button type="button" onClick={onSaveRun}>
           {supportsRun ? "Save" : "Save setup"}
         </button>
         <button type="button" disabled title="Comparison mode is intentionally deferred.">
           Compare
         </button>
-        <button type="button" disabled title="System drawer is deferred from the default flow.">
-          System
-        </button>
+        {!isProfileLab ? (
+          <button type="button" disabled title="System drawer is deferred from the default flow.">
+            System
+          </button>
+        ) : null}
       </div>
-      <span className="mode-pill">Mode: {mode}</span>
+      {!isProfileLab ? <span className="mode-pill">Mode: {mode}</span> : null}
     </header>
   );
 }
@@ -593,14 +676,16 @@ function BoundaryLayerSetupPanel({
       <section className="setup-control-section" aria-labelledby="setup-scenario-title">
         <h3 id="setup-scenario-title">Scenario</h3>
         <label className="control-group">
-          <span>Scenario</span>
+          <span>Preset</span>
           <select
+            className="boundary-layer-scenario-select"
             value={state.selectedScenarioId}
             onChange={(event) =>
               setState((current) =>
                 selectBoundaryLayer1DScenario(current, event.currentTarget.value),
               )
             }
+            title={scenario?.name}
           >
             {lab.scenarios.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
@@ -609,6 +694,7 @@ function BoundaryLayerSetupPanel({
             ))}
           </select>
         </label>
+        <strong className="selected-scenario-name">{scenario?.name ?? "Scenario unavailable"}</strong>
         <p>{scenario?.intendedPhenomenon ?? lab.question}</p>
         <p className="setup-expectation">{scenario?.expectedBehavior}</p>
         <p className="model-setup-summary">
@@ -624,12 +710,14 @@ function BoundaryLayerSetupPanel({
         <div className="workbench-control-grid" aria-label="Boundary-layer surface forcing controls">
           <BoundaryLayerNumberControl
             id="duration_seconds"
-            label="Hours from sunrise / duration"
-            value={state.config.duration_seconds}
-            min={1_800}
-            max={28_800}
-            step={900}
-            formatValue={(value) => `${(value / 3_600).toFixed(1)} h`}
+            label="Duration after sunrise"
+            value={durationSecondsToHours(state.config.duration_seconds)}
+            min={0.5}
+            max={8}
+            step={0.25}
+            suffix="hours"
+            valueToConfig={(value) => durationHoursToSeconds(value)}
+            formatValue={(value) => `${value.toFixed(1)} h after sunrise`}
             setState={setState}
           />
           <BoundaryLayerNumberControl
@@ -778,6 +866,7 @@ function BoundaryLayerNumberControl({
   step,
   suffix,
   formatValue,
+  valueToConfig,
   setState,
 }: {
   id: BoundaryLayer1DControlId;
@@ -788,6 +877,7 @@ function BoundaryLayerNumberControl({
   step: number;
   suffix?: string;
   formatValue?: (value: number) => string;
+  valueToConfig?: (value: number) => number;
   setState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
 }) {
   return (
@@ -801,7 +891,9 @@ function BoundaryLayerNumberControl({
         step={step}
         onChange={(event) => {
           const nextValue = Number(event.currentTarget.value);
-          setState((current) => updateBoundaryLayer1DControl(current, id, nextValue));
+          setState((current) =>
+            updateBoundaryLayer1DControl(current, id, valueToConfig ? valueToConfig(nextValue) : nextValue),
+          );
         }}
       />
       <small>{formatValue ? formatValue(value) : suffix ?? "0 to 1"}</small>
@@ -1139,6 +1231,7 @@ function VisualizationStage({
   frame,
   boundaryLayerFrame,
   boundaryLayerState,
+  setBoundaryLayerState,
   workbench,
   cloudOpticsControls,
   cloudOpticsViewMode,
@@ -1150,6 +1243,7 @@ function VisualizationStage({
   frame: SimulationFrame | null;
   boundaryLayerFrame: BoundaryLayer1DFrame | null;
   boundaryLayerState: BoundaryLayer1DState;
+  setBoundaryLayerState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
   workbench: WorkbenchState;
   cloudOpticsControls: CloudOpticsSceneControls | null;
   cloudOpticsViewMode: CloudOpticsViewMode;
@@ -1171,11 +1265,18 @@ function VisualizationStage({
 
   if (lab.id === EVOLVING_BOUNDARY_LAYER_LAB_ID) {
     return (
-      <BoundaryLayerVisualizationStage
-        lab={lab}
-        frame={boundaryLayerFrame}
-        state={boundaryLayerState}
-      />
+      <WorkbenchErrorBoundary
+        boundaryKey={`${lab.id}-${boundaryLayerState.selectedScenarioId}-visualization`}
+        fallbackTitle="Profile visualization failed to render."
+        fallbackBody="Reset the lab or change scenario settings and run again."
+      >
+        <BoundaryLayerVisualizationStage
+          lab={lab}
+          frame={boundaryLayerFrame}
+          state={boundaryLayerState}
+          setState={setBoundaryLayerState}
+        />
+      </WorkbenchErrorBoundary>
     );
   }
 
@@ -1318,25 +1419,43 @@ function BoundaryLayerVisualizationStage({
   lab,
   frame,
   state,
+  setState,
 }: {
   lab: LabDefinition;
   frame: BoundaryLayer1DFrame | null;
   state: BoundaryLayer1DState;
+  setState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
 }) {
+  const frames = usableBoundaryLayerFrames(state.run);
   const activeFrame = frame ?? boundaryLayerPreviewFrame(state);
+  const initialFrame = frames[0] ?? null;
+  const hasRun = frames.length > 0;
   const status = activeFrame.diagnostics.cloud_formation_potential_status;
-  const hasRun = state.run !== null;
   const temperaturePoints = profileLinePoints(
     activeFrame,
     activeFrame.temperature_k.map((value) => value - 273.15),
     "temperature",
   );
   const rhPoints = profileLinePoints(activeFrame, activeFrame.relative_humidity_percent, "rh");
+  const initialTemperaturePoints = initialFrame
+    ? profileLinePoints(
+        initialFrame,
+        initialFrame.temperature_k.map((value) => value - 273.15),
+        "temperature",
+      )
+    : "";
+  const initialRhPoints = initialFrame
+    ? profileLinePoints(initialFrame, initialFrame.relative_humidity_percent, "rh")
+    : "";
   const markers = [
-    { label: "Mixed-layer depth marker", value: activeFrame.mixed_layer_depth_m, className: "mixed-layer" },
-    { label: "LCL marker", value: activeFrame.lcl_m, className: "lcl" },
-    { label: "Inversion / cap marker", value: activeFrame.inversion_height_m, className: "cap" },
+    { label: "Mixed-layer depth", value: activeFrame.mixed_layer_depth_m, className: "mixed-layer" },
+    { label: "LCL", value: activeFrame.lcl_m, className: "lcl" },
+    { label: "Inversion / cap", value: activeFrame.inversion_height_m, className: "cap" },
   ];
+  const diagnosticView = boundaryLayerDiagnosticViewModel(
+    frame,
+    boundaryLayer1DScenarioForId(state.selectedScenarioId),
+  );
 
   return (
     <section
@@ -1348,19 +1467,24 @@ function BoundaryLayerVisualizationStage({
         <div className="stage-title-row">
           <h2 id="visualization-stage-title">Profile / sounding hero view</h2>
           <div className="frame-readout" aria-label="Displayed frame readout">
-            <span>Frame {hasRun ? state.displayedFrameIndex + 1 : 0} / {state.run?.frames.length ?? 0}</span>
-            <strong>{activeFrame.time_hours_from_sunrise.toFixed(1)} h from sunrise</strong>
+            <span>{hasRun ? `${frames.length} profile samples` : "No profile samples yet"}</span>
+            <strong>{formatHoursAfterSunrise(activeFrame.time_hours_from_sunrise)}</strong>
           </div>
         </div>
       </div>
       <div className="stage-toolbar">
         <p className="field-scale-title">
-          Temperature profile, RH profile, mixed-layer depth, LCL, and inversion/cap markers
+          Profile at {formatHoursAfterSunrise(activeFrame.time_hours_from_sunrise)}
         </p>
         <span className={`diagnostic-status diagnostic-status-${status}`}>
           Cloud formation potential: {statusLabel(status)}
         </span>
       </div>
+      {!hasRun ? (
+        <p className="workbench-message">
+          Ready to evolve the profile. Choose a scenario and run the profile from sunrise through the selected duration.
+        </p>
+      ) : null}
       <div className="profile-sounding-shell">
         <div className="profile-sounding-chart" role="img" aria-label={`${lab.name} 1-D profile visualization`}>
           <span className="axis-label axis-label-y">Height, z (m)</span>
@@ -1369,6 +1493,12 @@ function BoundaryLayerVisualizationStage({
             <AxisGrid orientation="y" maxValue={state.config.height_m} />
             <svg className="profile-sounding-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
               <title>Temperature and RH profile</title>
+              {initialFrame ? (
+                <>
+                  <polyline points={initialTemperaturePoints} className="profile-line profile-line-initial-temperature" />
+                  <polyline points={initialRhPoints} className="profile-line profile-line-initial-rh" />
+                </>
+              ) : null}
               <polyline points={temperaturePoints} className="profile-line profile-line-temperature" />
               <polyline points={rhPoints} className="profile-line profile-line-rh" />
             </svg>
@@ -1377,18 +1507,19 @@ function BoundaryLayerVisualizationStage({
                 key={marker.label}
                 className={`profile-marker profile-marker-${marker.className}`}
                 style={{ bottom: `${profileHeightPercent(activeFrame, marker.value)}%` }}
-              >
-                {marker.label}: {formatMeters(marker.value)}
-              </span>
+                aria-hidden="true"
+              />
             ))}
           </div>
           <div className="profile-sounding-legend">
             <span className="temperature-key">Temperature profile</span>
             <span className="rh-key">RH profile</span>
+            <span className="initial-key">Initial profile</span>
             <span className="marker-key">Profile markers</span>
           </div>
         </div>
       </div>
+      <BoundaryLayerInlineReplayControls state={state} setState={setState} />
       <dl className="stage-stats">
         <div>
           <dt>Mixed-layer depth</dt>
@@ -1407,7 +1538,15 @@ function BoundaryLayerVisualizationStage({
           <dd>{activeFrame.diagnostics.rh_near_mixed_layer_top_percent.toFixed(0)}%</dd>
         </div>
       </dl>
-      <p className="stage-helper">{activeFrame.diagnostics.cloud_formation_potential_reason}</p>
+      <dl className="boundary-layer-marker-list" aria-label="Profile markers">
+        {markers.map((marker) => (
+          <div key={marker.label}>
+            <dt>{marker.label}</dt>
+            <dd>{formatMeters(marker.value)}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="stage-helper">{diagnosticView.scenarioCheckLabel}</p>
       <div className="assumption-labels" aria-label="Model assumptions">
         <span>Model assumptions</span>
         <p>
@@ -1676,11 +1815,17 @@ function InspectorPanel({
 
   if (lab.id === EVOLVING_BOUNDARY_LAYER_LAB_ID) {
     return (
-      <BoundaryLayerInspectorPanel
-        lab={lab}
-        state={boundaryLayerState}
-        frame={boundaryLayerFrame}
-      />
+      <WorkbenchErrorBoundary
+        boundaryKey={`${lab.id}-${boundaryLayerState.selectedScenarioId}-inspector`}
+        fallbackTitle="Diagnostics failed to render."
+        fallbackBody="The profile run data may be incomplete or inconsistent."
+      >
+        <BoundaryLayerInspectorPanel
+          lab={lab}
+          state={boundaryLayerState}
+          frame={boundaryLayerFrame}
+        />
+      </WorkbenchErrorBoundary>
     );
   }
 
@@ -1860,6 +2005,10 @@ function BoundaryLayerInspectorPanel({
   frame: BoundaryLayer1DFrame | null;
 }) {
   const activeFrame = frame ?? boundaryLayerPreviewFrame(state);
+  const diagnosticView = boundaryLayerDiagnosticViewModel(
+    frame,
+    boundaryLayer1DScenarioForId(state.selectedScenarioId),
+  );
   const diagnostics = activeFrame.diagnostics;
 
   return (
@@ -1867,22 +2016,49 @@ function BoundaryLayerInspectorPanel({
       <p className="region-label">Inspector</p>
       <section className="inspector-summary" aria-labelledby="inspector-region-title">
         <h2 id="inspector-region-title">Cloud formation potential</h2>
-        <span className={`diagnostic-status diagnostic-status-${diagnostics.cloud_formation_potential_status}`}>
-          Result: {statusLabel(diagnostics.cloud_formation_potential_status)}
+        <span className={`diagnostic-status diagnostic-status-${diagnosticView.status}`}>
+          Result: {diagnosticView.statusLabel}
         </span>
-        <p>{diagnostics.cloud_formation_potential_reason}</p>
+        <p>{diagnosticView.explanation}</p>
       </section>
+
+      <details className="inspector-details" open>
+        <summary>Scenario check</summary>
+        <dl className="diagnostic-list">
+          <div>
+            <dt>Expected</dt>
+            <dd>{diagnosticView.expectedLabel}</dd>
+          </div>
+          <div>
+            <dt>Observed</dt>
+            <dd>{diagnosticView.observedLabel}</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>{diagnosticView.scenarioCheckLabel}</dd>
+          </div>
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Try next</summary>
+        <ul>
+          {diagnosticView.tryNext.map((suggestion) => (
+            <li key={suggestion}>{suggestion}</li>
+          ))}
+        </ul>
+      </details>
 
       <details className="inspector-details" open>
         <summary>Profile diagnostics</summary>
         <dl className="diagnostic-list">
           <div>
             <dt>Cloud formation potential status</dt>
-            <dd>{statusLabel(diagnostics.cloud_formation_potential_status)}</dd>
+            <dd>{diagnosticView.statusLabel}</dd>
           </div>
           <div>
             <dt>Deterministic limiting reason</dt>
-            <dd>{diagnostics.cloud_formation_potential_reason}</dd>
+            <dd>{diagnosticView.reason}</dd>
           </div>
           <div>
             <dt>Mixed-layer depth</dt>
@@ -2044,60 +2220,70 @@ function CloudOpticsInspectorPanel({
   );
 }
 
-function BoundaryLayerTimelinePanel({
+function BoundaryLayerInlineReplayControls({
   state,
   setState,
 }: {
   state: BoundaryLayer1DState;
   setState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
 }) {
-  const frames = state.run?.frames ?? [];
+  const frames = usableBoundaryLayerFrames(state.run);
   const max = Math.max(0, frames.length - 1);
   const currentFrame = boundaryLayerDisplayedFrame(state);
+  const canReplay = frames.length > 0;
+  const isReplaying = state.status === "replaying";
 
   return (
-    <section className="timeline-region" aria-labelledby="timeline-region-title">
-      <div>
-        <p className="region-label">Timeline / replay</p>
-        <h2 id="timeline-region-title">
-          {frames.length > 0
-            ? `Profile frame ${state.displayedFrameIndex + 1} of ${frames.length}`
-            : "Run profile evolution to replay frames"}
-        </h2>
+    <section className="boundary-layer-replay-panel" aria-label="Profile replay controls">
+      <div className="boundary-layer-replay-heading">
+        <strong>
+          {currentFrame
+            ? formatHoursAfterSunrise(currentFrame.time_hours_from_sunrise)
+            : "Ready to evolve"}
+        </strong>
+        <span>{canReplay ? `${frames.length} profile samples` : "Run profile evolution to create replay frames"}</span>
       </div>
       <input
         type="range"
         min="0"
         max={max}
-        value={state.displayedFrameIndex}
-        readOnly={frames.length === 0}
-        aria-label="Profile replay timeline"
+        value={canReplay ? state.displayedFrameIndex : 0}
+        disabled={!canReplay}
+        aria-label="Profile time scrubber"
         onChange={(event) => {
           const frameIndex = Number(event.currentTarget.value);
-          setState((current) => ({
-            ...current,
-            displayedFrameIndex: Math.min(Math.max(0, frameIndex), max),
-          }));
+          setState((current) => selectBoundaryLayerFrame(current, frameIndex));
         }}
       />
-      <div className="timeline-actions" aria-label="Profile replay actions">
+      <div className="timeline-actions boundary-layer-replay-actions" aria-label="Profile replay actions">
         <button
           type="button"
-          onClick={() => setState((current) => ({ ...current, displayedFrameIndex: 0 }))}
-          disabled={frames.length === 0}
+          onClick={() => setState((current) => selectBoundaryLayerFrame(current, 0))}
+          disabled={!canReplay}
         >
           First
         </button>
         <button
           type="button"
-          onClick={() => setState((current) => ({ ...current, displayedFrameIndex: max }))}
-          disabled={frames.length === 0}
+          onClick={() => setState((current) => isReplaying ? pauseBoundaryLayerReplay(current) : playBoundaryLayerReplay(current))}
+          disabled={!canReplay || state.status === "complete"}
+        >
+          {isReplaying ? "Pause" : "Play"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setState((current) => replayBoundaryLayerEvolution(current))}
+          disabled={!canReplay}
+        >
+          Replay evolution
+        </button>
+        <button
+          type="button"
+          onClick={() => setState((current) => selectFinalBoundaryLayerFrame(current))}
+          disabled={!canReplay}
         >
           Final
         </button>
-        <span className="run-state run-state-idle">
-          {currentFrame ? `${currentFrame.time_hours_from_sunrise.toFixed(1)} h from sunrise` : "No frames"}
-        </span>
       </div>
     </section>
   );
@@ -2467,6 +2653,14 @@ function resolutionLabel(value: string): string {
 
 function runStatusLabel(status: string): string {
   switch (status) {
+    case "ready":
+      return "Ready";
+    case "computing":
+      return "Computing";
+    case "replaying":
+      return "Replaying";
+    case "paused":
+      return "Paused";
     case "idle":
       return "Ready";
     case "starting":
