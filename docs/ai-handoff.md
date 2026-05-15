@@ -249,9 +249,21 @@ Lower Atmosphere Cloud Basics now opens the v2 reduced-model shell by default.
 The shell uses the legacy internal route id `fair-weather-cumulus`, but the
 default user-facing path is no longer the Boussinesq 2-D run screen. It exposes
 the three v2 flows, setup groups for profile and prescribed-lift controls,
-placeholder science views, inspector sections, precipitation placeholder status,
-and labels including `No Boussinesq default`. It does not yet run the
-profile-to-cloud-column workflow.
+science views, inspector sections, precipitation placeholder status, and labels
+including `No Boussinesq default`.
+
+Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
+
+- atmosphere evolution only calls `boundary_layer_1d`
+- lifted cloud only calls `controlled_cloud_column` from a selected/default
+  profile
+- combined evolution + lifted cloud runs profile evolution, selects the final
+  evolved profile by default, then runs prescribed cloud-column lift
+
+The v2 handoff preserves selected-profile provenance (`source_model`,
+`source_frame_time_seconds`, `source_time_hours_from_sunrise`,
+`source_scenario_id`, and `source_profile_status`) and does not use
+`boussinesq_2d`.
 
 ## Do Not Do Without Explicit User Direction
 
@@ -301,7 +313,8 @@ Use the current open issue state to decide, but as of this handoff:
   the issue explicitly asks for it.
 - If lower-atmosphere science architecture is active, work from
   `docs/lower-atmosphere-modeling-strategy.md`.
-- The next lower-atmosphere science implementation issue should likely be
-  profile-to-cloud-column orchestration for Lower Atmosphere v2. Do not broaden
-  shell issues into solver physics, precipitation, CM1, optics, or Boussinesq
-  behavior.
+- The next lower-atmosphere science implementation issue should likely build
+  v2 diagnostics/inspector depth or scientific visualization on top of the
+  profile-to-cloud-column orchestration. Do not broaden those issues into solver
+  physics, precipitation, CM1, optics, or Boussinesq behavior unless explicitly
+  scoped.

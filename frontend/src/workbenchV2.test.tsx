@@ -240,7 +240,7 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Setup");
     expect(html).toContain("Visualization stage");
     expect(html).toContain("Inspector");
-    expect(html).toContain("Timeline / scrubber placeholder");
+    expect(html).toContain("Timeline / scrubber");
   });
 
   it("opens the Lower Atmosphere v2 reduced-model shell by default", () => {

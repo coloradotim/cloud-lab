@@ -584,22 +584,35 @@ Basics user-facing path. The implementation keeps the legacy internal lab id
 `fair-weather-cumulus` to avoid route/config churn, but the visible default is
 now the v2 shell rather than the Boussinesq 2-D run screen.
 
+Issue #194 wires the shell to the existing reduced-model endpoints. The default
+v2 path can now run profile evolution, prescribed cloud-column lift, or the
+combined profile-to-column flow without using Boussinesq.
+
 The shell includes:
 
 - the three v2 flow modes: atmosphere evolution, lifted cloud, and combined
   evolution + lift
 - setup groups for scenario, flow mode, atmosphere profile, surface forcing,
   cap/inversion, entrainment, prescribed lift, and advanced settings
-- placeholder profile, cloud-column, combined-result, timeline/scrubber, and
-  status-card views
-- inspector placeholders for profile diagnostics, cloud-column diagnostics,
+- profile, cloud-column, combined-result, timeline/scrubber, and status-card
+  surfaces that display the current run state
+- inspector sections for profile diagnostics, cloud-column diagnostics,
   expected vs observed status, assumptions/limitations, and precipitation
   status
 - visible honesty labels, including `No Boussinesq default`
 
-The shell intentionally does not implement profile-to-cloud-column
-orchestration, precipitation, CM1 comparison, optics, or new model physics.
-Those remain follow-on issues.
+The orchestration preserves selected-profile provenance:
+
+```text
+source_model = boundary_layer_1d
+source_frame_time_seconds
+source_time_hours_from_sunrise
+source_scenario_id
+source_profile_status
+```
+
+The implementation still does not add precipitation, CM1 comparison, optics,
+new model physics, or Boussinesq coupling. Those remain follow-on issues.
 
 Required comparison pairs:
 
@@ -940,8 +953,8 @@ Create the v2 Lower Atmosphere Cloud Basics shell and make it the default Lower 
 
 Status:
 
-Implemented by #193 as a shell/default-routing step. It does not include
-profile-to-cloud-column orchestration.
+Implemented by #193 as a shell/default-routing step. Profile-to-cloud-column
+orchestration landed separately in #194.
 
 Scope:
 
@@ -963,6 +976,10 @@ Acceptance:
 Goal:
 
 Wire `boundary_layer_1d` outputs into `controlled_cloud_column`.
+
+Status:
+
+Implemented by #194 for the current v2 shell.
 
 Scope:
 

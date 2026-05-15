@@ -132,7 +132,7 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(displayedFirst.isReplayPaused).toBe(true);
   });
 
-  it("Lower Atmosphere v2 shell renders reduced-model placeholders instead of the old 2-D view", () => {
+  it("Lower Atmosphere v2 shell renders reduced-model orchestration surfaces instead of the old 2-D view", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
@@ -140,7 +140,7 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(html).toContain("Lower Atmosphere v2 reduced-model shell");
     expect(html).toContain("boundary_layer_1d profile view");
     expect(html).toContain("controlled_cloud_column view");
-    expect(html).toContain("Timeline / scrubber placeholder");
+    expect(html).toContain("Timeline / scrubber");
     expect(html).toContain("No Boussinesq default");
     expect(html).not.toContain("Scientific field");
     expect(html).not.toContain("Cloud liquid water - kg/kg");
