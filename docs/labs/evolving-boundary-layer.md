@@ -493,6 +493,11 @@ Do not implement all of this in one issue. Recommended follow-on splits:
 The remaining follow-on implementation should stay within the v1 non-goals or
 be split into successor issues from the modeling strategy.
 
+As of #178, `controlled_cloud_column` exists as a separate backend model.
+Evolving Boundary Layer v1 still does not emit cloud water, but future flows may
+pass an evolved profile to the controlled column model as an explicit follow-on
+step.
+
 ## Non-Goals For V1
 
 - Do not produce cloud water.

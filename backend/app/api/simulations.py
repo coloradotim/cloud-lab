@@ -2,6 +2,8 @@ from typing import Annotated
 
 from fastapi import APIRouter, Body, HTTPException, WebSocket, WebSocketDisconnect, status
 
+from app.sim.cloud_column import cloud_column_scenarios, run_cloud_column
+from app.sim.cloud_column_schemas import CloudColumnConfig
 from app.sim.presets import fair_weather_cumulus_preset, simulation_presets
 from app.sim.profile_1d import boundary_layer_1d_scenarios, run_profile
 from app.sim.profile_schemas import BoundaryLayer1DConfig
@@ -68,6 +70,20 @@ def run_boundary_layer_1d(
     config: Annotated[BoundaryLayer1DConfig | None, Body()] = None,
 ) -> dict[str, object]:
     return run_profile(config).model_dump(mode="json")
+
+
+@router.get("/controlled-cloud-column/scenarios")
+def controlled_cloud_column_scenarios() -> dict[str, object]:
+    return {
+        "scenarios": [scenario.model_dump(mode="json") for scenario in cloud_column_scenarios()]
+    }
+
+
+@router.post("/controlled-cloud-column/run")
+def run_controlled_cloud_column(
+    config: Annotated[CloudColumnConfig | None, Body()] = None,
+) -> dict[str, object]:
+    return run_cloud_column(config).model_dump(mode="json")
 
 
 @router.post("/runs", status_code=status.HTTP_201_CREATED)
