@@ -332,6 +332,20 @@ Minimum user flow:
 
 This first lab becomes the reference implementation for future labs.
 
+### Evolving Boundary Layer v1
+
+Workbench V2 also supports Evolving Boundary Layer as a standalone
+`boundary_layer_1d` profile lab:
+
+1. choose an Evolving Boundary Layer scenario
+2. adjust profile, surface forcing, cap, and entrainment controls
+3. run a deterministic profile evolution
+4. inspect temperature/RH profiles, mixed-layer depth, LCL, cap marker, and
+   cloud formation potential
+
+V1 does not produce cloud water, 2-D cloud fields, live Boussinesq coupling,
+LES/CFD behavior, or weather-prediction claims.
+
 ## Design Quality Bar
 
 Workbench V2 is successful when:

@@ -3,8 +3,10 @@ from __future__ import annotations
 import math
 
 import pytest
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from app.main import app
 from app.sim.profile_1d import boundary_layer_1d_scenarios, run_profile
 from app.sim.profile_schemas import BoundaryLayer1DConfig, BoundaryLayer1DFrame
 
@@ -174,6 +176,41 @@ def test_required_scenario_presets_have_expected_diagnostic_statuses() -> None:
         if scenario.expected_status is not None:
             assert final.diagnostics.cloud_formation_potential_status == scenario.expected_status
         assert final.diagnostics.cloud_formation_potential_reason
+
+
+def test_boundary_layer_profile_api_exposes_scenarios_and_run_payload() -> None:
+    client = TestClient(app)
+
+    scenarios_response = client.get("/simulations/boundary-layer-1d/scenarios")
+    assert scenarios_response.status_code == 200
+    scenarios_payload = scenarios_response.json()
+    assert [scenario["slug"] for scenario in scenarios_payload["scenarios"]] == [
+        "morning-stable-layer-breaks-down",
+        "moist-surface-cumulus-favorable",
+        "dry-entrainment-suppresses-potential",
+        "surface-moisture-flux-enables-potential",
+        "strong-cap-suppresses-growth",
+        "no-flux-control",
+    ]
+
+    config = scenarios_payload["scenarios"][1]["config"] | {
+        "duration_seconds": 1_800.0,
+        "time_step_seconds": 300.0,
+        "frame_interval_seconds": 600.0,
+        "levels": 12,
+    }
+    run_response = client.post("/simulations/boundary-layer-1d/run", json=config)
+
+    assert run_response.status_code == 200
+    run_payload = run_response.json()
+    assert run_payload["schema_version"] == "profile-run-v1"
+    assert run_payload["config"]["model_type"] == "boundary_layer_1d"
+    assert len(run_payload["frames"]) == 4
+    final_frame = run_payload["frames"][-1]
+    assert final_frame["schema_version"] == "profile-frame-v1"
+    assert final_frame["model_type"] == "boundary_layer_1d"
+    assert "cloud_liquid_water_kg_per_kg" not in final_frame
+    assert final_frame["diagnostics"]["cloud_formation_potential_reason"]
 
 
 def _scenario_config(slug: str) -> BoundaryLayer1DConfig:

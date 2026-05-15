@@ -5,6 +5,7 @@ import { App } from "./App";
 import { selectLabForWorkbench } from "./app/workbenchRoute";
 import {
   CLOUD_OPTICS_BEAUTY_LAB_ID,
+  EVOLVING_BOUNDARY_LAYER_LAB_ID,
   FAIR_WEATHER_CUMULUS_LAB_ID,
   labCatalog,
   labById,
@@ -49,7 +50,6 @@ describe("Workbench V2 lab picker", () => {
     expect(html).toContain("Future labs");
     expect(html).toContain("Not open yet");
     expect(html).toContain("aria-disabled=\"true\"");
-    expect(selectLabForWorkbench("evolving-boundary-layer")).toEqual({ view: "lab-picker" });
   });
 
   it("shows Clouds, Light, and Shadow as a subordinate selectable shell", () => {
@@ -143,6 +143,57 @@ describe("Clouds, Light, and Shadow Workbench V2 shell", () => {
     expect(html).toContain("Not droplet-resolved Mie scattering");
     expect(html).toContain("Not a calibrated radiance product");
     expect(html).toContain("Preset cloud field, not new cloud formation");
+  });
+});
+
+describe("Evolving Boundary Layer Workbench V2", () => {
+  const boundaryLayerLab = labById(EVOLVING_BOUNDARY_LAYER_LAB_ID);
+
+  if (!boundaryLayerLab) {
+    throw new Error("Missing Evolving Boundary Layer lab");
+  }
+
+  it("opens inside Workbench V2 around boundary_layer_1d profile evolution", () => {
+    const html = renderToStaticMarkup(
+      <LabWorkbench lab={boundaryLayerLab} onBackToLabs={vi.fn()} />,
+    );
+
+    expect(selectLabForWorkbench("evolving-boundary-layer")).toEqual({
+      view: "workbench",
+      selectedLabId: "evolving-boundary-layer",
+    });
+    expect(html).toContain("Evolving Boundary Layer");
+    expect(html).toContain("Simplified 1-D profile evolution");
+    expect(html).toContain("V1 diagnoses cloud formation potential. It does not produce cloud water.");
+    expect(html).toContain("Morning stable layer breaks down");
+    expect(html).toContain("Moist surface, cumulus favorable");
+    expect(html).toContain("Dry entrainment suppresses potential");
+    expect(html).toContain("Surface moisture flux enables potential");
+    expect(html).toContain("Strong cap suppresses growth");
+    expect(html).toContain("No-flux control");
+    expect(html).toContain("Surface heating strength");
+    expect(html).toContain("Surface moisture flux");
+    expect(html).toContain("Initial mixed-layer humidity");
+    expect(html).toContain("Initial stability / lapse rate");
+    expect(html).toContain("Inversion height");
+    expect(html).toContain("Inversion strength");
+    expect(html).toContain("Dry air above mixed layer");
+    expect(html).toContain("Entrainment strength");
+    expect(html).toContain("Profile / sounding hero view");
+    expect(html).toContain("Temperature profile");
+    expect(html).toContain("RH profile");
+    expect(html).toContain("Mixed-layer depth marker");
+    expect(html).toContain("LCL marker");
+    expect(html).toContain("Inversion / cap marker");
+    expect(html).toContain("Cloud formation potential");
+    expect(html).toContain("Deterministic limiting reason");
+    expect(html).toContain("Mixed-layer depth minus LCL");
+    expect(html).toContain("No cloud water in v1");
+    expect(html).toContain("Not cloud-resolving");
+    expect(html).toContain("No live Boussinesq coupling");
+    expect(html).not.toContain("Scientific 2-D field view");
+    expect(html).not.toContain("cloud_liquid_water_kg_per_kg");
+    expect(html).not.toContain("Experimental 2-D prototype");
   });
 });
 

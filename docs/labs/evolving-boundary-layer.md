@@ -42,12 +42,13 @@ V1 is about whether the environment becomes favorable for clouds, not about rend
 
 ## Current Maturity
 
-`concept`
+`prototype / Workbench V2 v1`
 
-This lab is currently a design/spec lab with the first backend profile model now
-available. `boundary_layer_1d` v1 implements the standalone profile-evolution
-core and diagnostics described here. The user-facing lab workbench, profile
-visualization, and timeline UI are still future work.
+This lab now has a Workbench V2 v1 implementation around the standalone
+`boundary_layer_1d` profile model. The backend profile-evolution core and
+diagnostics are available through a profile-specific API, and the frontend
+exposes scenario selection, profile controls, a profile/sounding visualization,
+timeline replay, and deterministic diagnostics.
 
 The first version should be a standalone 1-D profile-evolution lab that produces time-evolving profiles and diagnostics. Later versions may export evolved profiles into Lower Atmosphere Cloud Basics or loosely couple to `boussinesq_2d`, but that should wait until the 1-D profile model is understandable and validated.
 
@@ -59,6 +60,10 @@ cloud water in v1.
 
 See `docs/boundary-layer-1d.md` for the implemented backend profile contract,
 tendencies, diagnostics, presets, validation expectations, and v1 limitations.
+
+V1 remains intentionally profile-only. It diagnoses cloud formation potential
+and does not emit cloud liquid water, 2-D cloud fields, live Boussinesq coupling,
+LES/CFD behavior, or weather-prediction claims.
 
 ## User Controls
 
@@ -460,7 +465,7 @@ When implementing or changing this lab, update:
 
 Do not implement all of this in one issue. Recommended follow-on splits:
 
-1. **Add Evolving Boundary Layer lab catalog entry and static profile workbench shell**
+1. **Implemented: Add Evolving Boundary Layer lab catalog entry and static profile workbench shell**
    - Add lab entry and scenario metadata.
    - Add setup control groups matching this spec.
    - Add static placeholder profile visualization if the model is not ready.
@@ -470,12 +475,12 @@ Do not implement all of this in one issue. Recommended follow-on splits:
    - Do not couple to Boussinesq.
    - Do not emit cloud water.
 
-3. **Build Evolving Boundary Layer profile visualization and timeline diagnostics**
+3. **Implemented: Build Evolving Boundary Layer profile visualization and timeline diagnostics**
    - Hero profile/sounding view.
    - Morning vs current profile comparison.
    - Mixed-layer depth/LCL/RH time series.
 
-4. **Add cloud formation potential diagnostics and explanations**
+4. **Implemented: Add cloud formation potential diagnostics and explanations**
    - Deterministic statuses and reasons.
    - Inspector summary.
    - Scenario expected/observed checks.
@@ -485,7 +490,8 @@ Do not implement all of this in one issue. Recommended follow-on splits:
    - Heating, moisture flux, cap, humidity, and entrainment relationship tests.
    - Explicit test that v1 emits no cloud liquid water.
 
-Create these only after this design has been reviewed and the implementation order is agreed.
+The remaining follow-on implementation should stay within the v1 non-goals or
+be split into successor issues from the modeling strategy.
 
 ## Non-Goals For V1
 

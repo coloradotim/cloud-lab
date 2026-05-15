@@ -5,11 +5,13 @@ import type {
   LabScenarioDefinition,
   LabVisualizationModeDefinition,
 } from "./labTypes";
+import { boundaryLayer1DScenarioPresets } from "./evolvingBoundaryLayer";
 
 // Legacy internal id retained to avoid route/config churn. The user-facing lab name is
 // "Lower Atmosphere Cloud Basics"; fair-weather cumulus is a scenario family inside it.
 export const FAIR_WEATHER_CUMULUS_LAB_ID = "fair-weather-cumulus";
 export const CLOUD_OPTICS_BEAUTY_LAB_ID = "cloud-optics-beauty";
+export const EVOLVING_BOUNDARY_LAYER_LAB_ID = "evolving-boundary-layer";
 
 const fairWeatherControls: LabControlDefinition[] = [
   {
@@ -735,6 +737,281 @@ const cloudOpticsLab: LabDefinition = {
   isSelectable: true,
 };
 
+const evolvingBoundaryLayerControls: LabControlDefinition[] = [
+  {
+    id: "hours-from-sunrise-duration",
+    label: "Hours from sunrise / duration",
+    tier: "primary",
+    meaning: "Total profile-evolution time after sunrise.",
+    expectedEffect: "Longer runs show more accumulated heating, moisture flux, and mixed-layer growth.",
+    unitsOrType: "hours",
+    configPaths: ["duration_seconds"],
+  },
+  {
+    id: "surface-heating-strength",
+    label: "Surface heating strength",
+    tier: "primary",
+    meaning: "Dimensionless sensible-heating forcing at the surface.",
+    expectedEffect: "Stronger heating generally deepens the mixed layer faster.",
+    unitsOrType: "0 to 1",
+    configPaths: ["surface_heating_strength"],
+  },
+  {
+    id: "surface-moisture-flux",
+    label: "Surface moisture flux",
+    tier: "primary",
+    meaning: "Dimensionless moisture addition from the surface.",
+    expectedEffect: "Higher moisture flux can lower LCL and improve cloud formation potential.",
+    unitsOrType: "0 to 1",
+    configPaths: ["surface_moisture_flux_strength"],
+  },
+  {
+    id: "initial-mixed-layer-humidity",
+    label: "Initial mixed-layer humidity",
+    tier: "primary",
+    meaning: "Initial mixed-layer relative humidity.",
+    expectedEffect: "More humid profiles start with a lower LCL and less moisture limitation.",
+    unitsOrType: "RH fraction",
+    configPaths: ["initial_relative_humidity"],
+  },
+  {
+    id: "initial-stability-lapse-rate",
+    label: "Initial stability / lapse rate",
+    tier: "primary",
+    meaning: "Initial environmental temperature decrease with height.",
+    expectedEffect: "More stable profiles resist vertical growth.",
+    unitsOrType: "K m-1",
+    configPaths: ["initial_lapse_rate_k_per_m"],
+  },
+  {
+    id: "inversion-height",
+    label: "Inversion height",
+    tier: "primary",
+    meaning: "Height of the capping inversion.",
+    expectedEffect: "Lower caps can stop the mixed layer before it reaches the LCL.",
+    unitsOrType: "m",
+    configPaths: ["inversion_height_m"],
+  },
+  {
+    id: "inversion-strength",
+    label: "Inversion strength",
+    tier: "primary",
+    meaning: "Resistance proxy for the capping inversion.",
+    expectedEffect: "Stronger caps suppress mixed-layer growth and cloud potential.",
+    unitsOrType: "K",
+    configPaths: ["inversion_strength_k"],
+  },
+  {
+    id: "dry-air-above-mixed-layer",
+    label: "Dry air above mixed layer",
+    tier: "primary",
+    meaning: "Free-atmosphere relative humidity above the mixed layer.",
+    expectedEffect: "Drier air aloft increases entrainment drying and can suppress potential.",
+    unitsOrType: "RH fraction",
+    configPaths: ["free_atmosphere_relative_humidity"],
+  },
+  {
+    id: "entrainment-strength",
+    label: "Entrainment strength",
+    tier: "primary",
+    meaning: "Dimensionless mixing between mixed-layer air and air above.",
+    expectedEffect: "Stronger entrainment deepens the layer but can dry it if air aloft is dry.",
+    unitsOrType: "0 to 1",
+    configPaths: ["entrainment_strength"],
+  },
+  {
+    id: "vertical-levels-profile-resolution",
+    label: "Vertical levels / profile resolution",
+    tier: "advanced",
+    meaning: "Number of vertical levels in the 1-D profile.",
+    expectedEffect: "Higher resolution samples the profile more finely and costs a little more runtime.",
+    unitsOrType: "levels",
+    configPaths: ["levels"],
+  },
+  {
+    id: "timestep-output-cadence",
+    label: "Timestep / output cadence",
+    tier: "advanced",
+    meaning: "Profile-model integration step and emitted-frame interval.",
+    expectedEffect: "Controls numerical cadence and replay smoothness.",
+    unitsOrType: "seconds",
+    configPaths: ["time_step_seconds", "frame_interval_seconds"],
+  },
+  {
+    id: "seed",
+    label: "Seed",
+    tier: "advanced",
+    meaning: "Reserved deterministic seed for compatible profile configs.",
+    expectedEffect: "Keeps profile configurations reproducible as future variants are added.",
+    unitsOrType: "integer",
+    configPaths: ["seed"],
+  },
+];
+
+const evolvingBoundaryLayerDiagnostics: LabDiagnosticDefinition[] = [
+  {
+    id: "cloud-formation-potential-status",
+    label: "Cloud formation potential status",
+    purpose: "Classifies whether the evolving profile becomes cloud favorable.",
+    kind: "scenario-contract",
+  },
+  {
+    id: "deterministic-limiting-reason",
+    label: "Deterministic limiting reason",
+    purpose: "Explains the physical reason behind cloud-favorable or limited outcomes.",
+    kind: "display",
+  },
+  {
+    id: "mixed-layer-depth",
+    label: "Mixed-layer depth",
+    purpose: "Shows how surface heating and entrainment grow the mixed layer.",
+    kind: "display",
+  },
+  {
+    id: "lcl",
+    label: "LCL",
+    purpose: "Shows the derived lifting condensation level for mixed-layer air.",
+    kind: "display",
+  },
+  {
+    id: "mixed-layer-depth-minus-lcl",
+    label: "Mixed-layer depth minus LCL",
+    purpose: "Indicates whether the mixed layer has reached the diagnosed cloud-base threshold.",
+    kind: "display",
+  },
+  {
+    id: "rh-near-mixed-layer-top",
+    label: "RH near mixed-layer top",
+    purpose: "Shows whether the mixed-layer top is nearing saturation.",
+    kind: "display",
+  },
+  {
+    id: "inversion-cap-state",
+    label: "Inversion / cap state",
+    purpose: "Explains whether the capping inversion is suppressing profile growth.",
+    kind: "display",
+  },
+  {
+    id: "entrainment-drying-proxy",
+    label: "Entrainment drying proxy",
+    purpose: "Shows how dry-air mixing aloft limits potential.",
+    kind: "display",
+  },
+  {
+    id: "surface-heating-accumulation",
+    label: "Surface heating accumulation",
+    purpose: "Shows accumulated sensible heating in the simplified profile model.",
+    kind: "display",
+  },
+  {
+    id: "surface-moisture-addition",
+    label: "Surface moisture addition",
+    purpose: "Shows accumulated surface moisture addition in the simplified profile model.",
+    kind: "display",
+  },
+];
+
+const evolvingBoundaryLayerVisualizationModes: LabVisualizationModeDefinition[] = [
+  {
+    id: "profile-sounding-hero-view",
+    name: "Profile / sounding hero view",
+    description:
+      "Shows vertical temperature and RH profiles with mixed-layer depth, LCL, and inversion/cap markers.",
+    consumesFields: [
+      "temperature_k",
+      "relative_humidity_percent",
+      "mixed_layer_depth_m",
+      "lcl_m",
+      "inversion_height_m",
+    ],
+    truthLabel: "reduced-model-output",
+  },
+  {
+    id: "profile-timeline-replay",
+    name: "Profile timeline / replay",
+    description: "Scrubs through emitted profile frames from the 1-D model.",
+    consumesFields: ["profile-frame-v1"],
+    truthLabel: "reduced-model-output",
+  },
+  {
+    id: "profile-inspector-diagnostics",
+    name: "Profile inspector",
+    description:
+      "Explains cloud formation potential, limiting reason, LCL, mixed-layer depth, cap state, and entrainment drying.",
+    consumesFields: ["profile diagnostics"],
+    truthLabel: "derived-diagnostic",
+  },
+];
+
+const evolvingBoundaryLayerScenarios: LabScenarioDefinition[] =
+  boundaryLayer1DScenarioPresets.map((scenario) => ({
+    id: scenario.slug,
+    labId: EVOLVING_BOUNDARY_LAYER_LAB_ID,
+    name: scenario.name,
+    intendedPhenomenon: scenario.purpose,
+    expectedBehavior:
+      scenario.expected_status === "cloud_favorable"
+        ? "Profile evolution should become cloud favorable under the prescribed 1-D forcing."
+        : "Profile evolution should reveal the limiting process without producing cloud water.",
+    keyControls: [
+      "surface-heating-strength",
+      "surface-moisture-flux",
+      "initial-mixed-layer-humidity",
+      "inversion-height",
+      "inversion-strength",
+      "entrainment-strength",
+    ],
+    diagnosticExpectations: [
+      "Cloud formation potential status is deterministic.",
+      "Inspector reports the limiting reason.",
+      "No cloud liquid water field is emitted in v1.",
+    ],
+    limitations: [
+      "Simplified 1-D profile evolution.",
+      "V1 diagnoses cloud formation potential. It does not produce cloud water.",
+      "Not cloud-resolving and not live-coupled to Boussinesq.",
+    ],
+  }));
+
+const evolvingBoundaryLayerLab: LabDefinition = {
+  id: EVOLVING_BOUNDARY_LAYER_LAB_ID,
+  name: "Evolving Boundary Layer",
+  question: "How does the daytime lower atmosphere become favorable, or fail to become favorable, for cloud formation?",
+  description:
+    "Run a standalone 1-D profile evolution model to inspect mixed-layer growth, LCL, RH, cap suppression, entrainment drying, and cloud formation potential.",
+  status: "prototype",
+  statusLabel: "Simplified 1-D profile evolution",
+  supportedPhysicsCore: "boundary_layer_1d",
+  concepts: [
+    "mixed-layer depth",
+    "surface sensible heating",
+    "surface moisture flux",
+    "entrainment drying",
+    "LCL",
+    "cap / inversion suppression",
+    "cloud formation potential",
+  ],
+  limitations: [
+    "V1 diagnoses cloud formation potential. It does not produce cloud water.",
+    "Simplified 1-D profile model",
+    "Not cloud-resolving",
+    "No 2-D or 3-D cloud dynamics",
+    "No live Boussinesq coupling",
+    "Designed for learning and exploration, not weather prediction",
+  ],
+  scenarios: evolvingBoundaryLayerScenarios,
+  controls: evolvingBoundaryLayerControls,
+  diagnostics: evolvingBoundaryLayerDiagnostics,
+  visualizationModes: evolvingBoundaryLayerVisualizationModes,
+  capabilities: {
+    supportsRun: true,
+    supportsTimeline: true,
+    supportsReplay: true,
+    supportsStaticControls: false,
+  },
+  isSelectable: true,
+};
+
 function plannedLab(lab: Omit<LabDefinition, "supportedPhysicsCore" | "scenarios" | "controls" | "diagnostics" | "visualizationModes" | "capabilities" | "isSelectable">): LabDefinition {
   return {
     ...lab,
@@ -756,17 +1033,7 @@ function plannedLab(lab: Omit<LabDefinition, "supportedPhysicsCore" | "scenarios
 export const labCatalog: LabDefinition[] = [
   fairWeatherLab,
   cloudOpticsLab,
-  plannedLab({
-    id: "evolving-boundary-layer",
-    name: "Evolving Boundary Layer",
-    question: "How does the daytime atmosphere evolve into a cloud-producing environment?",
-    description:
-      "Future lab for mixed-layer growth, moisture redistribution, changing cloud base, and entrainment effects.",
-    status: "planned",
-    statusLabel: "Planned",
-    concepts: ["mixed-layer depth", "surface fluxes", "entrainment", "cloud onset"],
-    limitations: ["Dedicated lab spec and model work are planned later"],
-  }),
+  evolvingBoundaryLayerLab,
   plannedLab({
     id: "layered-atmosphere",
     name: "Layered Atmosphere",

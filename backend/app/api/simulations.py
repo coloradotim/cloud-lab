@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Body, HTTPException, WebSocket, WebSocketDisconnect, status
 
 from app.sim.presets import fair_weather_cumulus_preset, simulation_presets
+from app.sim.profile_1d import boundary_layer_1d_scenarios, run_profile
+from app.sim.profile_schemas import BoundaryLayer1DConfig
 from app.sim.runs import run_manager
 from app.sim.sample import create_sample_frame
 from app.sim.schemas import SimulationConfig
@@ -50,6 +52,22 @@ def solvers() -> dict[str, object]:
 @router.get("/presets")
 def presets() -> dict[str, object]:
     return {"presets": [preset.model_dump(mode="json") for preset in simulation_presets()]}
+
+
+@router.get("/boundary-layer-1d/scenarios")
+def boundary_layer_1d_preset_scenarios() -> dict[str, object]:
+    return {
+        "scenarios": [
+            scenario.model_dump(mode="json") for scenario in boundary_layer_1d_scenarios()
+        ]
+    }
+
+
+@router.post("/boundary-layer-1d/run")
+def run_boundary_layer_1d(
+    config: Annotated[BoundaryLayer1DConfig | None, Body()] = None,
+) -> dict[str, object]:
+    return run_profile(config).model_dump(mode="json")
 
 
 @router.post("/runs", status_code=status.HTTP_201_CREATED)
