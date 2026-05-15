@@ -34,7 +34,7 @@ describe("lab catalog", () => {
       "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
     expect(fairWeatherLab.status).toBe("prototype");
-    expect(fairWeatherLab.statusLabel).toBe("Experimental 2-D warm-cloud model");
+    expect(fairWeatherLab.statusLabel).toBe("Experimental 2-D prototype");
     expect(fairWeatherLab.supportedPhysicsCore).toBe("boussinesq_2d");
     expect(fairWeatherLab.concepts).toEqual(
       expect.arrayContaining([
@@ -48,8 +48,9 @@ describe("lab catalog", () => {
     );
     expect(fairWeatherLab.limitations).toEqual(
       expect.arrayContaining([
-        "Qualitative 2-D Boussinesq prototype",
+        "Yellow prototype visual dynamics scaffold",
         "Simplified warm-cloud condensation",
+        "Some behavior is shaped by prototype stabilizers and safety caps",
         "No droplet-size distribution or resolved rain in this lab version",
       ]),
     );

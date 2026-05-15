@@ -21,6 +21,11 @@ Each built-in scenario should answer:
 
 Reference cases remain separate. They are for regression tests and scientific guardrails. A built-in scenario may borrow from a reference case, but the UI should read like a lab experiment catalog rather than a test harness.
 
+For current Lower Atmosphere Cloud Basics scenarios that use `boussinesq_2d`,
+the scenario copy should identify the source as Yellow-status prototype dynamics
+output. These scenarios are useful for qualitative exploration and comparison,
+but they should not imply a trusted cloud-resolving atmospheric model.
+
 ## Relationship To Labs
 
 Workbench V2 should present scenarios inside labs.
@@ -75,7 +80,9 @@ The current built-in scenario catalog supports early Lower Atmosphere Cloud Basi
 - Forcing: single heated patch.
 - Expected behavior: thermal circulation develops first; cloud water appears later near a finite cloud base rather than immediately at the surface.
 - Diagnostics: finite LCL, low below-LCL cloud fraction, cloud base more clustered than cloud top.
-- Limitation: qualitative Boussinesq prototype, simplified entrainment and turbulence.
+- Limitation: Yellow-status Boussinesq prototype; qualitative exploration only;
+  simplified entrainment, turbulence, stabilizers, and safety caps shape some
+  behavior.
 
 The frontend `fair-weather-moderate-base` scenario is the single-patch baseline. The backend API preset keeps its legacy helper function name but now exposes the public slug `multi-thermal-cumulus-field` because it uses paired warm patches. A fair-weather cumulus baseline scenario that produces no cloud by its configured runtime is considered mislabeled or misconfigured, not an acceptable zero-cloud outcome.
 
@@ -88,7 +95,9 @@ The frontend `fair-weather-moderate-base` scenario is the single-patch baseline.
 - Forcing: two heated patches.
 - Expected behavior: distinct thermal responses should remain visible for a useful part of the run before diffusion, wind, or merger changes the field.
 - Diagnostics: delayed cloud onset, multiple cloud regions, low early cloud shield coverage.
-- Limitation: not sufficient by itself to make a rich product; this is a controlled shallow-cumulus experiment, not the whole cloud-lab vision.
+- Limitation: Yellow-status Boussinesq prototype; not sufficient by itself to
+  make a rich product; this is a controlled shallow-cumulus experiment, not the
+  whole cloud-lab vision.
 
 ### Dry failed cumulus
 
@@ -98,6 +107,8 @@ The frontend `fair-weather-moderate-base` scenario is the single-patch baseline.
 - Thermodynamics: lower RH and higher effective LCL.
 - Forcing: localized heating weaker than the cloud-forming fair-weather case.
 - Expected behavior: thermal/updraft structure appears while cloud liquid water stays negligible.
+- Limitation: Yellow-status Boussinesq prototype; dry suppression is
+  qualitative and not a validated turbulence/entrainment result.
 
 ### Humid low-cloud contrast
 
@@ -107,6 +118,8 @@ The frontend `fair-weather-moderate-base` scenario is the single-patch baseline.
 - Thermodynamics: near-saturated mixed layer.
 - Forcing: weak uneven heating.
 - Expected behavior: low cloud or broad deck behavior may appear. This is not labeled as classic fair-weather cumulus.
+- Limitation: Yellow-status Boussinesq prototype; low-cloud behavior is a
+  contrast/debug scenario, not a polished fog/stratus model.
 
 ### Capped / suppressed cloud
 
@@ -116,6 +129,8 @@ The frontend `fair-weather-moderate-base` scenario is the single-patch baseline.
 - Thermodynamics: moist lower source layer with a drier cap near the boundary-layer top.
 - Forcing: moderate localized heating.
 - Expected behavior: thermals lift but cloud development is delayed, limited, or suppressed.
+- Limitation: Yellow-status Boussinesq prototype; capped suppression is
+  qualitative and should not be presented as validated cloud-resolving dynamics.
 
 ### Microphysics lab — lifted humid parcel
 

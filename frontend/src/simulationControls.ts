@@ -430,7 +430,8 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
       "Cloud top is less horizontally uniform than cloud base.",
     ],
     knownLimitations: [
-      "This is a compact Boussinesq prototype, not quantitative LES.",
+      "This scenario uses Cloud Lab's Yellow-status Boussinesq prototype, not quantitative LES.",
+      "Some behavior is shaped by prototype stabilizers and safety caps.",
       "Entrainment and turbulence are simplified.",
     ],
     category: "exploratory",
@@ -474,7 +475,8 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
       "Cloud bases are more clustered than cloud tops when the source layer is well mixed.",
     ],
     knownLimitations: [
-      "Cell merger depends on grid resolution, wind, and diffusion.",
+      "This scenario uses Cloud Lab's Yellow-status Boussinesq prototype.",
+      "Cell merger depends on grid resolution, wind, diffusion, and stabilizer settings.",
       "Not every random seed should be interpreted as a meteorological forecast.",
     ],
     category: "visualization",
@@ -515,7 +517,10 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
       "Cloud liquid water remains negligible.",
       "Estimated LCL is higher than the cloud-forming layer.",
     ],
-    knownLimitations: ["Dry suppression is qualitative; entrainment and turbulence are simplified."],
+    knownLimitations: [
+      "This scenario uses Cloud Lab's Yellow-status Boussinesq prototype.",
+      "Dry suppression is qualitative; entrainment and turbulence are simplified.",
+    ],
     category: "diagnostic",
     apply: (config) =>
       normalizeConfig({
@@ -557,6 +562,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
       "Cloud coverage may exceed isolated cumulus coverage.",
     ],
     knownLimitations: [
+      "This scenario uses Cloud Lab's Yellow-status Boussinesq prototype.",
       "Fog/stratus microphysics is parameterized crudely.",
       "This scenario is a low-cloud contrast case, not the default fair-weather cumulus setup.",
     ],
@@ -598,7 +604,10 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
       "Cloud water is reduced relative to similar no-cap setups.",
       "Vertical development is capped or delayed.",
     ],
-    knownLimitations: ["Dry-cap structure is idealized and grid-smoothed."],
+    knownLimitations: [
+      "This scenario uses Cloud Lab's Yellow-status Boussinesq prototype.",
+      "Dry-cap structure is idealized and grid-smoothed.",
+    ],
     category: "exploratory",
     apply: (config) =>
       normalizeConfig({

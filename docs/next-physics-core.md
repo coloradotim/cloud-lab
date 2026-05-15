@@ -64,7 +64,7 @@ Cloud Lab currently has three solver backends behind one shared frame contract:
 | Solver | Role | Current status |
 | --- | --- | --- |
 | `educational_2d` | Legacy/internal teaching, UI, debugging, and regression model. | Useful for compatibility and regression, not public product direction. |
-| `boussinesq_2d` | Experimental streamfunction-vorticity dynamics scaffold. | Useful and validated as a prototype, but not a final CFD core. |
+| `boussinesq_2d` | Yellow prototype streamfunction-vorticity visual dynamics scaffold. | Useful for controlled qualitative experiments and comparison, but not the main science path for future cloud-resolving claims. |
 | `microphysics_lab` | Controlled parcel/box warm-cloud microphysics experiments. | Initial bulk saturation-adjustment mode available; PySDM remains optional evaluation work. |
 
 The shared `sim-frame-v1` frame schema emits row-major 2-D scalar fields with units, field metadata, and display hints. Every frame currently carries:
@@ -215,7 +215,9 @@ Physics-core work should mature in this order unless a lab need changes the prio
 
 1. Keep existing cores stable behind the shared frame contract.
 2. Build Workbench V2 around labs rather than solver modes.
-3. Use Boussinesq for Lower Atmosphere Cloud Basics while validating lab-specific behavior.
+3. Keep Boussinesq available for Yellow-labeled Lower Atmosphere Cloud Basics v1
+   experiments and comparison while future lower-atmosphere science moves
+   through the #174 model hierarchy.
 4. Add boundary-layer/profile evolution as the next major bridge toward realistic cloud variety.
 5. Use `microphysics_lab` for controlled Warm Rain / Droplet Growth experiments.
 6. Evaluate PySDM in isolation and map outputs into `docs/microphysics-schema.md`.

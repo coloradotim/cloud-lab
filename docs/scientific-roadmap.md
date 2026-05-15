@@ -44,7 +44,8 @@ The current foundation is a local 2-D vertical-slice and controlled parcel/box f
 
 The current public physics paths are:
 
-- `boussinesq_2d`: experimental 2-D dynamics scaffold for qualitative cloud experiments.
+- `boussinesq_2d`: Yellow prototype visual dynamics scaffold for controlled
+  qualitative cloud experiments.
 - `microphysics_lab`: controlled parcel/box warm-cloud microphysics mode.
 
 The current public `boussinesq_2d` path remains a Yellow prototype scaffold. It
@@ -252,7 +253,12 @@ Droplet-size distributions and effective radius are important for the Warm Rain 
 
 ## Boussinesq Direction
 
-`boussinesq_2d` remains experimental. It is useful for controlled visual experiments, UI/schema validation, fair-weather cumulus work, and targeted dynamics diagnostics. It should not be treated as a final CFD core.
+`boussinesq_2d` remains Yellow. It is useful for controlled visual experiments,
+UI/schema validation, Lower Atmosphere Cloud Basics v1 work, comparison against
+future reduced/reference outputs, and targeted dynamics diagnostics. It should
+not be treated as a final CFD core or as the main scientifically valid path for
+future lower-atmosphere cloud formation, terrain, precipitation, or optics
+claims.
 
 Improvements to Boussinesq should be driven by lab needs, not abstract solver perfection.
 

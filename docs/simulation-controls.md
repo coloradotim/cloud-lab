@@ -39,7 +39,14 @@ Presets are reproducible starting points, not claims of operational weather real
 - stay within the documented `sim-config-v1` schema
 - avoid hiding important assumptions from the user
 
-The backend API preset is `multi-thermal-cumulus-field`, shown in the API as **Multi-thermal cloud field**. It uses the public `boussinesq_2d` solver, a surface-moist source layer, paired warm surface patches, light background wind, and enough runtime for delayed cloud water to appear by the configured scenario end. The legacy helper function name is retained internally to avoid import churn, but the public preset contract is multi-thermal rather than the single-patch fair-weather baseline. This preset should not produce significant cloud at initialization.
+The backend API preset is `multi-thermal-cumulus-field`, shown in the API as
+**Multi-thermal cloud field**. It uses the public Yellow-status `boussinesq_2d`
+prototype, a surface-moist source layer, paired warm surface patches, light
+background wind, and enough runtime for delayed cloud water to appear by the
+configured scenario end. The legacy helper function name is retained internally
+to avoid import churn, but the public preset contract is multi-thermal rather
+than the single-patch fair-weather baseline. This preset should not produce
+significant cloud at initialization.
 
 ## Current Adjustable Parameters
 
@@ -70,7 +77,9 @@ Changing setup values resets playback and applies to the next run. Controls do n
 
 ## Current Control Meanings
 
-The current UI exposes the following controls when relevant:
+The current UI exposes the following controls when relevant. Boussinesq-backed
+controls should be presented as inputs to an experimental Yellow prototype, not
+as controls for a trusted lower-atmosphere cloud-resolving model:
 
 - Surface heating, `max_warming_rate_k_per_s`: stronger values create faster buoyant plume growth.
 - Surface temperature, `surface_temperature_k`: displayed in Celsius in the browser and stored in Kelvin in the config.
@@ -93,7 +102,12 @@ The frontend clamps dependent values, including heating width/center against the
 
 ## Expected Effects
 
-With the fair-weather cumulus preset, pressing Start should produce thermal circulation first and non-zero cloud liquid water only after lifted source-layer air reaches saturation. The scenario contract is delayed cloud onset by the configured runtime, no immediate surface-attached cloud, and cloud water that is not dominated by boundary artifacts.
+With the fair-weather cumulus preset, pressing Start should produce thermal
+circulation first and non-zero cloud liquid water only after lifted source-layer
+air reaches saturation. The scenario contract is delayed cloud onset by the
+configured runtime, no immediate surface-attached cloud, and cloud water that is
+not dominated by boundary artifacts. This remains a qualitative
+Yellow-prototype outcome, not a validated cloud-resolving forecast.
 
 Moving the heating center should move the plume source for single-patch scenarios. Lowering humidity may suppress visible cloud water. Increasing background wind should tilt or displace the evolving structure.
 
@@ -117,7 +131,10 @@ The user should see the controls that help answer the lab's question, not every 
 
 ## Limitations
 
-These controls drive prototype solvers. The public 2-D cloud workflow now uses `boussinesq_2d`; `educational_2d` remains available only for explicit legacy configs and regression tests.
+These controls drive prototype solvers. The public 2-D cloud workflow currently
+uses `boussinesq_2d` as a Yellow prototype visual dynamics scaffold;
+`educational_2d` remains available only for explicit legacy configs and
+regression tests.
 
 The current model still uses simplified warm-cloud condensation heuristics and Python-list numerics. It does not yet solve full compressible or anelastic fluid dynamics, entrainment, precipitation fallout, radiation, turbulence closure, or terrain forcing.
 

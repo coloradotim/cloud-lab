@@ -32,14 +32,14 @@ describe("Workbench V2 lab picker", () => {
     expect(html).toContain(
       "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
-    expect(html).toContain("Experimental 2-D warm-cloud model");
+    expect(html).toContain("Experimental 2-D prototype");
     expect(html).toContain("surface sensible heating");
     expect(html).toContain("buoyant thermals");
     expect(html).toContain("source-layer moisture");
     expect(html).toContain("lifted condensation level / cloud base");
     expect(html).toContain("atmospheric stability and lapse rate");
     expect(html).toContain("dry failed cumulus");
-    expect(html).toContain("Qualitative 2-D Boussinesq prototype");
+    expect(html).toContain("Yellow prototype visual dynamics scaffold");
   });
 
   it("marks future planned labs as visibly non-functional", () => {
@@ -201,7 +201,7 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Scientific 2-D field view");
     expect(html).toContain("Expected LCL / cloud base");
     expect(html).toContain("Simplified warm-cloud condensation");
-    expect(html).toContain("Qualitative 2-D Boussinesq prototype");
+    expect(html).toContain("Yellow prototype visual dynamics scaffold");
   });
 
   it("keeps saved runs and comparison out of large default panels", () => {

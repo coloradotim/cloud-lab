@@ -67,58 +67,36 @@ For Boussinesq / Lower Atmosphere Cloud Basics trust remediation, also read:
 11. `docs/next-physics-core.md`
 12. the issue being implemented
 
-## Current Workbench V2 Execution Order
+## Current Workbench / Lab Direction
 
-The main Workbench V2 implementation sequence is:
+Use `docs/current-phase-plan.md` for the current executable product phase. Use
+`docs/lower-atmosphere-modeling-strategy.md` for lower-atmosphere science
+architecture.
 
-```text
-#107 → #108 → #109 → #110 → #111
-```
+The active product direction remains Workbench V2 and lab-driven UI, but the
+lower-atmosphere science implementation path has pivoted away from treating
+`boussinesq_2d` as the main future science engine.
 
-- `#107` — Build Workbench V2 shell and lab picker
-- `#108` — Implement lab catalog and Lower Atmosphere Cloud Basics lab definition
-- `#109` — Wire Lower Atmosphere Cloud Basics Lab to run, replay, inspect, and save flow
-- `#110` — Build Workbench V2 scientific visualization stage and inspector
-- `#111` — Retire old dashboard as default and complete Workbench V2 reference flow
+Lower Atmosphere Cloud Basics v1 can continue to use Yellow-labeled
+`boussinesq_2d` for controlled qualitative experiments. Lower Atmosphere Cloud
+Basics v2 and Evolving Boundary Layer work should be re-cut from the
+lower-atmosphere model hierarchy rather than from old implementation issue
+ladders.
 
-Important current UX note from review of #107:
-
-- The individual lab/workbench page was directionally acceptable for the shell.
-- The Lab Picker/home page needed revision because it looked like a card dump.
-- Lower Atmosphere Cloud Basics should be a featured `Start here` card.
-- Planned labs should be quieter and grouped into `Coming next` / `Future labs`.
-- The Lower Atmosphere Cloud Basics card must not be clipped.
-
-## Current Design / Future Lab Issues
-
-Dedicated lab design/spec issues exist for future labs:
-
-- `#112` — Design Cloud Optics / Beauty Lab v1 → `docs/labs/cloud-optics-beauty.md`
-- `#113` — Design Evolving Boundary Layer Lab and profile-evolution model → `docs/labs/evolving-boundary-layer.md`
-- `#115` — Design Layered Atmosphere Lab v1 → `docs/labs/layered-atmosphere.md`
-- `#116` — Design Orographic / Terrain Clouds Lab v1 → `docs/labs/orographic-terrain-clouds.md`
-- `#117` — Design Warm Rain / Droplet Growth Lab v1 → `docs/labs/warm-rain-droplet-growth.md`
-- `#118` — Design Fog / Stratus Lab v1 → `docs/labs/fog-stratus.md`
-- `#119` — Design Mixed-Phase / Ice Lab v1 → `docs/labs/mixed-phase-ice.md`
-
-Lab design issues are product/science architecture work. Do not hand Codex a new lab design issue cold and ask it to decide the lab's product/science direction.
+Lab design/spec work is product/science architecture work. Do not hand Codex a
+new lab design issue cold and ask it to decide the lab's product/science
+direction.
 
 Use this split:
 
 - ChatGPT / human review: lab question, user promise, controls, physics scope, diagnostics, honesty labels, lab spec, issue decomposition.
 - Codex: scoped implementation issues created from approved lab specs.
 
-## Test / CI Issues
+## Test / CI Direction
 
-- `#100` — Make fast pre-merge tests actually fast
-- `#120` — Rationalize test suite around lab contracts and validation tiers
-
-Important distinction:
-
-- `#100` is about CI/test-path speed and separating frontend quick, backend quick, targeted science, and full validation paths.
-- `#120` is the broader test-suite rationalization effort.
-
-Do not turn `#100` into `#120`.
+Use `docs/testing-and-validation.md` and `docs/development.md` for current test
+tier guidance. Keep docs-only PRs lightweight unless code, schemas, workflows,
+imports, package files, or frontend metadata change.
 
 ## Boussinesq / Lower Atmosphere Trust Status
 
@@ -142,24 +120,7 @@ Continue non-Boussinesq paths:
 - Clouds, Light, and Shadow / Cloud Optics static or field-driven optics work
 - controlled microphysics paths
 
-## Boussinesq Remediation Issues Created From #150
-
-`#150` is closed. It created the approved remediation backlog:
-
-1. `#153` — Audit lower-atmosphere / fair-weather scenario presets against physical intent
-2. `#154` — Diagnose Boussinesq humid-cloud thermodynamic structure failure
-3. `#155` — Implement pressure-aware saturation and LCL thermodynamics for `boussinesq_2d`
-4. `#156` — Add stable/capped suppression validation and remediate failures
-5. `#157` — Define and implement return-flow / boundary cloud-water diagnostic policy
-6. `#158` — Add Fair-Weather resolution/domain sensitivity validation
-7. `#159` — Audit Boussinesq stabilizers, safety caps, and damping influence
-8. `#160` — Design successor dynamics path for cloud-resolving labs if Boussinesq remains Yellow
-
-Recommended remediation order:
-
-```text
-#153 → #154 → #155 → #156 → #157 → #158 → #159 → #160
-```
+## Boussinesq Trust Evidence
 
 Boussinesq-dependent work gate:
 
@@ -169,28 +130,30 @@ Boussinesq-dependent work gate:
 - Do not live-couple Evolving Boundary Layer into Boussinesq yet.
 - Continue non-Boussinesq paths.
 
-Post-#156 status:
+Stable/capped suppression status:
 
 - Dedicated paired stable/capped suppression validation exists for Lower Atmosphere Cloud Basics.
 - Current solver behavior passes the controlled lapse-rate pair and low/strong-cap versus high/weak-cap pair without solver physics changes.
 - This narrows the stability-suppression trust gap but does not make `boussinesq_2d` broadly trusted.
 
-Post-#166 status:
+Cloud-water persistence status:
 
 - A 4800 s Lower Atmosphere Cloud Basics paired-thermal reproduction exists for cloud-water persistence in subsaturated descending/return-flow regions.
 - Backend diagnostics now report subsaturated, downdraft, return-flow, below-LCL, near-surface, and near-boundary cloud-water fractions, plus estimated condensation/evaporation tendencies and approximate subsaturated-cloud lifetime.
 - The solver now evaporates pre-existing transported cloud water against the emitted cell's local pressure-aware saturation state while preserving lifted-parcel condensation.
 - The reproduction no longer shows the old majority-subsaturated-cloud-water failure, but it still reports return-flow cloud-water warnings. `boussinesq_2d` remains Yellow.
 
-Post-#157 status:
+Return-flow / boundary policy status:
 
 - Lower Atmosphere Cloud Basics now has an explicit return-flow / boundary cloud-water diagnostic policy.
 - Large below-LCL cloud-water fractions are hard failures; smaller below-LCL fractions are warnings.
 - Low-level return-flow, boundary, top-sponge, lateral-boundary, and boundary-connected cloud water are warnings or scenario-specific interpretation signals, not renderer masks.
 - Backend diagnostics expose artifact-policy check statuses and boundary-region fractions; frontend inspector diagnostics surface the same warning categories.
-- This policy does not tune scenarios, hide cloud water, or resolve the remaining return-flow/stabilizer trust gap. `boussinesq_2d` remains Yellow; deeper causes remain with #159 and successor-core decisions remain with #160.
+- This policy does not tune scenarios, hide cloud water, or resolve the
+  remaining return-flow/stabilizer trust gap. `boussinesq_2d` remains Yellow;
+  deeper causes remain with stabilizer audits and successor-core decisions.
 
-Post-#158 status:
+Resolution/domain/runtime sensitivity status:
 
 - Lower Atmosphere Cloud Basics now has an explicit resolution/domain/runtime sensitivity validation matrix.
 - Baseline shallow cloud remains cloud-forming across supported resolution/domain/runtime variants; dry failed remains cloud-free; capped/suppressed remains suppressed.
@@ -198,7 +161,7 @@ Post-#158 status:
 - The default `36 x 24`, `10 km x 3 km`, `1200 s` envelope remains recommended.
 - `boussinesq_2d` remains Yellow because high-resolution, smaller-domain, and long-runtime baseline runs show material sensitivity and artifact warnings.
 
-Post-#159 status:
+Stabilizer audit status:
 
 - A dedicated stabilizer audit exists in `docs/boussinesq-stabilizer-audit.md`.
 - Backend validation can run the audit with `cd backend && .venv/bin/python -m app.sim.validation --stabilizers --json`.
@@ -206,14 +169,17 @@ Post-#159 status:
 - The default single-patch Lower Atmosphere baseline reaches the theta perturbation safety cap, so the current baseline thermal amplitude is partly cap-shaped.
 - Reducing damping/diffusion by half materially changes cloud amount, updraft strength, onset timing, and cloud-top height, and can push several fields to their caps.
 - Disabling top sponge relaxation did not materially change the audited normal-height Lower Atmosphere cases.
-- `boussinesq_2d` remains Yellow; #160 successor-dynamics design is still relevant if Cloud Lab needs a more trusted cloud-resolving core.
+- `boussinesq_2d` remains Yellow; successor-dynamics design is still relevant
+  if Cloud Lab needs a more trusted cloud-resolving core.
 
-Post-#172 status:
+Numerical-method contract status:
 
 - `docs/boussinesq-numerical-method.md` is the authoritative numerical-method contract for the current `boussinesq_2d` solver.
 - It classifies solver state variables, the actual timestep/operator sequence, spatial discretization, boundary behavior, thermodynamics/moisture handling, stabilizers/caps, supported operating envelope, invariants, and validation claims.
 - Current trust assessment is B: `boussinesq_2d` can remain a Yellow-labeled prototype engine for controlled Lower Atmosphere Cloud Basics experiments, but it should not support polished future Boussinesq-dependent labs as a trusted foundation right now.
-- #160 should use the contract to decide whether to keep `boussinesq_2d` as a Yellow scaffold, refactor/recalibrate it with explicit numerical acceptance criteria, design a pseudo-anelastic/anelastic successor, use prescribed/profile-coupled dynamics, or evaluate an external/PDE framework.
+- Successor-dynamics decisions should use the contract and the model
+  hierarchy rather than assuming the current Boussinesq prototype is the future
+  science path.
 
 ## Lower-Atmosphere Modeling Strategy
 
@@ -234,7 +200,8 @@ The scientifically valid lower-atmosphere path should use:
 4. controlled microphysics / optional PySDM for precipitation and droplet-growth paths.
 5. normalized field, diagnostic, provenance, and optics contracts.
 
-Do not tune Boussinesq constants or presets to hide #159/#172 findings.
+Do not tune Boussinesq constants or presets to hide the stabilizer-audit or
+numerical-method findings.
 
 Near-term science implementation should prioritize:
 
@@ -281,9 +248,13 @@ Also update `docs/current-phase-plan.md` if the executable phase changed.
 
 Use the current open issue state to decide, but as of this handoff:
 
-- If Workbench V2 is the active product track, continue `#107 → #108 → #109 → #110 → #111`.
-- If CI/test runtime is blocking product iteration, work `#100` without broadening into `#120`.
-- If Boussinesq / Lower Atmosphere Cloud Basics trust remediation is the active track, begin with `#153` and work the remediation backlog in order.
+- If Workbench V2 is the active product track, use `docs/current-phase-plan.md`
+  and the open issue state rather than old closed issue ladders.
+- If CI/test runtime is blocking product iteration, use
+  `docs/testing-and-validation.md` and the current open issue state.
+- If Boussinesq / Lower Atmosphere Cloud Basics trust remediation is active,
+  treat `boussinesq_2d` as Yellow and do not broaden into solver behavior unless
+  the issue explicitly asks for it.
 - If lower-atmosphere science architecture is active, work from
   `docs/lower-atmosphere-modeling-strategy.md`.
 - The next science implementation issue should be `boundary_layer_1d` profile

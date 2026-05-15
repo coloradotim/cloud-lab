@@ -227,9 +227,9 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
 
     expect(html).toContain("Profile / sounding unavailable");
     expect(html).toContain("Probe values are unavailable");
-    expect(html).toContain("Solver output");
+    expect(html).toContain("Experimental solver output");
     expect(html).toContain("Derived diagnostic");
-    expect(html).toContain("Experimental 2-D dynamics");
+    expect(html).toContain("Experimental 2-D prototype");
     expect(html).toContain("Simplified warm-cloud condensation");
     expect(html).toContain("Assumptions &amp; limitations");
   });
