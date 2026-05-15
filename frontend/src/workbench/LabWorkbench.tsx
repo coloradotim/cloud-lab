@@ -1,6 +1,10 @@
 import { Component, useEffect, useMemo, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
 
-import { CLOUD_OPTICS_BEAUTY_LAB_ID, EVOLVING_BOUNDARY_LAYER_LAB_ID } from "../labs/labCatalog";
+import {
+  CLOUD_OPTICS_BEAUTY_LAB_ID,
+  EVOLVING_BOUNDARY_LAYER_LAB_ID,
+  FAIR_WEATHER_CUMULUS_LAB_ID,
+} from "../labs/labCatalog";
 import {
   buildCloudOpticsDiagnostics,
   CLOUD_OPTICS_HONESTY_LABELS,
@@ -17,6 +21,11 @@ import {
   updateCloudOpticsControls,
   type CloudOpticsViewMode,
 } from "../labs/cloudOpticsRenderer";
+import {
+  lowerAtmosphereV2ScenarioContracts,
+  type LowerAtmosphereV2FlowMode,
+  type LowerAtmosphereV2ScenarioContract,
+} from "../labs/lowerAtmosphereV2Scenarios";
 import {
   boundaryLayer1DScenarioForId,
   boundaryLayerDiagnosticViewModel,
@@ -79,6 +88,32 @@ import {
 } from "./scientificFieldView";
 
 type WorkbenchMode = "single" | "saved-runs" | "compare" | "sweep";
+type LowerAtmosphereV2FlowOption = {
+  id: LowerAtmosphereV2FlowMode;
+  label: string;
+  description: string;
+};
+
+const LOWER_ATMOSPHERE_V2_FLOW_OPTIONS: LowerAtmosphereV2FlowOption[] = [
+  {
+    id: "atmosphere_evolution",
+    label: "Evolve atmosphere",
+    description:
+      "Watch the lower-atmosphere profile change after sunrise and diagnose cloud formation potential. No cloud water is produced.",
+  },
+  {
+    id: "lifted_cloud",
+    label: "Lift cloud column",
+    description: "Apply prescribed lift to a selected profile and diagnose whether cloud water forms.",
+  },
+  {
+    id: "evolution_lifted_cloud",
+    label: "Evolve + lift",
+    description: "Evolve the atmosphere first, then run prescribed lift from a selected profile time.",
+  },
+];
+
+const LOWER_ATMOSPHERE_V2_DEFAULT_FLOW: LowerAtmosphereV2FlowMode = "evolution_lifted_cloud";
 
 type LabWorkbenchProps = {
   lab: LabDefinition;
@@ -107,10 +142,13 @@ export function LabWorkbench({
   const [boundaryLayerState, setBoundaryLayerState] = useState<BoundaryLayer1DState>(() =>
     createInitialBoundaryLayer1DState(lab.scenarios[0]?.id),
   );
+  const [lowerAtmosphereV2FlowMode, setLowerAtmosphereV2FlowMode] =
+    useState<LowerAtmosphereV2FlowMode>(LOWER_ATMOSPHERE_V2_DEFAULT_FLOW);
   const [selectedFieldKey, setSelectedFieldKey] = useState(defaultScientificFieldKey(null));
   const [inspectorOpen, setInspectorOpen] = useState(initialInspectorOpen);
   const cleanupRef = useRef<RunStreamCleanup | null>(null);
   const isBoundaryLayerLab = lab.id === EVOLVING_BOUNDARY_LAYER_LAB_ID;
+  const isLowerAtmosphereV2Lab = lab.id === FAIR_WEATHER_CUMULUS_LAB_ID;
   const scenario = isBoundaryLayerLab
     ? lab.scenarios.find((candidate) => candidate.id === boundaryLayerState.selectedScenarioId) ?? null
     : selectedLabScenario(lab, workbench);
@@ -128,6 +166,7 @@ export function LabWorkbench({
     setCloudOpticsControls(defaultCloudOpticsControls(lab.scenarios[0]?.id));
     setCloudOpticsViewMode("rendered-cloud-appearance");
     setBoundaryLayerState(createInitialBoundaryLayer1DState(lab.scenarios[0]?.id));
+    setLowerAtmosphereV2FlowMode(LOWER_ATMOSPHERE_V2_DEFAULT_FLOW);
     setSelectedFieldKey(defaultScientificFieldKey(null));
     return () => cleanupRef.current?.();
   }, [lab]);
@@ -145,6 +184,16 @@ export function LabWorkbench({
   }, [isBoundaryLayerLab, boundaryLayerState.status]);
 
   async function handleStartRun() {
+    if (isLowerAtmosphereV2Lab) {
+      setWorkbench((current) =>
+        markWorkbenchRunError(
+          current,
+          "Lower Atmosphere v2 shell is ready. Profile-to-cloud-column orchestration lands in a follow-on issue.",
+        ),
+      );
+      return;
+    }
+
     if (!canRun) {
       setWorkbench((current) =>
         markWorkbenchRunError(current, "This lab uses interactive preset scenes; backend run flow is not needed yet."),
@@ -236,7 +285,8 @@ export function LabWorkbench({
         isRunning={isRunning}
         canRun={canRun}
         supportsRun={capabilities.supportsRun}
-        isProfileLab={isBoundaryLayerLab}
+        isProfileLab={isBoundaryLayerLab || isLowerAtmosphereV2Lab}
+        runLabel={isLowerAtmosphereV2Lab ? "Run v2 flow" : undefined}
         onBackToLabs={onBackToLabs}
         onStartRun={handleStartRun}
         onStopRun={handleStopRun}
@@ -268,6 +318,8 @@ export function LabWorkbench({
           setCloudOpticsControls={setCloudOpticsControls}
           boundaryLayerState={boundaryLayerState}
           setBoundaryLayerState={setBoundaryLayerState}
+          lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
+          setLowerAtmosphereV2FlowMode={setLowerAtmosphereV2FlowMode}
         />
         <VisualizationStage
           lab={lab}
@@ -281,6 +333,7 @@ export function LabWorkbench({
           onCloudOpticsViewModeChange={setCloudOpticsViewMode}
           selectedFieldKey={selectedFieldKey}
           onSelectedFieldKeyChange={setSelectedFieldKey}
+          lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
         />
         {inspectorOpen ? (
           <InspectorPanel
@@ -291,13 +344,14 @@ export function LabWorkbench({
             cloudOpticsViewMode={cloudOpticsViewMode}
             boundaryLayerState={boundaryLayerState}
             boundaryLayerFrame={boundaryLayerFrame}
+            lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
             saveMessage={workbench.saveMessage}
           />
         ) : null}
       </section>
 
       {capabilities.supportsTimeline || capabilities.supportsReplay ? (
-        isBoundaryLayerLab ? null : (
+        isBoundaryLayerLab || isLowerAtmosphereV2Lab ? null : (
           <TimelinePanel
             workbench={workbench}
             replayEvents={replayEvents}
@@ -375,6 +429,7 @@ function WorkbenchTopBar({
   canRun,
   supportsRun,
   isProfileLab,
+  runLabel,
   inspectorOpen,
   onBackToLabs,
   onStartRun,
@@ -391,6 +446,7 @@ function WorkbenchTopBar({
   canRun: boolean;
   supportsRun: boolean;
   isProfileLab: boolean;
+  runLabel?: string;
   inspectorOpen: boolean;
   onBackToLabs: () => void;
   onStartRun: () => void;
@@ -420,7 +476,7 @@ function WorkbenchTopBar({
               disabled={isRunning || !canRun}
               title={canRun ? undefined : "Run flow is unavailable for this lab."}
             >
-              {isProfileLab ? "Run profile" : "Run"}
+              {runLabel ?? (isProfileLab ? "Run profile" : "Run")}
             </button>
             {canStop ? (
               <button type="button" onClick={onStopRun} disabled={!canRun}>
@@ -467,6 +523,8 @@ function LabSetupPanel({
   setCloudOpticsControls,
   boundaryLayerState,
   setBoundaryLayerState,
+  lowerAtmosphereV2FlowMode,
+  setLowerAtmosphereV2FlowMode,
 }: {
   lab: LabDefinition;
   workbench: WorkbenchState;
@@ -475,9 +533,23 @@ function LabSetupPanel({
   setCloudOpticsControls: Dispatch<SetStateAction<CloudOpticsSceneControls | null>>;
   boundaryLayerState: BoundaryLayer1DState;
   setBoundaryLayerState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
+  lowerAtmosphereV2FlowMode: LowerAtmosphereV2FlowMode;
+  setLowerAtmosphereV2FlowMode: Dispatch<SetStateAction<LowerAtmosphereV2FlowMode>>;
 }) {
   const scenario = selectedLabScenario(lab, workbench);
   const config = workbench.nextRunConfig;
+
+  if (lab.id === FAIR_WEATHER_CUMULUS_LAB_ID) {
+    return (
+      <LowerAtmosphereV2SetupPanel
+        lab={lab}
+        workbench={workbench}
+        setWorkbench={setWorkbench}
+        flowMode={lowerAtmosphereV2FlowMode}
+        setFlowMode={setLowerAtmosphereV2FlowMode}
+      />
+    );
+  }
 
   if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
     return (
@@ -653,6 +725,192 @@ function LabSetupPanel({
         </div>
       </section>
     </aside>
+  );
+}
+
+function LowerAtmosphereV2SetupPanel({
+  lab,
+  workbench,
+  setWorkbench,
+  flowMode,
+  setFlowMode,
+}: {
+  lab: LabDefinition;
+  workbench: WorkbenchState;
+  setWorkbench: Dispatch<SetStateAction<WorkbenchState>>;
+  flowMode: LowerAtmosphereV2FlowMode;
+  setFlowMode: Dispatch<SetStateAction<LowerAtmosphereV2FlowMode>>;
+}) {
+  const scenario = selectedLabScenario(lab, workbench);
+  const contract = lowerAtmosphereV2ScenarioForId(scenario?.id);
+  const profileDefaults = contract?.configDefaults.profileControls ?? {};
+  const cloudDefaults = contract?.configDefaults.cloudColumnControls ?? {};
+
+  if (!scenario || !contract) {
+    return (
+      <aside className="workbench-region setup-region" aria-labelledby="setup-region-title">
+        <p className="region-label">Setup</p>
+        <h2 id="setup-region-title">Lower Atmosphere v2 setup unavailable</h2>
+        <p className="workbench-message">
+          Scenario metadata is missing. Reset the lab or return to the Lab Picker.
+        </p>
+        <button type="button" onClick={() => setWorkbench(createInitialWorkbenchState(lab))}>
+          Reset Lower Atmosphere v2 shell
+        </button>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="workbench-region setup-region lower-atmosphere-v2-setup" aria-labelledby="setup-region-title">
+      <p className="region-label">Setup</p>
+      <h2 id="setup-region-title">{scenario.name}</h2>
+
+      <section className="setup-control-section" aria-labelledby="setup-scenario-title">
+        <h3 id="setup-scenario-title">Scenario</h3>
+        <label className="control-group">
+          <span>Scenario</span>
+          <select
+            value={workbench.selectedScenarioId}
+            onChange={(event) =>
+              setWorkbench((current) => selectWorkbenchScenario(current, lab, event.currentTarget.value))
+            }
+            title={scenario.name}
+          >
+            {lab.scenarios.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <strong className="selected-scenario-name">{scenario.name}</strong>
+        <p>{contract.physicalQuestion}</p>
+        <p className="setup-expectation">{scenario.expectedBehavior}</p>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-flow-title">
+        <h3 id="setup-flow-title">Flow mode</h3>
+        <fieldset className="segmented-control lower-atmosphere-flow-selector">
+          <legend>What do you want to explore?</legend>
+          <div role="group" aria-label="Lower Atmosphere v2 flow mode">
+            {LOWER_ATMOSPHERE_V2_FLOW_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                aria-pressed={flowMode === option.id}
+                onClick={() => setFlowMode(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <p className="control-helper">{lowerAtmosphereV2FlowDescription(flowMode)}</p>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-atmosphere-profile-title">
+        <h3 id="setup-atmosphere-profile-title">Atmosphere profile</h3>
+        <div className="workbench-control-grid" aria-label="Lower Atmosphere v2 atmosphere profile controls">
+          <ReadOnlyShellControl label="Duration after sunrise" value="4.0 h" helper="User-facing hours, not raw backend seconds." />
+          <ReadOnlyShellControl
+            label="Initial mixed-layer humidity"
+            value={formatShellValue(profileDefaults.initial_relative_humidity, "RH")}
+            helper="Starting lower-atmosphere moisture."
+          />
+          <ReadOnlyShellControl
+            label="Dry air above mixed layer"
+            value={formatShellValue(profileDefaults.free_atmosphere_relative_humidity, "RH")}
+            helper="Free-atmosphere RH used for entrainment contrast."
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-surface-forcing-title">
+        <h3 id="setup-surface-forcing-title">Surface forcing</h3>
+        <div className="workbench-control-grid" aria-label="Lower Atmosphere v2 surface forcing controls">
+          <ReadOnlyShellControl
+            label="Surface heating strength"
+            value={formatShellValue(profileDefaults.surface_heating_strength)}
+            helper="Sensible-heating strength for boundary_layer_1d."
+          />
+          <ReadOnlyShellControl
+            label="Surface moisture flux"
+            value={formatShellValue(profileDefaults.surface_moisture_flux_strength)}
+            helper="Moisture source strength for boundary_layer_1d."
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-cap-inversion-title">
+        <h3 id="setup-cap-inversion-title">Cap / inversion</h3>
+        <div className="workbench-control-grid" aria-label="Lower Atmosphere v2 cap controls">
+          <ReadOnlyShellControl
+            label="Inversion height"
+            value={formatShellValue(profileDefaults.inversion_height_m, "m")}
+            helper="Cap height for profile evolution."
+          />
+          <ReadOnlyShellControl
+            label="Inversion strength"
+            value={formatShellValue(profileDefaults.inversion_strength_k, "K")}
+            helper="Cap strength for profile evolution."
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-entrainment-title">
+        <h3 id="setup-entrainment-title">Entrainment</h3>
+        <div className="workbench-control-grid" aria-label="Lower Atmosphere v2 entrainment controls">
+          <ReadOnlyShellControl
+            label="Entrainment strength"
+            value={formatShellValue(profileDefaults.entrainment_strength)}
+            helper="Reduced-model mixed-layer-top exchange."
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-prescribed-lift-title">
+        <h3 id="setup-prescribed-lift-title">Prescribed lift</h3>
+        <div className="workbench-control-grid" aria-label="Lower Atmosphere v2 prescribed lift controls">
+          <ReadOnlyShellControl
+            label="Lift strength"
+            value={formatShellValue(cloudDefaults.updraft_strength_m_per_s, "m/s")}
+            helper="Prescribed lift, not predicted circulation."
+          />
+          <ReadOnlyShellControl
+            label="Lift duration"
+            value={formatShellValue(cloudDefaults.lift_duration_seconds, "s")}
+            helper="How long controlled_cloud_column lift is applied."
+          />
+          <ReadOnlyShellControl label="Selected profile time" value="Final evolved profile" helper="Selectable profile time arrives with orchestration." />
+        </div>
+      </section>
+
+      <details className="setup-control-section">
+        <summary>Advanced settings</summary>
+        <p className="control-helper">
+          Raw timestep, vertical resolution, output cadence, and schema/debug values stay behind advanced UI.
+        </p>
+      </details>
+    </aside>
+  );
+}
+
+function ReadOnlyShellControl({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <label className="control-group control-group-disabled">
+      <span>{label}</span>
+      <input value={value} readOnly disabled />
+      <small>{helper}</small>
+    </label>
   );
 }
 
@@ -1238,6 +1496,7 @@ function VisualizationStage({
   onCloudOpticsViewModeChange,
   selectedFieldKey,
   onSelectedFieldKeyChange,
+  lowerAtmosphereV2FlowMode,
 }: {
   lab: LabDefinition;
   frame: SimulationFrame | null;
@@ -1250,7 +1509,24 @@ function VisualizationStage({
   onCloudOpticsViewModeChange: (mode: CloudOpticsViewMode) => void;
   selectedFieldKey: string;
   onSelectedFieldKeyChange: (fieldKey: string) => void;
+  lowerAtmosphereV2FlowMode: LowerAtmosphereV2FlowMode;
 }) {
+  if (lab.id === FAIR_WEATHER_CUMULUS_LAB_ID) {
+    return (
+      <WorkbenchErrorBoundary
+        boundaryKey={`${lab.id}-${workbench.selectedScenarioId}-${lowerAtmosphereV2FlowMode}-visualization`}
+        fallbackTitle="Lower Atmosphere v2 visualization failed to render."
+        fallbackBody="Reset the lab or choose another scenario."
+      >
+        <LowerAtmosphereV2VisualizationStage
+          lab={lab}
+          workbench={workbench}
+          flowMode={lowerAtmosphereV2FlowMode}
+        />
+      </WorkbenchErrorBoundary>
+    );
+  }
+
   if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
     return (
       <CloudOpticsVisualizationStage
@@ -1410,6 +1686,125 @@ function VisualizationStage({
           Simplified warm-cloud condensation
         </p>
       </div>
+      {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
+    </section>
+  );
+}
+
+function LowerAtmosphereV2VisualizationStage({
+  lab,
+  workbench,
+  flowMode,
+}: {
+  lab: LabDefinition;
+  workbench: WorkbenchState;
+  flowMode: LowerAtmosphereV2FlowMode;
+}) {
+  const scenario = selectedLabScenario(lab, workbench);
+  const contract = lowerAtmosphereV2ScenarioForId(scenario?.id);
+
+  if (!scenario || !contract) {
+    return (
+      <section className="workbench-region visualization-stage" aria-labelledby="visualization-stage-title">
+        <p className="region-label">Visualization stage</p>
+        <h2 id="visualization-stage-title">Lower Atmosphere v2 shell</h2>
+        <div className="stage-empty-state" role="status">
+          <strong>Scenario metadata is unavailable.</strong>
+          <p>Reset the lab or return to the Lab Picker.</p>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section
+      className="workbench-region visualization-stage lower-atmosphere-v2-stage"
+      aria-labelledby="visualization-stage-title"
+    >
+      <div className="stage-heading">
+        <p className="region-label">Visualization stage</p>
+        <div className="stage-title-row">
+          <h2 id="visualization-stage-title">Lower Atmosphere v2 reduced-model shell</h2>
+          <div className="frame-readout" aria-label="Lower Atmosphere v2 shell state">
+            <span>{lowerAtmosphereV2FlowLabel(flowMode)}</span>
+            <strong>No run data yet</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="stage-toolbar">
+        <p className="field-scale-title">{contract.physicalQuestion}</p>
+        <span className="diagnostic-status diagnostic-status-not_evaluated">
+          No Boussinesq default
+        </span>
+      </div>
+
+      <div className="v2-shell-view-grid" aria-label="Lower Atmosphere v2 science views">
+        <section className="v2-shell-view-card" aria-labelledby="v2-profile-view-title">
+          <p className="region-label">Profile evolution</p>
+          <h3 id="v2-profile-view-title">boundary_layer_1d profile view</h3>
+          <p>
+            Reserved for temperature/RH profile evolution, mixed-layer depth, LCL, and cap markers.
+          </p>
+          <p className="control-helper">
+            Atmosphere evolution produces no cloud water in v1. It diagnoses cloud formation potential.
+          </p>
+        </section>
+        <section className="v2-shell-view-card" aria-labelledby="v2-column-view-title">
+          <p className="region-label">Cloud-column result</p>
+          <h3 id="v2-column-view-title">controlled_cloud_column view</h3>
+          <p>
+            Reserved for prescribed-lift height, RH, cloud liquid water, first cloud time, and cloud base.
+          </p>
+          <p className="control-helper">Lift is prescribed forcing, not predicted circulation.</p>
+        </section>
+        <section className="v2-shell-view-card" aria-labelledby="v2-combined-view-title">
+          <p className="region-label">Combined result</p>
+          <h3 id="v2-combined-view-title">Evolution + lifted cloud summary</h3>
+          <p>
+            Connects selected profile time to the cloud-column outcome, expected-vs-observed status,
+            and the main limiting factor.
+          </p>
+        </section>
+      </div>
+
+      <section className="boundary-layer-replay-panel" aria-label="Lower Atmosphere v2 timeline placeholder">
+        <div className="boundary-layer-replay-heading">
+          <strong>Timeline / scrubber placeholder</strong>
+          <span>Profile and cloud-column timelines arrive with orchestration.</span>
+        </div>
+        <input type="range" min="0" max="0" value="0" disabled aria-label="Lower Atmosphere v2 timeline scrubber" readOnly />
+        <div className="timeline-actions" aria-label="Lower Atmosphere v2 placeholder replay actions">
+          <button type="button" disabled>First</button>
+          <button type="button" disabled>Play</button>
+          <button type="button" disabled>Final</button>
+        </div>
+      </section>
+
+      <dl className="stage-stats">
+        <div>
+          <dt>Profile status</dt>
+          <dd>{statusLabel(contract.expectedProfileStatus)}</dd>
+        </div>
+        <div>
+          <dt>Cloud status</dt>
+          <dd>{lowerAtmosphereV2StatusLabel(contract.expectedCloudColumnStatus)}</dd>
+        </div>
+        <div>
+          <dt>Selected profile time</dt>
+          <dd>Final evolved profile</dd>
+        </div>
+        <div>
+          <dt>Precipitation status</dt>
+          <dd>{lowerAtmosphereV2StatusLabel(contract.expectedPrecipitationStatus)}</dd>
+        </div>
+      </dl>
+
+      <div className="assumption-labels" aria-label="Lower Atmosphere v2 honesty labels">
+        <span>Model assumptions</span>
+        <p>{["Reduced model", "1-D profile evolution", "Prescribed lift", "Controlled cloud formation", "Not cloud-resolving dynamics", "No Boussinesq default", "Not weather prediction"].join(" · ")}</p>
+      </div>
+
       {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
     </section>
   );
@@ -1790,6 +2185,7 @@ function InspectorPanel({
   cloudOpticsViewMode,
   boundaryLayerState,
   boundaryLayerFrame,
+  lowerAtmosphereV2FlowMode,
   saveMessage,
 }: {
   lab: LabDefinition;
@@ -1799,8 +2195,26 @@ function InspectorPanel({
   cloudOpticsViewMode: CloudOpticsViewMode;
   boundaryLayerState: BoundaryLayer1DState;
   boundaryLayerFrame: BoundaryLayer1DFrame | null;
+  lowerAtmosphereV2FlowMode: LowerAtmosphereV2FlowMode;
   saveMessage: string | null;
 }) {
+  if (lab.id === FAIR_WEATHER_CUMULUS_LAB_ID) {
+    return (
+      <WorkbenchErrorBoundary
+        boundaryKey={`${lab.id}-${workbench.selectedScenarioId}-${lowerAtmosphereV2FlowMode}-inspector`}
+        fallbackTitle="Lower Atmosphere v2 diagnostics failed to render."
+        fallbackBody="The reduced-model shell data may be incomplete or inconsistent."
+      >
+        <LowerAtmosphereV2InspectorPanel
+          lab={lab}
+          workbench={workbench}
+          flowMode={lowerAtmosphereV2FlowMode}
+          saveMessage={saveMessage}
+        />
+      </WorkbenchErrorBoundary>
+    );
+  }
+
   if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
     return (
       <CloudOpticsInspectorPanel
@@ -1990,6 +2404,129 @@ function InspectorPanel({
           Simplified warm-cloud condensation · {lab.limitations[0]}
         </p>
       </details>
+      {saveMessage ? <p className="workbench-message">{saveMessage}</p> : null}
+    </aside>
+  );
+}
+
+function LowerAtmosphereV2InspectorPanel({
+  lab,
+  workbench,
+  flowMode,
+  saveMessage,
+}: {
+  lab: LabDefinition;
+  workbench: WorkbenchState;
+  flowMode: LowerAtmosphereV2FlowMode;
+  saveMessage: string | null;
+}) {
+  const scenario = selectedLabScenario(lab, workbench);
+  const contract = lowerAtmosphereV2ScenarioForId(scenario?.id);
+
+  if (!scenario || !contract) {
+    return (
+      <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
+        <p className="region-label">Inspector</p>
+        <h2 id="inspector-region-title">Lower Atmosphere v2 diagnostics unavailable</h2>
+        <p className="empty-diagnostic">
+          Scenario metadata is missing. Reset the lab or choose another scenario.
+        </p>
+      </aside>
+    );
+  }
+
+  return (
+    <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
+      <p className="region-label">Inspector</p>
+      <section className="inspector-summary" aria-labelledby="inspector-region-title">
+        <h2 id="inspector-region-title">Lower Atmosphere v2 inspector shell</h2>
+        <span className="diagnostic-status diagnostic-status-not_evaluated">
+          Flow: {lowerAtmosphereV2FlowLabel(flowMode)}
+        </span>
+        <p>
+          This shell reserves deterministic diagnostics for profile evolution, prescribed-lift
+          cloud formation, expected-vs-observed scenario checks, and precipitation readiness.
+        </p>
+      </section>
+
+      <details className="inspector-details" open>
+        <summary>Profile diagnostics</summary>
+        <dl className="diagnostic-list">
+          <div>
+            <dt>Expected profile status</dt>
+            <dd>{statusLabel(contract.expectedProfileStatus)}</dd>
+          </div>
+          <div>
+            <dt>Profile model</dt>
+            <dd>boundary_layer_1d</dd>
+          </div>
+          <div>
+            <dt>Required fields</dt>
+            <dd>temperature, RH, mixed-layer depth, LCL, cap/inversion markers</dd>
+          </div>
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Cloud-column diagnostics</summary>
+        <dl className="diagnostic-list">
+          <div>
+            <dt>Expected cloud-column status</dt>
+            <dd>{lowerAtmosphereV2StatusLabel(contract.expectedCloudColumnStatus)}</dd>
+          </div>
+          <div>
+            <dt>Cloud-column model</dt>
+            <dd>controlled_cloud_column</dd>
+          </div>
+          <div>
+            <dt>Forcing</dt>
+            <dd>Prescribed lift, not predicted dynamics</dd>
+          </div>
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Expected vs observed</summary>
+        <dl className="diagnostic-list">
+          <div>
+            <dt>Expected</dt>
+            <dd>
+              {statusLabel(contract.expectedProfileStatus)} /{" "}
+              {lowerAtmosphereV2StatusLabel(contract.expectedCloudColumnStatus)}
+            </dd>
+          </div>
+          <div>
+            <dt>Observed</dt>
+            <dd>Run data not available in this shell yet</dd>
+          </div>
+          <div>
+            <dt>Status</dt>
+            <dd>Waiting for profile-to-cloud-column orchestration</dd>
+          </div>
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Precipitation status placeholder</summary>
+        <p className="assumption-copy">
+          Precipitation: {lowerAtmosphereV2StatusLabel(contract.expectedPrecipitationStatus)}.
+          Cloud water from controlled_cloud_column will be available for future warm-rain diagnostics,
+          but this shell does not implement rain physics.
+        </p>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Assumptions and limitations</summary>
+        <p className="assumption-copy">
+          {["Reduced model", "1-D profile evolution", "Prescribed lift", "Controlled cloud formation", "Not cloud-resolving dynamics", "No Boussinesq default", "Not weather prediction"].join(" · ")}
+        </p>
+        <ul>
+          {contract.knownLimitations.map((limitation) => (
+            <li key={limitation}>{limitation}</li>
+          ))}
+        </ul>
+      </details>
+
       {saveMessage ? <p className="workbench-message">{saveMessage}</p> : null}
     </aside>
   );
@@ -2645,6 +3182,44 @@ function orientationArrowForCamera(camera: string): string {
     default:
       return "<-";
   }
+}
+
+function lowerAtmosphereV2ScenarioForId(
+  scenarioId: string | undefined,
+): LowerAtmosphereV2ScenarioContract | null {
+  if (!scenarioId) {
+    return null;
+  }
+  return lowerAtmosphereV2ScenarioContracts.find((scenario) => scenario.id === scenarioId) ?? null;
+}
+
+function lowerAtmosphereV2FlowLabel(flowMode: LowerAtmosphereV2FlowMode): string {
+  return LOWER_ATMOSPHERE_V2_FLOW_OPTIONS.find((option) => option.id === flowMode)?.label ?? "Evolve + lift";
+}
+
+function lowerAtmosphereV2FlowDescription(flowMode: LowerAtmosphereV2FlowMode): string {
+  return (
+    LOWER_ATMOSPHERE_V2_FLOW_OPTIONS.find((option) => option.id === flowMode)?.description ??
+    "Evolve the atmosphere first, then run prescribed lift from a selected profile time."
+  );
+}
+
+function lowerAtmosphereV2StatusLabel(status: string): string {
+  return status
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part[0]?.toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatShellValue(value: string | number | undefined, suffix?: string): string {
+  if (typeof value === "number") {
+    return suffix ? `${value.toLocaleString()} ${suffix}` : value.toLocaleString();
+  }
+  if (typeof value === "string" && value.length > 0) {
+    return suffix ? `${value} ${suffix}` : value;
+  }
+  return "Scenario default";
 }
 
 function resolutionLabel(value: string): string {

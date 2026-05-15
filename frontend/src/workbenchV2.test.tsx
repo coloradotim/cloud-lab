@@ -33,14 +33,15 @@ describe("Workbench V2 lab picker", () => {
     expect(html).toContain(
       "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
-    expect(html).toContain("Experimental 2-D prototype");
+    expect(html).toContain("Reduced-model v2 shell");
     expect(html).toContain("surface sensible heating");
-    expect(html).toContain("buoyant thermals");
-    expect(html).toContain("source-layer moisture");
+    expect(html).toContain("1-D profile evolution");
+    expect(html).toContain("prescribed lift");
+    expect(html).toContain("controlled cloud formation");
     expect(html).toContain("lifted condensation level / cloud base");
-    expect(html).toContain("atmospheric stability and lapse rate");
+    expect(html).toContain("cap / inversion suppression");
     expect(html).toContain("dry failed cumulus");
-    expect(html).toContain("Yellow prototype visual dynamics scaffold");
+    expect(html).toContain("Reduced model");
   });
 
   it("marks future planned labs as visibly non-functional", () => {
@@ -227,11 +228,11 @@ describe("Workbench V2 shell", () => {
 
     expect(html).toContain("Cloud Lab");
     expect(html).toContain("Lower Atmosphere Cloud Basics");
-    expect(html).toContain("Fair-weather cumulus / baseline shallow cloud");
+    expect(html).toContain("Baseline shallow cloud");
     expect(html).toContain("Ready");
   });
 
-  it("renders setup, visualization, inspector, and timeline regions", () => {
+  it("renders setup, visualization, and inspector regions for the v2 shell", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
@@ -239,36 +240,58 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Setup");
     expect(html).toContain("Visualization stage");
     expect(html).toContain("Inspector");
-    expect(html).toContain("Timeline / replay");
+    expect(html).toContain("Timeline / scrubber placeholder");
   });
 
-  it("supports the lower-atmosphere reference flow from lab contract controls to run actions", () => {
+  it("opens the Lower Atmosphere v2 reduced-model shell by default", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
     expect(html).toContain("Scenario");
-    expect(html).toContain("Fair-weather cumulus / baseline shallow cloud");
+    expect(html).toContain("Baseline shallow cloud");
     expect(html).toContain("Dry failed cumulus");
     expect(html).toContain("Capped / suppressed cloud");
+    expect(html).toContain("Moist surface enables cloud");
+    expect(html).toContain("What do you want to explore?");
+    expect(html).toContain("Evolve atmosphere");
+    expect(html).toContain("Lift cloud column");
+    expect(html).toContain("Evolve + lift");
+    expect(html).toContain("Atmosphere profile");
+    expect(html).toContain("Surface forcing");
+    expect(html).toContain("Cap / inversion");
+    expect(html).toContain("Entrainment");
+    expect(html).toContain("Prescribed lift");
+    expect(html).toContain("Advanced settings");
     expect(html).toContain("Surface heating strength");
-    expect(html).toContain("Surface heating pattern");
-    expect(html).toContain("Source-layer humidity");
-    expect(html).toContain("Free-atmosphere humidity");
-    expect(html).toContain("Stability / lapse rate");
-    expect(html).toContain("Boundary-layer depth / cap height");
-    expect(html).toContain("Model resolution");
-    expect(html).toContain("Domain width");
-    expect(html).toContain("Domain height");
-    expect(html).toContain("Run length");
+    expect(html).toContain("Surface moisture flux");
+    expect(html).toContain("Initial mixed-layer humidity");
+    expect(html).toContain("Dry air above mixed layer");
+    expect(html).toContain("Inversion height");
+    expect(html).toContain("Inversion strength");
+    expect(html).toContain("Lift strength");
+    expect(html).toContain("Lift duration");
     expect(html).not.toContain("Model size / runtime");
-    expect(html).toContain(">Run<");
+    expect(html).toContain(">Run v2 flow<");
     expect(html).not.toContain(">Stop<");
     expect(html).toContain(">Reset<");
-    expect(html).toContain("Scientific 2-D field view");
-    expect(html).toContain("Expected LCL / cloud base");
-    expect(html).toContain("Simplified warm-cloud condensation");
-    expect(html).toContain("Yellow prototype visual dynamics scaffold");
+    expect(html).toContain("Lower Atmosphere v2 reduced-model shell");
+    expect(html).toContain("boundary_layer_1d profile view");
+    expect(html).toContain("controlled_cloud_column view");
+    expect(html).toContain("Atmosphere evolution produces no cloud water in v1");
+    expect(html).toContain("Lift is prescribed forcing, not predicted circulation.");
+    expect(html).toContain("Expected vs observed");
+    expect(html).toContain("Precipitation status placeholder");
+    expect(html).toContain("Reduced model");
+    expect(html).toContain("1-D profile evolution");
+    expect(html).toContain("Prescribed lift");
+    expect(html).toContain("Controlled cloud formation");
+    expect(html).toContain("Not cloud-resolving dynamics");
+    expect(html).toContain("No Boussinesq default");
+    expect(html).toContain("Not weather prediction");
+    expect(html).not.toContain("Scientific 2-D field view");
+    expect(html).not.toContain("Experimental 2-D prototype");
+    expect(html).not.toContain("boussinesq_2d");
   });
 
   it("keeps saved runs and comparison out of large default panels", () => {

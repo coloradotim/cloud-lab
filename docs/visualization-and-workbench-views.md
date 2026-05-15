@@ -43,6 +43,13 @@ The visualization stage should support:
 
 The normal single-run workbench should not show saved run artifacts or comparison as large default panels beneath the canvas. Those belong behind explicit `Saved Runs` and `Compare` workflows.
 
+Lower Atmosphere Cloud Basics v2 now uses a reduced-model shell as its default
+stage. Until orchestration lands, the stage shows explicit placeholders for the
+profile view, cloud-column view, combined result, timeline/scrubber, and status
+cards. These placeholders should stay labeled as reduced-model and
+prescribed-lift views, and should not imply Boussinesq, cloud-resolving
+dynamics, precipitation, optics, or weather prediction.
+
 ## Truth / Confidence Labels
 
 Cloud Lab labels displayed values and views by what they represent:
