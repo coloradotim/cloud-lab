@@ -154,6 +154,11 @@ Fair-weather cumulus is a baseline scenario/scenario family inside this lab, not
 - LCL / cloud-base diagnostics
 - honest labels for model limitations
 
+Lower Atmosphere Cloud Basics v2 should follow the model hierarchy in
+`docs/lower-atmosphere-modeling-strategy.md`: profile evolution, controlled
+cloud formation, reference cases, diagnostics, and optics field contracts.
+Current `boussinesq_2d` remains a Yellow prototype scaffold only.
+
 ### Future upgrades
 
 - better boundary-layer mixing

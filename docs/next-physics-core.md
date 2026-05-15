@@ -25,13 +25,28 @@ Cloud Lab should use a hybrid physics-core strategy:
 
 This keeps Cloud Lab moving toward more serious modeling while still supporting beautiful, interactive labs now.
 
+After #174, the lower-atmosphere strategy is a model hierarchy rather than a
+patched-Boussinesq path:
+
+1. CM1 offline reference cases for credible cloud-resolving behavior.
+2. `boundary_layer_1d` for interactive profile/environment evolution.
+3. `controlled_cloud_column` for cloud formation under prescribed lift.
+4. controlled microphysics / optional PySDM for warm-rain and droplet paths.
+5. optics consuming physical fields and provenance metadata.
+
+`boussinesq_2d` remains available as a Yellow prototype scaffold for controlled
+Lower Atmosphere Cloud Basics experiments. It is not the main science path for
+polished future cloud-resolving labs. See
+`docs/lower-atmosphere-modeling-strategy.md` for the authoritative
+lower-atmosphere science architecture.
+
 ## How This Serves The Lab Roadmap
 
 Each physics core should be judged by the labs it enables.
 
 | Lab | Near-term physics path | Notes |
 | --- | --- | --- |
-| Lower Atmosphere Cloud Basics | `boussinesq_2d` | Experimental but useful for shallow thermal/cloud behavior. |
+| Lower Atmosphere Cloud Basics | `boundary_layer_1d` + `controlled_cloud_column` + CM1 references; current `boussinesq_2d` only as Yellow prototype/comparison | Do not build future cloud-resolving claims on current Boussinesq. |
 | Evolving Boundary Layer | future profile/column + 2-D coupling | Major missing science/product layer. |
 | Layered Atmosphere | future profile/layer model | Needs editable and evolving profiles. |
 | Orographic / Terrain Clouds | idealized terrain forcing + validation | May start with Boussinesq, but must stay labeled. |
@@ -69,7 +84,13 @@ This schema boundary is important. The frontend and renderer should consume phys
 
 The Boussinesq validation suite checks quiet, dry, humid, stable, reproducibility, divergence, thermal-bubble behavior, and fair-weather thermodynamic structure diagnostics.
 
-The current evidence supports using `boussinesq_2d` for controlled visual experiments, Lower Atmosphere Cloud Basics learning, schema/UI validation, reference-case regression tests, and targeted dynamics work.
+The current evidence supports using `boussinesq_2d` for controlled visual
+experiments, Lower Atmosphere Cloud Basics v1 learning, schema/UI validation,
+reference-case regression tests, and targeted dynamics work. The broader
+post-#174 lower-atmosphere strategy is defined in
+`docs/lower-atmosphere-modeling-strategy.md`; it should guide future
+cloud-resolving claims instead of treating the current Boussinesq prototype as
+the main science path.
 
 It does not support treating it as a quantitatively credible CFD foundation for advanced microphysics.
 

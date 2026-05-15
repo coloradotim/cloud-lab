@@ -37,6 +37,7 @@ Older implementation docs remain useful as technical references, but they should
 ## Science And Modeling
 
 - `docs/scientific-roadmap.md` — physics maturity path in service of the lab roadmap.
+- `docs/lower-atmosphere-modeling-strategy.md` — authoritative lower-atmosphere model hierarchy: CM1 reference cases, `boundary_layer_1d`, `controlled_cloud_column`, controlled microphysics, field/diagnostic contracts, and optics inputs.
 - `docs/next-physics-core.md` — physics-core strategy; not the product roadmap.
 - `docs/boussinesq-solver.md` — Boussinesq 2-D physics core implementation notes.
 - `docs/boussinesq-numerical-method.md` — authoritative numerical-method contract for the current `boussinesq_2d` solver and its Yellow trust boundaries.
@@ -150,3 +151,7 @@ Cloud Lab is a lab-driven platform for beautiful, interactive cloud experiments 
 The current frontend is a capability prototype. Workbench V2 is the clean-slate product direction.
 
 Future work should build labs, not feature piles.
+
+For lower-atmosphere science architecture, use
+`docs/lower-atmosphere-modeling-strategy.md`. It supersedes treating
+`boussinesq_2d` as the main science path for future cloud-resolving labs.
