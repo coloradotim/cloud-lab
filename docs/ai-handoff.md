@@ -215,6 +215,33 @@ Post-#172 status:
 - Current trust assessment is B: `boussinesq_2d` can remain a Yellow-labeled prototype engine for controlled Lower Atmosphere Cloud Basics experiments, but it should not support polished future Boussinesq-dependent labs as a trusted foundation right now.
 - #160 should use the contract to decide whether to keep `boussinesq_2d` as a Yellow scaffold, refactor/recalibrate it with explicit numerical acceptance criteria, design a pseudo-anelastic/anelastic successor, use prescribed/profile-coupled dynamics, or evaluate an external/PDE framework.
 
+## Lower-Atmosphere Modeling Strategy
+
+Cloud Lab is moving from a solver-centered Boussinesq path to a lower-atmosphere
+model hierarchy.
+
+Current decision:
+
+```text
+boussinesq_2d = Yellow prototype visual dynamics scaffold
+```
+
+The scientifically valid lower-atmosphere path should use:
+
+1. CM1 offline reference cases for credible cloud-resolving behavior.
+2. `boundary_layer_1d` profile evolution for interactive environmental evolution.
+3. `controlled_cloud_column` for cloud formation under prescribed lift.
+4. controlled microphysics / optional PySDM for precipitation and droplet-growth paths.
+5. normalized field, diagnostic, provenance, and optics contracts.
+
+Do not tune Boussinesq constants or presets to hide #159/#172 findings.
+
+Near-term science implementation should prioritize:
+
+```text
+boundary_layer_1d → controlled_cloud_column → CM1 adapter/reference cases → microphysics precipitation diagnostics → optics field contract
+```
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.
@@ -257,3 +284,7 @@ Use the current open issue state to decide, but as of this handoff:
 - If Workbench V2 is the active product track, continue `#107 → #108 → #109 → #110 → #111`.
 - If CI/test runtime is blocking product iteration, work `#100` without broadening into `#120`.
 - If Boussinesq / Lower Atmosphere Cloud Basics trust remediation is the active track, begin with `#153` and work the remediation backlog in order.
+- If lower-atmosphere science architecture is active, work from
+  `docs/lower-atmosphere-modeling-strategy.md`.
+- The next science implementation issue should be `boundary_layer_1d` profile
+  model v1 unless the user chooses to update Boussinesq labeling/docs first.

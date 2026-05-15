@@ -15,6 +15,11 @@ operator sequence, state-variable classifications, boundary behavior,
 stabilizer/cap meanings, and Yellow trust implications, see
 `docs/boussinesq-numerical-method.md`.
 
+For the broader post-#174 lower-atmosphere modeling strategy, see
+`docs/lower-atmosphere-modeling-strategy.md`. Current `boussinesq_2d` remains a
+Yellow prototype scaffold, not the main science path for future polished
+cloud-resolving labs.
+
 For product direction, see `docs/lab-roadmap.md`.
 
 ## Role In The Lab Roadmap

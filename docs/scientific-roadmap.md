@@ -17,6 +17,10 @@ This document explains how the physics should mature in support of those labs.
 
 Cloud Lab should grow from clear, testable vertical-slice and parcel experiments into richer cloud dynamics and microphysics without pretending early models are more complete than they are.
 
+The lower-atmosphere science strategy is now defined in
+`docs/lower-atmosphere-modeling-strategy.md`. It uses a model hierarchy rather
+than treating current `boussinesq_2d` as the main path to scientific validity.
+
 The strategy is:
 
 ```text
@@ -42,6 +46,12 @@ The current public physics paths are:
 
 - `boussinesq_2d`: experimental 2-D dynamics scaffold for qualitative cloud experiments.
 - `microphysics_lab`: controlled parcel/box warm-cloud microphysics mode.
+
+The current public `boussinesq_2d` path remains a Yellow prototype scaffold. It
+is useful for controlled qualitative experiments and validation scaffolding, but
+the scientifically valid lower-atmosphere path should move through
+`boundary_layer_1d`, `controlled_cloud_column`, CM1 reference cases, controlled
+microphysics, and optics field contracts.
 
 `educational_2d` remains an internal/legacy learning backend for explicit compatibility and regression use.
 
@@ -69,7 +79,13 @@ Current status:
 - thermodynamic cloud-base diagnostics exist
 - still simplified and qualitative
 
-Next science improvements should target teaching-relevant failures: cloud base, cloud onset, cloud-top response, dry controls, and entrainment/drying behavior.
+Next science improvements should follow the post-#174 lower-atmosphere model
+hierarchy:
+
+- profile evolution through `boundary_layer_1d`
+- controlled cloud formation through `controlled_cloud_column`
+- CM1 reference cases for credible cloud-resolving comparison
+- current `boussinesq_2d` only as Yellow prototype/comparison
 
 ### Evolving Boundary Layer
 
@@ -92,7 +108,7 @@ Current status:
 - not yet a full model capability
 - should become a major next science/product direction after the workbench and fair-weather lab are coherent
 
-This is the bridge between static surface-heating scenarios and more realistic cloud evolution. It can begin as a simplified 1-D profile/boundary-layer model coupled to the 2-D slice environment.
+This is the bridge between static surface-heating scenarios and more realistic cloud evolution. It should begin as a simplified standalone 1-D profile/boundary-layer model before any later export or coupling path is considered.
 
 ### Layered Atmosphere
 

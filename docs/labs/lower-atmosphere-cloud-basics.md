@@ -248,6 +248,25 @@ The UI and docs should disclose:
 - possible future higher-fidelity dynamics core
 - optional droplet-aware microphysics only when needed and justified
 
+### V2 modeling direction
+
+Lower Atmosphere Cloud Basics v1 may continue to use `boussinesq_2d` as a
+Yellow-labeled prototype for controlled qualitative experiments.
+
+Lower Atmosphere Cloud Basics v2 should be designed around:
+
+```text
+boundary_layer_1d
+→ controlled_cloud_column
+→ CM1 reference comparison
+→ diagnostics
+→ optics consuming physical fields
+```
+
+Current Boussinesq should not be treated as the main scientifically valid
+lower-atmosphere engine or as the foundation for polished future cloud-resolving
+labs. See `docs/lower-atmosphere-modeling-strategy.md`.
+
 ## Frame / Schema Requirements
 
 V1 requires existing `sim-frame-v1` fields:

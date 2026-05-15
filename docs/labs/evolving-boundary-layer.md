@@ -48,6 +48,12 @@ This lab is currently a design/spec lab. It should become the first profile-evol
 
 The first version should be a standalone 1-D profile-evolution lab that produces time-evolving profiles and diagnostics. Later versions may export evolved profiles into Lower Atmosphere Cloud Basics or loosely couple to `boussinesq_2d`, but that should wait until the 1-D profile model is understandable and validated.
 
+This is the first natural implementation target for the lower-atmosphere model
+hierarchy in `docs/lower-atmosphere-modeling-strategy.md`: Evolving Boundary
+Layer v1 should use `boundary_layer_1d` as a standalone 1-D profile-evolution
+model. It should not live-couple to `boussinesq_2d` in v1 and should not emit
+cloud water in v1.
+
 ## User Controls
 
 ### Primary Controls
