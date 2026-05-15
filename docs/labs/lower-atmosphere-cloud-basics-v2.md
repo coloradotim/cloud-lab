@@ -577,6 +577,30 @@ profile-to-column orchestration. It exists so future Lower Atmosphere v2 work ca
 reuse one coherent scenario contract rather than rediscovering the design in UI
 components.
 
+## Workbench Shell Status
+
+Issue #193 makes the v2 reduced-model shell the default Lower Atmosphere Cloud
+Basics user-facing path. The implementation keeps the legacy internal lab id
+`fair-weather-cumulus` to avoid route/config churn, but the visible default is
+now the v2 shell rather than the Boussinesq 2-D run screen.
+
+The shell includes:
+
+- the three v2 flow modes: atmosphere evolution, lifted cloud, and combined
+  evolution + lift
+- setup groups for scenario, flow mode, atmosphere profile, surface forcing,
+  cap/inversion, entrainment, prescribed lift, and advanced settings
+- placeholder profile, cloud-column, combined-result, timeline/scrubber, and
+  status-card views
+- inspector placeholders for profile diagnostics, cloud-column diagnostics,
+  expected vs observed status, assumptions/limitations, and precipitation
+  status
+- visible honesty labels, including `No Boussinesq default`
+
+The shell intentionally does not implement profile-to-cloud-column
+orchestration, precipitation, CM1 comparison, optics, or new model physics.
+Those remain follow-on issues.
+
 Required comparison pairs:
 
 - baseline shallow cloud vs dry failed cumulus
@@ -913,6 +937,11 @@ The following implementation issues should be created after #183, unless equival
 Goal:
 
 Create the v2 Lower Atmosphere Cloud Basics shell and make it the default Lower Atmosphere experience.
+
+Status:
+
+Implemented by #193 as a shell/default-routing step. It does not include
+profile-to-cloud-column orchestration.
 
 Scope:
 

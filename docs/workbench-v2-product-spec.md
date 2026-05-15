@@ -69,6 +69,13 @@ The visualization stage is the center of the product. Setup and inspector are se
 
 Some labs are static interpretive labs rather than run-based simulations. For those labs, Workbench V2 should use lab capability metadata to hide Run, Stop, timeline, replay, and frame-buffer language. Static labs should keep actions such as Reset controls, Inspector, and Save setup when those actions are meaningful.
 
+Lower Atmosphere Cloud Basics now opens as a v2 reduced-model shell by default.
+That shell reserves the product path for `boundary_layer_1d`,
+`controlled_cloud_column`, deterministic diagnostics, and focused scientific
+visualization. It shows placeholder profile/cloud-column/combined views until
+profile-to-cloud-column orchestration lands, and it does not present
+`boussinesq_2d` as the default Lower Atmosphere engine.
+
 ## Default Workbench State
 
 Default workbench view should show:

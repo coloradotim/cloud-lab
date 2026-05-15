@@ -28,9 +28,10 @@ Lab Picker → Lower Atmosphere Cloud Basics / Evolving Boundary Layer → Run /
 ```
 
 The phase is successful when Cloud Lab opens into a clear lab-driven experience,
-Lower Atmosphere Cloud Basics remains usable with honest Yellow Boussinesq
-labels, Evolving Boundary Layer exposes the standalone `boundary_layer_1d`
-profile path, and the old dashboard is no longer the default product model.
+Lower Atmosphere Cloud Basics opens into the v2 reduced-model shell by default,
+Evolving Boundary Layer exposes the standalone `boundary_layer_1d` profile path,
+and the old dashboard/Boussinesq-centered Lower Atmosphere screen is no longer
+the default product model.
 
 ## Authoritative Product Docs
 
@@ -54,6 +55,7 @@ For Lower Atmosphere Cloud Basics science and diagnostics, also read:
 - `docs/boussinesq-solver.md`
 - `docs/boussinesq-validation.md`
 - `docs/labs/lower-atmosphere-cloud-basics.md`
+- `docs/labs/lower-atmosphere-cloud-basics-v2.md`
 
 ## Open Issues In This Phase
 
@@ -167,14 +169,16 @@ Do not build partial terrain/rain/ice/optics controls into the main workflow bef
 At the end of issues `#107` through `#111`, the app should provide:
 
 - Lab Picker as the default product entry point.
-- Lower Atmosphere Cloud Basics as the first usable lab.
+- Lower Atmosphere Cloud Basics as the first usable lab, now defaulting to the
+  v2 reduced-model shell.
 - Lab-specific scenario selection.
 - A small set of meaningful lower-atmosphere controls.
 - Run/Stop/Reset through existing backend streaming.
-- Scientific 2-D visualization in the center stage.
-- Timeline/replay tied to displayed frames.
-- Inspector with available lower-atmosphere / fair-weather scenario diagnostics.
-- Honest labels for solver output, derived diagnostics, and experimental Boussinesq behavior.
+- Focused scientific visualization or explicit placeholders in the center stage.
+- Timeline/replay or explicit timeline placeholders tied to the active lab flow.
+- Inspector with available lower-atmosphere v2 diagnostics/placeholders.
+- Honest labels for reduced-model output, prescribed lift, derived diagnostics,
+  and any experimental Boussinesq behavior still exposed outside the default path.
 - Old dashboard no longer serving as the default user experience.
 
 ## Non-Goals For This Phase

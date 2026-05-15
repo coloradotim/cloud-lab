@@ -283,6 +283,13 @@ while clearly labeling lift as prescribed rather than predicted.
 The detailed v2 replacement design is now in
 `docs/labs/lower-atmosphere-cloud-basics-v2.md`.
 
+As of #193, the default user-facing Lower Atmosphere Cloud Basics workbench opens
+the v2 reduced-model shell. The legacy internal id remains
+`fair-weather-cumulus`, but the default product path is no longer the
+Boussinesq-centered 2-D run screen. Profile-to-cloud-column orchestration is a
+follow-on; the current shell exposes flow selection, setup groups, placeholder
+science views, inspector sections, and honesty labels.
+
 ## Frame / Schema Requirements
 
 V1 requires existing `sim-frame-v1` fields:

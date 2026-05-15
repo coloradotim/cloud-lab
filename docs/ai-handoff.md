@@ -243,7 +243,15 @@ live in `backend/app/sim/lower_atmosphere_v2_scenarios.py` and
 `frontend/src/labs/lowerAtmosphereV2Scenarios.ts`. They define the eight v2
 scenario contracts, reduced-model defaults, expected profile/cloud-column and
 precipitation statuses, honesty labels, and comparison pairs without
-implementing the v2 shell or profile-to-cloud orchestration.
+implementing profile-to-cloud orchestration.
+
+Lower Atmosphere Cloud Basics now opens the v2 reduced-model shell by default.
+The shell uses the legacy internal route id `fair-weather-cumulus`, but the
+default user-facing path is no longer the Boussinesq 2-D run screen. It exposes
+the three v2 flows, setup groups for profile and prescribed-lift controls,
+placeholder science views, inspector sections, precipitation placeholder status,
+and labels including `No Boussinesq default`. It does not yet run the
+profile-to-cloud-column workflow.
 
 ## Do Not Do Without Explicit User Direction
 
@@ -294,6 +302,6 @@ Use the current open issue state to decide, but as of this handoff:
 - If lower-atmosphere science architecture is active, work from
   `docs/lower-atmosphere-modeling-strategy.md`.
 - The next lower-atmosphere science implementation issue should likely be
-  `controlled_cloud_column` unless the user chooses targeted refinement of the
-  Evolving Boundary Layer profile workbench. Do not add cloud water to
-  `boundary_layer_1d` v1.
+  profile-to-cloud-column orchestration for Lower Atmosphere v2. Do not broaden
+  shell issues into solver physics, precipitation, CM1, optics, or Boussinesq
+  behavior.

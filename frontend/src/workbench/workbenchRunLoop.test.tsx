@@ -31,11 +31,13 @@ if (!fairWeatherLab) {
 describe("Workbench V2 lower-atmosphere run loop", () => {
   it("updates active config when a scenario is selected", () => {
     const initial = createInitialWorkbenchState(fairWeatherLab);
-    const dryFailed = selectWorkbenchScenario(initial, fairWeatherLab, "dry-failed-cumulus");
+    const dryFailed = selectWorkbenchScenario(
+      initial,
+      fairWeatherLab,
+      "lower-atmosphere-v2-dry-failed-cumulus",
+    );
 
-    expect(dryFailed.selectedScenarioId).toBe("dry-failed-cumulus");
-    expect(dryFailed.nextRunConfig.initial_atmosphere.relative_humidity).toBe(0.35);
-    expect(dryFailed.nextRunConfig.surface_heating.max_warming_rate_k_per_s).toBe(0.012);
+    expect(dryFailed.selectedScenarioId).toBe("lower-atmosphere-v2-dry-failed-cumulus");
     expect(dryFailed.frames).toHaveLength(0);
   });
 
@@ -130,21 +132,18 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(displayedFirst.isReplayPaused).toBe(true);
   });
 
-  it("scientific visualization stage renders a no-frame state and field selector", () => {
+  it("Lower Atmosphere v2 shell renders reduced-model placeholders instead of the old 2-D view", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("No frame displayed yet");
-    expect(html).toContain("Scientific field");
-    expect(html).toContain("Cloud liquid water");
-    expect(html).toContain("Horizontal distance, x (m)");
-    expect(html).toContain("Height, z (m)");
-    expect(html).toContain(">0<");
-    expect(html).toContain(">2k<");
-    expect(html).toContain(">10k<");
-    expect(html).toContain(">3k<");
-    expect(html).toContain("Cloud liquid water - kg/kg");
+    expect(html).toContain("Lower Atmosphere v2 reduced-model shell");
+    expect(html).toContain("boundary_layer_1d profile view");
+    expect(html).toContain("controlled_cloud_column view");
+    expect(html).toContain("Timeline / scrubber placeholder");
+    expect(html).toContain("No Boussinesq default");
+    expect(html).not.toContain("Scientific field");
+    expect(html).not.toContain("Cloud liquid water - kg/kg");
   });
 
   it("scientific view model renders the selected field from a frame", () => {
@@ -209,29 +208,32 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
 
     expect(available.profileAvailable).toBe(true);
     expect(available.expectedLclM).toBeGreaterThan(0);
-    expect(available.firstCloudTimeSeconds).toBe(600);
-    expect(available.cloudTopM).toBeGreaterThan(0);
-    expect(available.maxUpdraftMPerS).toBe(0.24);
+    expect(available.firstCloudTimeSeconds).toBeNull();
+    expect(available.cloudTopM).toBeNull();
+    expect(available.maxUpdraftMPerS).toBeNull();
     expect(available.actualCloudBaseM).toBe(1_000);
     expect(available.integratedCloudWaterKgPerKg).toBeGreaterThan(0);
     expect(available.maxCloudWaterKgPerKg).toBe(2e-6);
     expect(available.profileRows.length).toBeGreaterThan(0);
-    expect(available.returnFlowWarning).toContain("low-level return-flow");
-    expect(available.artifactWarnings.join(" ")).toContain("top sponge");
+    expect(available.returnFlowWarning).toContain("No low-level return-flow");
+    expect(available.artifactWarnings).toEqual([]);
   });
 
-  it("inspector profile/probe empty states and truth labels render cleanly", () => {
+  it("v2 inspector shell renders deterministic sections and honesty labels cleanly", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("Profile / sounding unavailable");
-    expect(html).toContain("Probe values are unavailable");
-    expect(html).toContain("Experimental solver output");
-    expect(html).toContain("Derived diagnostic");
-    expect(html).toContain("Experimental 2-D prototype");
-    expect(html).toContain("Simplified warm-cloud condensation");
-    expect(html).toContain("Assumptions &amp; limitations");
+    expect(html).toContain("Profile diagnostics");
+    expect(html).toContain("Cloud-column diagnostics");
+    expect(html).toContain("Expected vs observed");
+    expect(html).toContain("Precipitation status placeholder");
+    expect(html).toContain("Reduced model");
+    expect(html).toContain("Prescribed lift");
+    expect(html).toContain("Controlled cloud formation");
+    expect(html).toContain("No Boussinesq default");
+    expect(html).not.toContain("Experimental solver output");
+    expect(html).not.toContain("Experimental 2-D prototype");
   });
 
   it("visualization stage remains mounted when the inspector is closed", () => {
@@ -243,7 +245,7 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
       />,
     );
 
-    expect(html).toContain("Scientific 2-D field view");
+    expect(html).toContain("Lower Atmosphere v2 reduced-model shell");
     expect(html).not.toContain("inspector-region");
   });
 
@@ -266,7 +268,7 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(matchCount(html, ">Run<")).toBe(1);
+    expect(matchCount(html, ">Run v2 flow<")).toBe(1);
     expect(matchCount(html, ">Stop<")).toBe(0);
     expect(matchCount(html, ">Reset<")).toBe(1);
     expect(html).not.toContain("saved-runs-panel");

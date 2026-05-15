@@ -169,6 +169,13 @@ The exact typing can evolve, but this concept should drive the UI.
 
 Static labs, such as the v1 Clouds, Light, and Shadow optics lab, should use capability metadata to hide run/timeline chrome and present static renderer controls instead of disabled simulation workflow controls.
 
+Lower Atmosphere Cloud Basics currently keeps the legacy internal id
+`fair-weather-cumulus`, but its default lab definition points to the v2
+reduced-model shell. The shell treats `boundary_layer_1d` as the primary
+implemented core while reserving UI sections for `controlled_cloud_column`
+prescribed-lift formation. The old Boussinesq run loop remains code, not the
+default Lower Atmosphere product path.
+
 ## Scenario Definitions
 
 Scenarios should be lab-specific experiments, not just raw saved configs.

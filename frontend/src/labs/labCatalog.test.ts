@@ -36,66 +36,75 @@ describe("lab catalog", () => {
       "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
     expect(fairWeatherLab.status).toBe("prototype");
-    expect(fairWeatherLab.statusLabel).toBe("Experimental 2-D prototype");
-    expect(fairWeatherLab.supportedPhysicsCore).toBe("boussinesq_2d");
+    expect(fairWeatherLab.statusLabel).toBe("Reduced-model v2 shell");
+    expect(fairWeatherLab.supportedPhysicsCore).toBe("boundary_layer_1d");
     expect(fairWeatherLab.concepts).toEqual(
       expect.arrayContaining([
         "surface sensible heating",
-        "buoyant thermals",
-        "source-layer moisture",
+        "1-D profile evolution",
+        "prescribed lift",
+        "controlled cloud formation",
         "lifted condensation level / cloud base",
-        "atmospheric stability and lapse rate",
+        "cap / inversion suppression",
         "dry failed cumulus",
       ]),
     );
     expect(fairWeatherLab.limitations).toEqual(
       expect.arrayContaining([
-        "Yellow prototype visual dynamics scaffold",
-        "Simplified warm-cloud condensation",
-        "Some behavior is shaped by prototype stabilizers and safety caps",
-        "No droplet-size distribution or resolved rain in this lab version",
+        "Reduced model",
+        "1-D profile evolution",
+        "Prescribed lift",
+        "Controlled cloud formation",
+        "Not cloud-resolving dynamics",
+        "No Boussinesq default",
+        "Not weather prediction",
       ]),
     );
   });
 
   it("attaches lower-atmosphere scenarios to the legacy internal lab id", () => {
     expect(fairWeatherLab.scenarios.map((scenario) => scenario.name)).toEqual([
-      "Fair-weather cumulus / baseline shallow cloud",
+      "Baseline shallow cloud",
       "Dry failed cumulus",
       "Capped / suppressed cloud",
-      "Multi-thermal cloud field",
+      "Moist surface enables cloud",
+      "Dry entrainment suppresses cloud",
+      "Stronger heating / stronger lift comparison",
+      "Humid low-cloud contrast",
+      "Rain-capable warm cloud later",
     ]);
     expect(fairWeatherLab.scenarios.every((scenario) => scenario.labId === fairWeatherLab.id)).toBe(
       true,
     );
     expect(fairWeatherLab.scenarios.map((scenario) => scenario.id)).toEqual(
       expect.arrayContaining([
-        "fair-weather-moderate-base",
-        "dry-failed-cumulus",
-        "dry-cap-suppressed-cumulus",
-        "multi-thermal-cumulus-field",
+        "lower-atmosphere-v2-baseline-shallow-cloud",
+        "lower-atmosphere-v2-dry-failed-cumulus",
+        "lower-atmosphere-v2-capped-suppressed-cloud",
+        "lower-atmosphere-v2-rain-capable-warm-cloud-later",
       ]),
     );
   });
 
-  it("limits primary controls to meaningful Fair-Weather controls", () => {
+  it("limits primary controls to meaningful Lower Atmosphere v2 controls", () => {
     const primaryControls = fairWeatherLab.controls.filter((control) => control.tier === "primary");
 
     expect(primaryControls.map((control) => control.label)).toEqual([
+      "Flow mode",
+      "Duration after sunrise",
       "Surface heating strength",
-      "Surface heating pattern",
-      "Source-layer humidity",
-      "Free-atmosphere humidity",
-      "Stability / lapse rate",
-      "Boundary-layer depth / cap height",
-      "Model resolution",
-      "Domain width",
-      "Domain height",
-      "Run length",
+      "Surface moisture flux",
+      "Initial mixed-layer humidity",
+      "Dry air above mixed layer",
+      "Inversion height",
+      "Inversion strength",
+      "Entrainment strength",
+      "Lift strength",
+      "Lift duration",
     ]);
-    expect(primaryControls).toHaveLength(10);
+    expect(primaryControls).toHaveLength(11);
     expect(primaryControls.map((control) => control.id)).not.toEqual(
-      expect.arrayContaining(["raw-solver-type", "domain-grid", "time-step-frame-cadence"]),
+      expect.arrayContaining(["raw-schema-debug", "profile-resolution", "cloud-column-runtime"]),
     );
   });
 
@@ -106,45 +115,43 @@ describe("lab catalog", () => {
       .map((control) => control.id);
 
     expect(advancedControls.map((control) => control.id)).toEqual(
-      expect.arrayContaining(["domain-grid", "time-step-frame-cadence", "raw-solver-type"]),
+      expect.arrayContaining(["profile-resolution", "cloud-column-runtime", "raw-schema-debug"]),
     );
-    expect(primaryControlIds).not.toContain("raw-solver-type");
+    expect(primaryControlIds).not.toContain("raw-schema-debug");
   });
 
-  it("includes required Fair-Weather diagnostics metadata", () => {
+  it("includes required Lower Atmosphere v2 diagnostics metadata", () => {
     const diagnosticIds = fairWeatherLab.diagnostics.map((diagnostic) => diagnostic.id);
 
     expect(diagnosticIds).toEqual(
       expect.arrayContaining([
-        "expected-lcl-cloud-base",
-        "first-cloud-time",
-        "cloud-top-height",
-        "max-updraft",
-        "below-lcl-cloud-water-fraction",
-        "boundary-cloud-fraction",
-        "top-sponge-cloud-fraction",
-        "lateral-boundary-cloud-fraction",
-        "boundary-connected-cloud-regions",
-        "low-level-return-flow-cloud-water",
-        "cloud-artifact-policy-status",
-        "dry-failed-cloud-outcome",
+        "profile-cloud-potential-status",
+        "profile-limiting-reason",
+        "mixed-layer-depth-lcl-gap",
+        "cloud-column-status",
+        "prescribed-forcing-label",
+        "first-cloud-time-cloud-base",
+        "cloud-water-summary",
+        "expected-vs-observed-status",
+        "precipitation-placeholder-status",
       ]),
     );
     expect(
-      fairWeatherLab.diagnostics.find((diagnostic) => diagnostic.id === "dry-failed-cloud-outcome")
+      fairWeatherLab.diagnostics.find((diagnostic) => diagnostic.id === "expected-vs-observed-status")
         ?.kind,
-    ).toBe("hard-check");
+    ).toBe("scenario-contract");
   });
 
   it("includes required visualization-mode metadata without adding future renderers", () => {
     expect(fairWeatherLab.visualizationModes.map((mode) => mode.id)).toEqual([
-      "scientific-2d-field-view",
-      "profile-sounding-view",
-      "timeline-replay-view",
-      "inspector-diagnostics",
+      "v2-profile-evolution-view",
+      "v2-cloud-column-view",
+      "v2-combined-summary-view",
+      "v2-timeline-scrubber",
+      "v2-status-cards",
     ]);
     expect(fairWeatherLab.visualizationModes.map((mode) => mode.truthLabel)).toEqual(
-      expect.arrayContaining(["solver-output", "derived-diagnostic"]),
+      expect.arrayContaining(["reduced-model-output", "derived-diagnostic"]),
     );
     expect(fairWeatherLab.visualizationModes.map((mode) => mode.id)).not.toContain(
       "cloud-scene-25d",
