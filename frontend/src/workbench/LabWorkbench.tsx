@@ -23,13 +23,11 @@ import {
 } from "../labs/cloudOpticsRenderer";
 import type { LowerAtmosphereV2FlowMode } from "../labs/lowerAtmosphereV2Scenarios";
 import {
+  buildLowerAtmosphereV2DiagnosticViewModel,
   createInitialLowerAtmosphereV2State,
   defaultLowerAtmosphereV2Client,
-  lowerAtmosphereV2ObservedCloudStatus,
-  lowerAtmosphereV2ObservedProfileStatus,
   lowerAtmosphereV2ProfileFrames,
   lowerAtmosphereV2RunStatus,
-  lowerAtmosphereV2ScenarioCheckLabel,
   lowerAtmosphereV2ScenarioForId,
   lowerAtmosphereV2StatusLabel as lowerAtmosphereV2FriendlyStatusLabel,
   runLowerAtmosphereV2Flow,
@@ -2593,10 +2591,6 @@ function LowerAtmosphereV2InspectorPanel({
 }) {
   const scenario = selectedLabScenario(lab, workbench);
   const contract = lowerAtmosphereV2ScenarioForId(scenario?.id);
-  const selectedProfileFrame = selectedLowerAtmosphereV2ProfileFrame(state);
-  const profileStatus = lowerAtmosphereV2ObservedProfileStatus(state);
-  const cloudStatus = lowerAtmosphereV2ObservedCloudStatus(state);
-  const cloudDiagnostics = state.cloudColumnRun?.diagnostics ?? null;
 
   if (!scenario || !contract) {
     return (
@@ -2610,37 +2604,63 @@ function LowerAtmosphereV2InspectorPanel({
     );
   }
 
+  const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(state, flowMode, contract);
+
   return (
     <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
       <p className="region-label">Inspector</p>
       <section className="inspector-summary" aria-labelledby="inspector-region-title">
-        <h2 id="inspector-region-title">Lower Atmosphere v2 inspector shell</h2>
-        <span className="diagnostic-status diagnostic-status-not_evaluated">
-          Flow: {lowerAtmosphereV2FlowLabel(flowMode)}
+        <h2 id="inspector-region-title">Lower Atmosphere v2 diagnostics</h2>
+        <span className={`diagnostic-status diagnostic-status-${diagnostics.resultStatus}`}>
+          Result: {diagnostics.resultLabel}
         </span>
-        <p>
-          Deterministic diagnostics combine profile evolution, prescribed-lift cloud formation,
-          expected-vs-observed scenario checks, and precipitation readiness.
-        </p>
+        <p>{diagnostics.why}</p>
+        <p className="control-helper">Expected vs observed scenario check is deterministic and not a hard failure.</p>
       </section>
 
       <details className="inspector-details" open>
+        <summary>Try next</summary>
+        <ul>
+          {diagnostics.tryNext.map((suggestion) => (
+            <li key={suggestion}>{suggestion}</li>
+          ))}
+        </ul>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Key numbers</summary>
+        <dl className="diagnostic-list">
+          {diagnostics.keyNumbers.map((row) => (
+            <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
         <summary>Profile diagnostics</summary>
+        {!diagnostics.profile.available ? (
+          <p className="empty-diagnostic">
+            Profile diagnostics fallback: run profile evolution to replace this default-profile preview.
+          </p>
+        ) : null}
         <dl className="diagnostic-list">
           <div>
             <dt>Observed profile status</dt>
-            <dd>{profileStatus ? statusLabel(profileStatus) : "Run profile evolution to evaluate"}</dd>
+            <dd>{diagnostics.profile.statusLabel}</dd>
           </div>
           <div>
-            <dt>Selected profile time</dt>
-            <dd>{formatHoursAfterSunrise(selectedProfileFrame.time_hours_from_sunrise)}</dd>
+            <dt>Deterministic reason</dt>
+            <dd>{diagnostics.profile.reason}</dd>
           </div>
-          <div>
-            <dt>Mixed-layer depth / LCL</dt>
-            <dd>
-              {formatMeters(selectedProfileFrame.mixed_layer_depth_m)} / {formatMeters(selectedProfileFrame.lcl_m)}
-            </dd>
-          </div>
+          {diagnostics.profile.rows.map((row) => (
+            <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
           <div>
             <dt>Profile source</dt>
             <dd>{state.cloudColumnProvenance?.source_model ?? "boundary_layer_1d"}</dd>
@@ -2650,60 +2670,73 @@ function LowerAtmosphereV2InspectorPanel({
 
       <details className="inspector-details" open>
         <summary>Cloud-column diagnostics</summary>
+        {!diagnostics.cloudColumn.available ? (
+          <p className="empty-diagnostic">
+            Cloud-column diagnostics fallback: run prescribed lift to evaluate cloud formation.
+          </p>
+        ) : null}
         <dl className="diagnostic-list">
           <div>
             <dt>Observed cloud-column status</dt>
-            <dd>{cloudStatus ? lowerAtmosphereV2FriendlyStatusLabel(cloudStatus) : "Run prescribed lift to evaluate"}</dd>
+            <dd>{diagnostics.cloudColumn.statusLabel}</dd>
           </div>
           <div>
-            <dt>Cloud-column model</dt>
-            <dd>controlled_cloud_column</dd>
+            <dt>Deterministic reason</dt>
+            <dd>{diagnostics.cloudColumn.reason}</dd>
           </div>
           <div>
             <dt>Forcing</dt>
-            <dd>Prescribed lift, not predicted dynamics</dd>
+            <dd>{diagnostics.cloudColumn.prescribedForcingLabel}</dd>
+          </div>
+          {diagnostics.cloudColumn.rows.map((row) => (
+            <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Combined diagnostics</summary>
+        <dl className="diagnostic-list">
+          <div>
+            <dt>Selected profile time</dt>
+            <dd>{diagnostics.combined.selectedProfileTimeLabel}</dd>
           </div>
           <div>
-            <dt>First cloud time / base</dt>
-            <dd>
-              {formatSeconds(cloudDiagnostics?.first_cloud_time_seconds ?? null)} /{" "}
-              {formatMeters(cloudDiagnostics?.cloud_base_m ?? null)}
-            </dd>
+            <dt>Profile status at selected time</dt>
+            <dd>{diagnostics.combined.profileStatusLabel}</dd>
           </div>
           <div>
-            <dt>Max cloud liquid water</dt>
-            <dd>{formatNullable(cloudDiagnostics?.max_cloud_liquid_water_kg_per_kg ?? null, "kg/kg")}</dd>
+            <dt>Cloud-column status from selected profile</dt>
+            <dd>{diagnostics.combined.cloudColumnStatusLabel}</dd>
+          </div>
+          <div>
+            <dt>Main limiting factor</dt>
+            <dd>{diagnostics.combined.mainLimitingFactor}</dd>
+          </div>
+          <div>
+            <dt>Suggested next experiment</dt>
+            <dd>{diagnostics.combined.suggestedNextExperiment}</dd>
           </div>
         </dl>
       </details>
 
       <details className="inspector-details" open>
-        <summary>Expected vs observed</summary>
+        <summary>Scenario check</summary>
         <dl className="diagnostic-list">
           <div>
             <dt>Expected</dt>
-            <dd>
-              {statusLabel(contract.expectedProfileStatus)} /{" "}
-              {lowerAtmosphereV2FriendlyStatusLabel(contract.expectedCloudColumnStatus)}
-            </dd>
+            <dd>{diagnostics.scenarioCheck.expectedLabel}</dd>
           </div>
           <div>
             <dt>Observed</dt>
-            <dd>
-              {profileStatus ? statusLabel(profileStatus) : "Profile not run"} /{" "}
-              {cloudStatus ? lowerAtmosphereV2FriendlyStatusLabel(cloudStatus) : "Cloud column not run"}
-            </dd>
+            <dd>{diagnostics.scenarioCheck.observedLabel}</dd>
           </div>
           <div>
             <dt>Status</dt>
-            <dd>
-              {lowerAtmosphereV2ScenarioCheckLabel(
-                contract.expectedProfileStatus,
-                contract.expectedCloudColumnStatus,
-                profileStatus,
-                cloudStatus,
-              )}
-            </dd>
+            <dd>{diagnostics.scenarioCheck.statusLabel}</dd>
           </div>
         </dl>
       </details>
@@ -2711,16 +2744,19 @@ function LowerAtmosphereV2InspectorPanel({
       <details className="inspector-details" open>
         <summary>Precipitation status placeholder</summary>
         <p className="assumption-copy">
-          Precipitation: {lowerAtmosphereV2FriendlyStatusLabel(contract.expectedPrecipitationStatus)}.
-          Cloud water from controlled_cloud_column will be available for future warm-rain diagnostics,
-          but this shell does not implement rain physics.
+          Precipitation: {diagnostics.precipitation.statusLabel}. {diagnostics.precipitation.explanation}
         </p>
+        <ul>
+          {diagnostics.precipitation.tryNext.map((suggestion) => (
+            <li key={suggestion}>{suggestion}</li>
+          ))}
+        </ul>
       </details>
 
       <details className="inspector-details" open>
         <summary>Assumptions and limitations</summary>
         <p className="assumption-copy">
-          {["Reduced model", "1-D profile evolution", "Prescribed lift", "Controlled cloud formation", "Not cloud-resolving dynamics", "No Boussinesq default", "Not weather prediction"].join(" · ")}
+          {diagnostics.assumptions.join(" · ")}
         </p>
         <ul>
           {contract.knownLimitations.map((limitation) => (

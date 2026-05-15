@@ -588,6 +588,11 @@ Issue #194 wires the shell to the existing reduced-model endpoints. The default
 v2 path can now run profile evolution, prescribed cloud-column lift, or the
 combined profile-to-column flow without using Boussinesq.
 
+Issue #195 adds the deterministic v2 diagnostics/inspector layer on top of that
+orchestration. The inspector now summarizes what happened, why it happened, what
+to try next, key profile/cloud-column numbers, expected-vs-observed scenario
+status, and an honest precipitation placeholder without using freeform AI text.
+
 The shell includes:
 
 - the three v2 flow modes: atmosphere evolution, lifted cloud, and combined
@@ -1004,6 +1009,10 @@ Acceptance:
 Goal:
 
 Create deterministic v2 diagnostics that combine profile and cloud-column status.
+
+Status:
+
+Implemented by #195 for the current v2 shell.
 
 Scope:
 

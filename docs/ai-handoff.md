@@ -313,8 +313,13 @@ Use the current open issue state to decide, but as of this handoff:
   the issue explicitly asks for it.
 - If lower-atmosphere science architecture is active, work from
   `docs/lower-atmosphere-modeling-strategy.md`.
+- Lower Atmosphere Cloud Basics v2 now has default reduced-model shell routing,
+  profile-to-cloud-column orchestration, and deterministic inspector diagnostics.
+  The inspector covers result, why, try-next guidance, key numbers,
+  expected-vs-observed scenario status, and a precipitation placeholder without
+  freeform AI explanation.
 - The next lower-atmosphere science implementation issue should likely build
-  v2 diagnostics/inspector depth or scientific visualization on top of the
-  profile-to-cloud-column orchestration. Do not broaden those issues into solver
-  physics, precipitation, CM1, optics, or Boussinesq behavior unless explicitly
-  scoped.
+  scientific visualization depth on top of the current v2 orchestration and
+  inspector, or proceed to a separately scoped precipitation/microphysics
+  handoff. Do not broaden those issues into solver physics, precipitation, CM1,
+  optics, or Boussinesq behavior unless explicitly scoped.
