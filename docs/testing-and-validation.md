@@ -154,6 +154,23 @@ A built-in scenario should include metadata:
 - expected diagnostics
 - limitations/caveats
 
+Lower Atmosphere Cloud Basics v2 scenario-contract metadata is covered by
+focused backend and frontend tests:
+
+```bash
+cd backend
+pytest backend/tests/test_lower_atmosphere_v2_scenarios.py
+
+cd frontend
+npm run test -- lowerAtmosphereV2Scenarios
+```
+
+These are metadata/contract checks. They ensure the required v2 scenario ids,
+flow-mode compatibility, expected profile/cloud-column/precipitation statuses,
+honesty labels, comparison pairs, and no-Boussinesq-default rule remain intact.
+They do not run profile evolution, cloud-column orchestration, or Boussinesq
+validation.
+
 Hard failure policy:
 
 - A scenario that violates its core promise should fail or be renamed/reframed.

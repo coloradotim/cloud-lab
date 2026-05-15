@@ -238,6 +238,13 @@ reduced-model replacement for the current Boussinesq-based Lower Atmosphere path
 with three flows: atmosphere evolution only, lifted cloud only, and combined
 evolution + lifted cloud.
 
+Lower Atmosphere Cloud Basics v2 scenario contracts and comparison-pair metadata
+live in `backend/app/sim/lower_atmosphere_v2_scenarios.py` and
+`frontend/src/labs/lowerAtmosphereV2Scenarios.ts`. They define the eight v2
+scenario contracts, reduced-model defaults, expected profile/cloud-column and
+precipitation statuses, honesty labels, and comparison pairs without
+implementing the v2 shell or profile-to-cloud orchestration.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.

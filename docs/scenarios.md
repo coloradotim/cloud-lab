@@ -71,6 +71,55 @@ The UI should not expose a generic pile of sliders for every solver. If a contro
 
 The current built-in scenario catalog supports early Lower Atmosphere Cloud Basics and Warm Rain / Microphysics Lab behavior. These should eventually be organized under lab definitions.
 
+## Lower Atmosphere Cloud Basics v2 Scenario Contracts
+
+Lower Atmosphere Cloud Basics v2 has a reduced-model scenario contract catalog in:
+
+```text
+backend/app/sim/lower_atmosphere_v2_scenarios.py
+frontend/src/labs/lowerAtmosphereV2Scenarios.ts
+```
+
+These contracts are for the future v2 shell and orchestration path. They use:
+
+```text
+boundary_layer_1d
+controlled_cloud_column
+```
+
+They do not use `boussinesq_2d` as the default v2 engine.
+
+The v2 contracts cover:
+
+- baseline shallow cloud
+- dry failed cumulus
+- capped / suppressed cloud
+- moist surface enables cloud
+- dry entrainment suppresses cloud
+- stronger heating / stronger lift comparison
+- humid low-cloud contrast
+- rain-capable warm cloud later
+
+Each contract defines the scenario id, user-facing name, physical question,
+supported flow modes, profile and cloud-column defaults, expected profile status,
+expected cloud-column status, precipitation status, key diagnostics, teaching
+purpose, comparison suggestions, limitations, and honesty labels.
+
+The comparison-pair metadata covers:
+
+- baseline shallow cloud vs dry failed cumulus
+- baseline shallow cloud vs capped/suppressed cloud
+- dry surface vs moist surface
+- weak heating vs strong heating
+- weak lift vs strong lift
+- weak entrainment vs dry entrainment
+- baseline shallow cloud vs humid low-cloud contrast
+- cloud formed vs rain-capable-later placeholder
+
+The rain-capable scenario is an architectural placeholder. Its early v2
+precipitation status is `precipitation_not_enabled`; it must not imply that rain
+physics, PySDM, or droplet distributions are implemented.
+
 ### Fair-weather cumulus / baseline shallow cloud
 
 - Lab: Lower Atmosphere Cloud Basics
