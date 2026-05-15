@@ -1,12 +1,16 @@
 export type LabStatus = "available" | "prototype" | "concept" | "planned" | "later";
 
-export type PhysicsCoreId = "boussinesq_2d" | "microphysics_lab";
+export type PhysicsCoreId = "boussinesq_2d" | "boundary_layer_1d" | "microphysics_lab";
 
 export type LabControlTier = "primary" | "secondary" | "advanced";
 
 export type LabDiagnosticKind = "display" | "warning" | "scenario-contract" | "hard-check";
 
-export type VisualizationTruthLabel = "solver-output" | "derived-diagnostic" | "visual-approximation";
+export type VisualizationTruthLabel =
+  | "solver-output"
+  | "reduced-model-output"
+  | "derived-diagnostic"
+  | "visual-approximation";
 
 export type LabControlDefinition = {
   id: string;

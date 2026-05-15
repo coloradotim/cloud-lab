@@ -10,13 +10,16 @@ The current phase is not about adding more feature panels. It is about making th
 
 ## Current Phase Goal
 
-Build Workbench V2 and the first complete reference lab:
+Build Workbench V2 and the first usable lower-atmosphere labs:
 
 ```text
-Lab Picker → Lower Atmosphere Cloud Basics Lab → Run / Watch / Inspect
+Lab Picker → Lower Atmosphere Cloud Basics / Evolving Boundary Layer → Run / Watch / Inspect
 ```
 
-The phase is successful when Cloud Lab opens into a clear lab-driven experience, Lower Atmosphere Cloud Basics works as the first usable lab, and the old dashboard is no longer the default product model.
+The phase is successful when Cloud Lab opens into a clear lab-driven experience,
+Lower Atmosphere Cloud Basics remains usable with honest Yellow Boussinesq
+labels, Evolving Boundary Layer exposes the standalone `boundary_layer_1d`
+profile path, and the old dashboard is no longer the default product model.
 
 ## Authoritative Product Docs
 
@@ -51,7 +54,7 @@ This remains open because iteration speed matters. It may be worked whenever tes
 
 ### Workbench V2 / reference lab implementation
 
-Work in this order:
+Historical completed sequence:
 
 1. `#107` — Build Workbench V2 shell and lab picker
 2. `#108` — Implement lab catalog and Lower Atmosphere Cloud Basics lab definition
@@ -61,12 +64,14 @@ Work in this order:
 
 ### Next-direction design issues
 
-Work after, or in parallel only if implementation is not being disrupted:
+Historical design sequence:
 
 6. `#112` — Design Cloud Optics / Beauty Lab v1
 7. `#113` — Design Evolving Boundary Layer Lab and profile-evolution model
 
-These are design issues, not implementation issues. They should produce docs and next-step implementation issues only after Workbench V2 and the Lower Atmosphere Cloud Basics reference lab direction are clear.
+These design issues produced the next implementation track. Current follow-on
+work should use the open issue state and `docs/lower-atmosphere-modeling-strategy.md`
+rather than reopening old closed issue ladders.
 
 ## Execution Rules
 
@@ -142,7 +147,7 @@ Solver and schema details may exist in advanced/system/developer contexts.
 
 ### Rule 5 — Do not overbuild future labs yet
 
-Other labs may appear in the Lab Picker as planned/prototype/later, but they should not pretend to be implemented.
+Other labs may appear in the Lab Picker as planned/prototype/later, but they should not pretend to be implemented. Evolving Boundary Layer is now implemented only as a v1 standalone profile lab, not as a cloud-water or cloud-resolving lab.
 
 Do not build partial terrain/rain/ice/optics controls into the main workflow before their lab contracts exist.
 
@@ -170,7 +175,7 @@ Do not attempt to complete:
 - terrain/orographic lab
 - warm-rain lab
 - fog/stratus lab
-- evolving boundary-layer model
+- live-coupled evolving boundary-layer / Boussinesq model
 - parameter sweeps
 - true 3-D modeling
 - PySDM integration

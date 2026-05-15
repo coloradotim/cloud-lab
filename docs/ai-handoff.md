@@ -41,7 +41,8 @@ Cloud Lab is currently in two overlapping modes:
    - Future Boussinesq-dependent labs should remain prototype-only or pause until trust gaps are resolved or explicitly accepted.
 
 3. **Lower-atmosphere reduced-model implementation**
-   - `boundary_layer_1d` v1 now exists as a standalone backend profile model.
+   - `boundary_layer_1d` v1 now exists as a standalone backend profile model
+     and Workbench V2 profile lab.
    - It evolves 1-D temperature, vapor/RH, mixed-layer depth, LCL, cap, heating,
      moisture, and entrainment-drying diagnostics.
    - It diagnoses cloud formation potential and intentionally emits no cloud
@@ -216,8 +217,12 @@ Near-term science implementation should prioritize:
 controlled_cloud_column → CM1 adapter/reference cases → microphysics precipitation diagnostics → optics field contract
 ```
 
-`boundary_layer_1d` v1 has landed as the first reduced-model step. Continue from
-`docs/boundary-layer-1d.md` for its backend contract and validation boundary.
+`boundary_layer_1d` v1 has landed as the first reduced-model step. Evolving
+Boundary Layer v1 now exposes it in Workbench V2 with scenario selection,
+profile controls, a profile/sounding view, timeline replay, and deterministic
+cloud formation potential diagnostics. Continue from `docs/boundary-layer-1d.md`
+for the backend contract and from `docs/labs/evolving-boundary-layer.md` for the
+lab contract.
 
 ## Do Not Do Without Explicit User Direction
 
@@ -268,6 +273,6 @@ Use the current open issue state to decide, but as of this handoff:
 - If lower-atmosphere science architecture is active, work from
   `docs/lower-atmosphere-modeling-strategy.md`.
 - The next lower-atmosphere science implementation issue should likely be
-  `controlled_cloud_column` or Evolving Boundary Layer frontend/profile
-  visualization, depending on the user's chosen track. Do not add cloud water to
+  `controlled_cloud_column` unless the user chooses targeted refinement of the
+  Evolving Boundary Layer profile workbench. Do not add cloud water to
   `boundary_layer_1d` v1.

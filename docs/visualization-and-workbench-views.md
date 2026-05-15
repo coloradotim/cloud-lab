@@ -211,7 +211,9 @@ Visualization work should follow the labs:
 
 - Lower Atmosphere Cloud Basics: cloud water, velocity, LCL/cloud-base/profile diagnostics
 - Cloud Optics / Beauty: sun angle, optical controls, 2.5-D view
-- Evolving Boundary Layer: time-evolving profiles, mixed-layer depth, RH evolution
+- Evolving Boundary Layer: Workbench V2 v1 profile/sounding view with time-evolving
+  temperature/RH profiles, mixed-layer depth, LCL, cap marker, timeline replay,
+  and cloud formation potential diagnostics
 - Layered Atmosphere: cloud-layer detection and profile overlays
 - Orographic Clouds: terrain-relative views and terrain masks
 - Warm Rain: droplet distributions and rain shafts

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
-import { CLOUD_OPTICS_BEAUTY_LAB_ID } from "../labs/labCatalog";
+import { CLOUD_OPTICS_BEAUTY_LAB_ID, EVOLVING_BOUNDARY_LAYER_LAB_ID } from "../labs/labCatalog";
 import {
   buildCloudOpticsDiagnostics,
   CLOUD_OPTICS_HONESTY_LABELS,
@@ -17,6 +17,20 @@ import {
   updateCloudOpticsControls,
   type CloudOpticsViewMode,
 } from "../labs/cloudOpticsRenderer";
+import {
+  boundaryLayer1DScenarioForId,
+  boundaryLayerDisplayedFrame,
+  boundaryLayerPreviewFrame,
+  createInitialBoundaryLayer1DState,
+  defaultBoundaryLayer1DClient,
+  selectBoundaryLayer1DScenario,
+  statusLabel,
+  updateBoundaryLayer1DControl,
+  type BoundaryLayer1DClient,
+  type BoundaryLayer1DControlId,
+  type BoundaryLayer1DFrame,
+  type BoundaryLayer1DState,
+} from "../labs/evolvingBoundaryLayer";
 import type { LabDefinition } from "../labs/labTypes";
 import { CONTROL_LIMITS, SURFACE_HEATING_PATTERNS } from "../simulationControls";
 import { defaultWorkbenchRunClient, type RunStreamCleanup, type WorkbenchRunClient } from "../simulation/runClient";
@@ -59,6 +73,7 @@ type LabWorkbenchProps = {
   initialInspectorOpen?: boolean;
   onBackToLabs: () => void;
   runClient?: WorkbenchRunClient;
+  boundaryLayerClient?: BoundaryLayer1DClient;
 };
 
 export function LabWorkbench({
@@ -67,6 +82,7 @@ export function LabWorkbench({
   initialInspectorOpen = true,
   onBackToLabs,
   runClient = defaultWorkbenchRunClient,
+  boundaryLayerClient = defaultBoundaryLayer1DClient,
 }: LabWorkbenchProps) {
   const [workbench, setWorkbench] = useState<WorkbenchState>(() =>
     createInitialWorkbenchState(lab),
@@ -75,11 +91,20 @@ export function LabWorkbench({
     useState<CloudOpticsSceneControls | null>(() => defaultCloudOpticsControls(lab.scenarios[0]?.id));
   const [cloudOpticsViewMode, setCloudOpticsViewMode] =
     useState<CloudOpticsViewMode>("rendered-cloud-appearance");
+  const [boundaryLayerState, setBoundaryLayerState] = useState<BoundaryLayer1DState>(() =>
+    createInitialBoundaryLayer1DState(lab.scenarios[0]?.id),
+  );
   const [selectedFieldKey, setSelectedFieldKey] = useState(defaultScientificFieldKey(null));
   const [inspectorOpen, setInspectorOpen] = useState(initialInspectorOpen);
   const cleanupRef = useRef<RunStreamCleanup | null>(null);
-  const scenario = selectedLabScenario(lab, workbench);
+  const isBoundaryLayerLab = lab.id === EVOLVING_BOUNDARY_LAYER_LAB_ID;
+  const scenario = isBoundaryLayerLab
+    ? lab.scenarios.find((candidate) => candidate.id === boundaryLayerState.selectedScenarioId) ?? null
+    : selectedLabScenario(lab, workbench);
   const currentFrame = displayedFrame(workbench);
+  const boundaryLayerFrame = isBoundaryLayerLab
+    ? boundaryLayerDisplayedFrame(boundaryLayerState) ?? boundaryLayerPreviewFrame(boundaryLayerState)
+    : null;
   const inspector = useMemo(() => buildWorkbenchInspectorSummary(workbench), [workbench]);
   const replayEvents = useMemo(() => workbenchReplayEvents(workbench), [workbench]);
   const capabilities = lab.capabilities;
@@ -89,6 +114,7 @@ export function LabWorkbench({
     setWorkbench(createInitialWorkbenchState(lab));
     setCloudOpticsControls(defaultCloudOpticsControls(lab.scenarios[0]?.id));
     setCloudOpticsViewMode("rendered-cloud-appearance");
+    setBoundaryLayerState(createInitialBoundaryLayer1DState(lab.scenarios[0]?.id));
     setSelectedFieldKey(defaultScientificFieldKey(null));
     return () => cleanupRef.current?.();
   }, [lab]);
@@ -98,6 +124,32 @@ export function LabWorkbench({
       setWorkbench((current) =>
         markWorkbenchRunError(current, "This lab uses interactive preset scenes; backend run flow is not needed yet."),
       );
+      return;
+    }
+
+    if (isBoundaryLayerLab) {
+      setBoundaryLayerState((current) => ({
+        ...current,
+        status: "starting",
+        message: "Running boundary_layer_1d profile evolution.",
+        saveMessage: null,
+      }));
+      try {
+        const run = await boundaryLayerClient.runProfile(boundaryLayerState.config);
+        setBoundaryLayerState((current) => ({
+          ...current,
+          run,
+          displayedFrameIndex: Math.max(0, run.frames.length - 1),
+          status: "complete",
+          message: `Profile run complete with ${run.frames.length} emitted frames.`,
+        }));
+      } catch (error) {
+        setBoundaryLayerState((current) => ({
+          ...current,
+          status: "error",
+          message: error instanceof Error ? error.message : "Unable to run profile model.",
+        }));
+      }
       return;
     }
 
@@ -147,9 +199,13 @@ export function LabWorkbench({
       setCloudOpticsControls(defaultCloudOpticsControls(scenario?.id));
       setCloudOpticsViewMode("rendered-cloud-appearance");
     }
+    if (isBoundaryLayerLab) {
+      setBoundaryLayerState(createInitialBoundaryLayer1DState(scenario?.id));
+    }
   }
 
-  const isRunning = workbench.run.status === "starting" || workbench.run.status === "running";
+  const runStatus = isBoundaryLayerLab ? boundaryLayerState.status : workbench.run.status;
+  const isRunning = runStatus === "starting" || runStatus === "running";
 
   return (
     <main className="workbench-v2" aria-label={`${lab.name} workbench`}>
@@ -157,7 +213,7 @@ export function LabWorkbench({
         lab={lab}
         scenarioName={scenario?.name ?? "Scenario coming later"}
         mode={mode}
-        runStatus={workbench.run.status}
+        runStatus={runStatus}
         isRunning={isRunning}
         canRun={canRun}
         supportsRun={capabilities.supportsRun}
@@ -167,7 +223,17 @@ export function LabWorkbench({
         onResetRun={handleResetRun}
         inspectorOpen={inspectorOpen}
         onToggleInspector={() => setInspectorOpen((current) => !current)}
-        onSaveRun={() => setWorkbench((current) => saveRunPlaceholder(current))}
+        onSaveRun={() => {
+          if (isBoundaryLayerLab) {
+            setBoundaryLayerState((current) => ({
+              ...current,
+              saveMessage:
+                "Profile save/compare artifacts are intentionally deferred from Evolving Boundary Layer v1.",
+            }));
+            return;
+          }
+          setWorkbench((current) => saveRunPlaceholder(current));
+        }}
       />
 
       <section
@@ -180,10 +246,14 @@ export function LabWorkbench({
           setWorkbench={setWorkbench}
           cloudOpticsControls={cloudOpticsControls}
           setCloudOpticsControls={setCloudOpticsControls}
+          boundaryLayerState={boundaryLayerState}
+          setBoundaryLayerState={setBoundaryLayerState}
         />
         <VisualizationStage
           lab={lab}
           frame={currentFrame}
+          boundaryLayerFrame={boundaryLayerFrame}
+          boundaryLayerState={boundaryLayerState}
           workbench={workbench}
           cloudOpticsControls={cloudOpticsControls}
           cloudOpticsViewMode={cloudOpticsViewMode}
@@ -198,17 +268,26 @@ export function LabWorkbench({
             workbench={workbench}
             cloudOpticsControls={cloudOpticsControls}
             cloudOpticsViewMode={cloudOpticsViewMode}
+            boundaryLayerState={boundaryLayerState}
+            boundaryLayerFrame={boundaryLayerFrame}
             saveMessage={workbench.saveMessage}
           />
         ) : null}
       </section>
 
       {capabilities.supportsTimeline || capabilities.supportsReplay ? (
-        <TimelinePanel
-          workbench={workbench}
-          replayEvents={replayEvents}
-          setWorkbench={setWorkbench}
-        />
+        isBoundaryLayerLab ? (
+          <BoundaryLayerTimelinePanel
+            state={boundaryLayerState}
+            setState={setBoundaryLayerState}
+          />
+        ) : (
+          <TimelinePanel
+            workbench={workbench}
+            replayEvents={replayEvents}
+            setWorkbench={setWorkbench}
+          />
+        )
       ) : null}
     </main>
   );
@@ -303,12 +382,16 @@ function LabSetupPanel({
   setWorkbench,
   cloudOpticsControls,
   setCloudOpticsControls,
+  boundaryLayerState,
+  setBoundaryLayerState,
 }: {
   lab: LabDefinition;
   workbench: WorkbenchState;
   setWorkbench: Dispatch<SetStateAction<WorkbenchState>>;
   cloudOpticsControls: CloudOpticsSceneControls | null;
   setCloudOpticsControls: Dispatch<SetStateAction<CloudOpticsSceneControls | null>>;
+  boundaryLayerState: BoundaryLayer1DState;
+  setBoundaryLayerState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
 }) {
   const scenario = selectedLabScenario(lab, workbench);
   const config = workbench.nextRunConfig;
@@ -321,6 +404,16 @@ function LabSetupPanel({
         setWorkbench={setWorkbench}
         controls={cloudOpticsControls}
         setControls={setCloudOpticsControls}
+      />
+    );
+  }
+
+  if (lab.id === EVOLVING_BOUNDARY_LAYER_LAB_ID) {
+    return (
+      <BoundaryLayerSetupPanel
+        lab={lab}
+        state={boundaryLayerState}
+        setState={setBoundaryLayerState}
       />
     );
   }
@@ -477,6 +570,242 @@ function LabSetupPanel({
         </div>
       </section>
     </aside>
+  );
+}
+
+function BoundaryLayerSetupPanel({
+  lab,
+  state,
+  setState,
+}: {
+  lab: LabDefinition;
+  state: BoundaryLayer1DState;
+  setState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
+}) {
+  const scenario = lab.scenarios.find((candidate) => candidate.id === state.selectedScenarioId);
+  const preset = boundaryLayer1DScenarioForId(state.selectedScenarioId);
+
+  return (
+    <aside className="workbench-region setup-region" aria-labelledby="setup-region-title">
+      <p className="region-label">Setup</p>
+      <h2 id="setup-region-title">{scenario?.name ?? "Boundary-layer scenario"}</h2>
+
+      <section className="setup-control-section" aria-labelledby="setup-scenario-title">
+        <h3 id="setup-scenario-title">Scenario</h3>
+        <label className="control-group">
+          <span>Scenario</span>
+          <select
+            value={state.selectedScenarioId}
+            onChange={(event) =>
+              setState((current) =>
+                selectBoundaryLayer1DScenario(current, event.currentTarget.value),
+              )
+            }
+          >
+            {lab.scenarios.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p>{scenario?.intendedPhenomenon ?? lab.question}</p>
+        <p className="setup-expectation">{scenario?.expectedBehavior}</p>
+        <p className="model-setup-summary">
+          Simplified 1-D profile evolution. V1 diagnoses cloud formation potential. It does not produce cloud water.
+        </p>
+        {preset?.expected_status ? (
+          <p className="control-helper">Expected diagnostic: {statusLabel(preset.expected_status)}.</p>
+        ) : null}
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-profile-forcing-title">
+        <h3 id="setup-profile-forcing-title">Surface forcing</h3>
+        <div className="workbench-control-grid" aria-label="Boundary-layer surface forcing controls">
+          <BoundaryLayerNumberControl
+            id="duration_seconds"
+            label="Hours from sunrise / duration"
+            value={state.config.duration_seconds}
+            min={1_800}
+            max={28_800}
+            step={900}
+            formatValue={(value) => `${(value / 3_600).toFixed(1)} h`}
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="surface_heating_strength"
+            label="Surface heating strength"
+            value={state.config.surface_heating_strength}
+            min={0}
+            max={1}
+            step={0.02}
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="surface_moisture_flux_strength"
+            label="Surface moisture flux"
+            value={state.config.surface_moisture_flux_strength}
+            min={0}
+            max={1}
+            step={0.02}
+            setState={setState}
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-profile-title">
+        <h3 id="setup-profile-title">Initial profile</h3>
+        <div className="workbench-control-grid" aria-label="Boundary-layer profile controls">
+          <BoundaryLayerNumberControl
+            id="initial_relative_humidity"
+            label="Initial mixed-layer humidity"
+            value={state.config.initial_relative_humidity}
+            min={0.05}
+            max={1}
+            step={0.01}
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="initial_lapse_rate_k_per_m"
+            label="Initial stability / lapse rate"
+            value={state.config.initial_lapse_rate_k_per_m}
+            min={0.003}
+            max={0.01}
+            step={0.0001}
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="free_atmosphere_relative_humidity"
+            label="Dry air above mixed layer"
+            value={state.config.free_atmosphere_relative_humidity}
+            min={0.05}
+            max={1}
+            step={0.01}
+            setState={setState}
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-cap-title">
+        <h3 id="setup-cap-title">Cap and entrainment</h3>
+        <div className="workbench-control-grid" aria-label="Boundary-layer cap and entrainment controls">
+          <BoundaryLayerNumberControl
+            id="inversion_height_m"
+            label="Inversion height"
+            value={state.config.inversion_height_m}
+            min={400}
+            max={2_800}
+            step={50}
+            suffix="m"
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="inversion_strength_k"
+            label="Inversion strength"
+            value={state.config.inversion_strength_k}
+            min={0}
+            max={8}
+            step={0.1}
+            suffix="K"
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="entrainment_strength"
+            label="Entrainment strength"
+            value={state.config.entrainment_strength}
+            min={0}
+            max={1}
+            step={0.02}
+            setState={setState}
+          />
+        </div>
+      </section>
+
+      <section className="setup-control-section" aria-labelledby="setup-profile-model-title">
+        <h3 id="setup-profile-model-title">Advanced model setup</h3>
+        <div className="workbench-control-grid" aria-label="Boundary-layer advanced controls">
+          <BoundaryLayerNumberControl
+            id="levels"
+            label="Vertical levels / profile resolution"
+            value={state.config.levels}
+            min={12}
+            max={121}
+            step={1}
+            suffix="levels"
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="time_step_seconds"
+            label="Timestep"
+            value={state.config.time_step_seconds}
+            min={30}
+            max={900}
+            step={30}
+            suffix="s"
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="frame_interval_seconds"
+            label="Output cadence"
+            value={state.config.frame_interval_seconds}
+            min={300}
+            max={3_600}
+            step={300}
+            suffix="s"
+            setState={setState}
+          />
+          <BoundaryLayerNumberControl
+            id="seed"
+            label="Seed"
+            value={state.config.seed}
+            min={1}
+            max={999}
+            step={1}
+            setState={setState}
+          />
+        </div>
+      </section>
+    </aside>
+  );
+}
+
+function BoundaryLayerNumberControl({
+  id,
+  label,
+  value,
+  min,
+  max,
+  step,
+  suffix,
+  formatValue,
+  setState,
+}: {
+  id: BoundaryLayer1DControlId;
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  suffix?: string;
+  formatValue?: (value: number) => string;
+  setState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
+}) {
+  return (
+    <label className="control-group">
+      <span>{label}</span>
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(event) => {
+          const nextValue = Number(event.currentTarget.value);
+          setState((current) => updateBoundaryLayer1DControl(current, id, nextValue));
+        }}
+      />
+      <small>{formatValue ? formatValue(value) : suffix ?? "0 to 1"}</small>
+    </label>
   );
 }
 
@@ -808,6 +1137,8 @@ function SelectControl({
 function VisualizationStage({
   lab,
   frame,
+  boundaryLayerFrame,
+  boundaryLayerState,
   workbench,
   cloudOpticsControls,
   cloudOpticsViewMode,
@@ -817,6 +1148,8 @@ function VisualizationStage({
 }: {
   lab: LabDefinition;
   frame: SimulationFrame | null;
+  boundaryLayerFrame: BoundaryLayer1DFrame | null;
+  boundaryLayerState: BoundaryLayer1DState;
   workbench: WorkbenchState;
   cloudOpticsControls: CloudOpticsSceneControls | null;
   cloudOpticsViewMode: CloudOpticsViewMode;
@@ -832,6 +1165,16 @@ function VisualizationStage({
         controls={cloudOpticsControls}
         viewMode={cloudOpticsViewMode}
         onViewModeChange={onCloudOpticsViewModeChange}
+      />
+    );
+  }
+
+  if (lab.id === EVOLVING_BOUNDARY_LAYER_LAB_ID) {
+    return (
+      <BoundaryLayerVisualizationStage
+        lab={lab}
+        frame={boundaryLayerFrame}
+        state={boundaryLayerState}
       />
     );
   }
@@ -967,6 +1310,112 @@ function VisualizationStage({
         </p>
       </div>
       {workbench.run.message ? <p className="workbench-message">{workbench.run.message}</p> : null}
+    </section>
+  );
+}
+
+function BoundaryLayerVisualizationStage({
+  lab,
+  frame,
+  state,
+}: {
+  lab: LabDefinition;
+  frame: BoundaryLayer1DFrame | null;
+  state: BoundaryLayer1DState;
+}) {
+  const activeFrame = frame ?? boundaryLayerPreviewFrame(state);
+  const status = activeFrame.diagnostics.cloud_formation_potential_status;
+  const hasRun = state.run !== null;
+  const temperaturePoints = profileLinePoints(
+    activeFrame,
+    activeFrame.temperature_k.map((value) => value - 273.15),
+    "temperature",
+  );
+  const rhPoints = profileLinePoints(activeFrame, activeFrame.relative_humidity_percent, "rh");
+  const markers = [
+    { label: "Mixed-layer depth marker", value: activeFrame.mixed_layer_depth_m, className: "mixed-layer" },
+    { label: "LCL marker", value: activeFrame.lcl_m, className: "lcl" },
+    { label: "Inversion / cap marker", value: activeFrame.inversion_height_m, className: "cap" },
+  ];
+
+  return (
+    <section
+      className="workbench-region visualization-stage boundary-layer-stage"
+      aria-labelledby="visualization-stage-title"
+    >
+      <div className="stage-heading">
+        <p className="region-label">Visualization stage</p>
+        <div className="stage-title-row">
+          <h2 id="visualization-stage-title">Profile / sounding hero view</h2>
+          <div className="frame-readout" aria-label="Displayed frame readout">
+            <span>Frame {hasRun ? state.displayedFrameIndex + 1 : 0} / {state.run?.frames.length ?? 0}</span>
+            <strong>{activeFrame.time_hours_from_sunrise.toFixed(1)} h from sunrise</strong>
+          </div>
+        </div>
+      </div>
+      <div className="stage-toolbar">
+        <p className="field-scale-title">
+          Temperature profile, RH profile, mixed-layer depth, LCL, and inversion/cap markers
+        </p>
+        <span className={`diagnostic-status diagnostic-status-${status}`}>
+          Cloud formation potential: {statusLabel(status)}
+        </span>
+      </div>
+      <div className="profile-sounding-shell">
+        <div className="profile-sounding-chart" role="img" aria-label={`${lab.name} 1-D profile visualization`}>
+          <span className="axis-label axis-label-y">Height, z (m)</span>
+          <AxisTicks orientation="y" maxValue={state.config.height_m} />
+          <div className="profile-sounding-plot">
+            <AxisGrid orientation="y" maxValue={state.config.height_m} />
+            <svg className="profile-sounding-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <title>Temperature and RH profile</title>
+              <polyline points={temperaturePoints} className="profile-line profile-line-temperature" />
+              <polyline points={rhPoints} className="profile-line profile-line-rh" />
+            </svg>
+            {markers.map((marker) => (
+              <span
+                key={marker.label}
+                className={`profile-marker profile-marker-${marker.className}`}
+                style={{ bottom: `${profileHeightPercent(activeFrame, marker.value)}%` }}
+              >
+                {marker.label}: {formatMeters(marker.value)}
+              </span>
+            ))}
+          </div>
+          <div className="profile-sounding-legend">
+            <span className="temperature-key">Temperature profile</span>
+            <span className="rh-key">RH profile</span>
+            <span className="marker-key">Profile markers</span>
+          </div>
+        </div>
+      </div>
+      <dl className="stage-stats">
+        <div>
+          <dt>Mixed-layer depth</dt>
+          <dd>{formatMeters(activeFrame.mixed_layer_depth_m)}</dd>
+        </div>
+        <div>
+          <dt>LCL</dt>
+          <dd>{formatMeters(activeFrame.lcl_m)}</dd>
+        </div>
+        <div>
+          <dt>MLD minus LCL</dt>
+          <dd>{formatMeters(activeFrame.diagnostics.mixed_layer_lcl_difference_m)}</dd>
+        </div>
+        <div>
+          <dt>RH near mixed-layer top</dt>
+          <dd>{activeFrame.diagnostics.rh_near_mixed_layer_top_percent.toFixed(0)}%</dd>
+        </div>
+      </dl>
+      <p className="stage-helper">{activeFrame.diagnostics.cloud_formation_potential_reason}</p>
+      <div className="assumption-labels" aria-label="Model assumptions">
+        <span>Model assumptions</span>
+        <p>
+          Simplified 1-D profile model · Cloud formation potential · No cloud water in v1 ·
+          Not cloud-resolving · Derived diagnostic
+        </p>
+      </div>
+      {state.message ? <p className="workbench-message">{state.message}</p> : null}
     </section>
   );
 }
@@ -1169,12 +1618,39 @@ function AxisTicks({
   );
 }
 
+function profileLinePoints(
+  frame: BoundaryLayer1DFrame,
+  values: number[],
+  field: "temperature" | "rh",
+): string {
+  const finiteValues = values.filter((value) => Number.isFinite(value));
+  const min = field === "temperature" ? Math.min(...finiteValues, 0) : 0;
+  const max = field === "temperature" ? Math.max(...finiteValues, 1) : 100;
+  const range = Math.max(1e-9, max - min);
+  const xOffset = field === "temperature" ? 4 : 52;
+  const xWidth = field === "temperature" ? 40 : 42;
+
+  return values.map((value, index) => {
+    const normalizedX = (value - min) / range;
+    const x = xOffset + normalizedX * xWidth;
+    const y = 100 - profileHeightPercent(frame, frame.z_m[index] ?? 0);
+    return `${x.toFixed(2)},${y.toFixed(2)}`;
+  }).join(" ");
+}
+
+function profileHeightPercent(frame: BoundaryLayer1DFrame, heightM: number): number {
+  const top = Math.max(1, frame.z_m[frame.z_m.length - 1] ?? 1);
+  return Math.max(0, Math.min(100, (heightM / top) * 100));
+}
+
 function InspectorPanel({
   lab,
   summary,
   workbench,
   cloudOpticsControls,
   cloudOpticsViewMode,
+  boundaryLayerState,
+  boundaryLayerFrame,
   saveMessage,
 }: {
   lab: LabDefinition;
@@ -1182,6 +1658,8 @@ function InspectorPanel({
   workbench: WorkbenchState;
   cloudOpticsControls: CloudOpticsSceneControls | null;
   cloudOpticsViewMode: CloudOpticsViewMode;
+  boundaryLayerState: BoundaryLayer1DState;
+  boundaryLayerFrame: BoundaryLayer1DFrame | null;
   saveMessage: string | null;
 }) {
   if (lab.id === CLOUD_OPTICS_BEAUTY_LAB_ID) {
@@ -1192,6 +1670,16 @@ function InspectorPanel({
         controls={cloudOpticsControls}
         viewMode={cloudOpticsViewMode}
         saveMessage={saveMessage}
+      />
+    );
+  }
+
+  if (lab.id === EVOLVING_BOUNDARY_LAYER_LAB_ID) {
+    return (
+      <BoundaryLayerInspectorPanel
+        lab={lab}
+        state={boundaryLayerState}
+        frame={boundaryLayerFrame}
       />
     );
   }
@@ -1362,6 +1850,98 @@ function InspectorPanel({
   );
 }
 
+function BoundaryLayerInspectorPanel({
+  lab,
+  state,
+  frame,
+}: {
+  lab: LabDefinition;
+  state: BoundaryLayer1DState;
+  frame: BoundaryLayer1DFrame | null;
+}) {
+  const activeFrame = frame ?? boundaryLayerPreviewFrame(state);
+  const diagnostics = activeFrame.diagnostics;
+
+  return (
+    <aside className="workbench-region inspector-region" aria-labelledby="inspector-region-title">
+      <p className="region-label">Inspector</p>
+      <section className="inspector-summary" aria-labelledby="inspector-region-title">
+        <h2 id="inspector-region-title">Cloud formation potential</h2>
+        <span className={`diagnostic-status diagnostic-status-${diagnostics.cloud_formation_potential_status}`}>
+          Result: {statusLabel(diagnostics.cloud_formation_potential_status)}
+        </span>
+        <p>{diagnostics.cloud_formation_potential_reason}</p>
+      </section>
+
+      <details className="inspector-details" open>
+        <summary>Profile diagnostics</summary>
+        <dl className="diagnostic-list">
+          <div>
+            <dt>Cloud formation potential status</dt>
+            <dd>{statusLabel(diagnostics.cloud_formation_potential_status)}</dd>
+          </div>
+          <div>
+            <dt>Deterministic limiting reason</dt>
+            <dd>{diagnostics.cloud_formation_potential_reason}</dd>
+          </div>
+          <div>
+            <dt>Mixed-layer depth</dt>
+            <dd>{formatMeters(activeFrame.mixed_layer_depth_m)}</dd>
+          </div>
+          <div>
+            <dt>LCL</dt>
+            <dd>{formatMeters(activeFrame.lcl_m)}</dd>
+          </div>
+          <div>
+            <dt>Mixed-layer depth minus LCL</dt>
+            <dd>{formatMeters(diagnostics.mixed_layer_lcl_difference_m)}</dd>
+          </div>
+          <div>
+            <dt>RH near mixed-layer top</dt>
+            <dd>{diagnostics.rh_near_mixed_layer_top_percent.toFixed(1)}%</dd>
+          </div>
+          <div>
+            <dt>Inversion / cap state</dt>
+            <dd>
+              {formatMeters(activeFrame.inversion_height_m)} / {activeFrame.inversion_strength_k.toFixed(1)} K
+            </dd>
+          </div>
+          <div>
+            <dt>Entrainment drying proxy</dt>
+            <dd>{activeFrame.entrainment_drying_proxy.toExponential(2)}</dd>
+          </div>
+          <div>
+            <dt>Surface heating accumulation</dt>
+            <dd>{activeFrame.surface_heating_accumulated_k.toFixed(2)} K</dd>
+          </div>
+          <div>
+            <dt>Surface moisture addition</dt>
+            <dd>{activeFrame.surface_moisture_added_kg_per_kg.toExponential(2)} kg/kg</dd>
+          </div>
+        </dl>
+      </details>
+
+      <details className="inspector-details" open>
+        <summary>Model contract</summary>
+        <p className="assumption-copy">
+          Simplified 1-D profile model · Cloud formation potential · No cloud water in v1 ·
+          Not cloud-resolving · No live Boussinesq coupling · Derived diagnostic
+        </p>
+      </details>
+
+      <details className="inspector-details">
+        <summary>Scenario limitations</summary>
+        <ul>
+          {lab.limitations.map((limitation) => (
+            <li key={limitation}>{limitation}</li>
+          ))}
+        </ul>
+      </details>
+      {state.saveMessage ? <p className="workbench-message">{state.saveMessage}</p> : null}
+    </aside>
+  );
+}
+
 function CloudOpticsInspectorPanel({
   lab,
   workbench,
@@ -1461,6 +2041,65 @@ function CloudOpticsInspectorPanel({
       </details>
       {saveMessage ? <p className="workbench-message">{saveMessage}</p> : null}
     </aside>
+  );
+}
+
+function BoundaryLayerTimelinePanel({
+  state,
+  setState,
+}: {
+  state: BoundaryLayer1DState;
+  setState: Dispatch<SetStateAction<BoundaryLayer1DState>>;
+}) {
+  const frames = state.run?.frames ?? [];
+  const max = Math.max(0, frames.length - 1);
+  const currentFrame = boundaryLayerDisplayedFrame(state);
+
+  return (
+    <section className="timeline-region" aria-labelledby="timeline-region-title">
+      <div>
+        <p className="region-label">Timeline / replay</p>
+        <h2 id="timeline-region-title">
+          {frames.length > 0
+            ? `Profile frame ${state.displayedFrameIndex + 1} of ${frames.length}`
+            : "Run profile evolution to replay frames"}
+        </h2>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max={max}
+        value={state.displayedFrameIndex}
+        readOnly={frames.length === 0}
+        aria-label="Profile replay timeline"
+        onChange={(event) => {
+          const frameIndex = Number(event.currentTarget.value);
+          setState((current) => ({
+            ...current,
+            displayedFrameIndex: Math.min(Math.max(0, frameIndex), max),
+          }));
+        }}
+      />
+      <div className="timeline-actions" aria-label="Profile replay actions">
+        <button
+          type="button"
+          onClick={() => setState((current) => ({ ...current, displayedFrameIndex: 0 }))}
+          disabled={frames.length === 0}
+        >
+          First
+        </button>
+        <button
+          type="button"
+          onClick={() => setState((current) => ({ ...current, displayedFrameIndex: max }))}
+          disabled={frames.length === 0}
+        >
+          Final
+        </button>
+        <span className="run-state run-state-idle">
+          {currentFrame ? `${currentFrame.time_hours_from_sunrise.toFixed(1)} h from sunrise` : "No frames"}
+        </span>
+      </div>
+    </section>
   );
 }
 

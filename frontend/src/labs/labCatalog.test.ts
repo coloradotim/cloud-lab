@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   CLOUD_OPTICS_BEAUTY_LAB_ID,
+  EVOLVING_BOUNDARY_LAYER_LAB_ID,
   FAIR_WEATHER_CUMULUS_LAB_ID,
   labById,
   labCatalog,
@@ -10,8 +11,9 @@ import { cloudOpticsScenePresetIds } from "./cloudOpticsScenes";
 
 const fairWeatherLab = labById(FAIR_WEATHER_CUMULUS_LAB_ID);
 const cloudOpticsLab = labById(CLOUD_OPTICS_BEAUTY_LAB_ID);
+const evolvingBoundaryLayerLab = labById(EVOLVING_BOUNDARY_LAYER_LAB_ID);
 
-if (!fairWeatherLab || !cloudOpticsLab) {
+if (!fairWeatherLab || !cloudOpticsLab || !evolvingBoundaryLayerLab) {
   throw new Error("Missing expected lab definitions");
 }
 
@@ -151,7 +153,10 @@ describe("lab catalog", () => {
 
   it("keeps planned labs present but not falsely functional", () => {
     const plannedLabs = labCatalog.filter(
-      (lab) => lab.id !== fairWeatherLab.id && lab.id !== cloudOpticsLab.id,
+      (lab) =>
+        lab.id !== fairWeatherLab.id &&
+        lab.id !== cloudOpticsLab.id &&
+        lab.id !== evolvingBoundaryLayerLab.id,
     );
 
     expect(plannedLabs.length).toBeGreaterThan(0);
@@ -161,6 +166,64 @@ describe("lab catalog", () => {
     expect(plannedLabs.every((lab) => lab.controls.length === 0)).toBe(true);
     expect(plannedLabs.every((lab) => lab.diagnostics.length === 0)).toBe(true);
     expect(plannedLabs.every((lab) => lab.capabilities.supportsRun === false)).toBe(true);
+  });
+
+  it("defines Evolving Boundary Layer as a selectable boundary_layer_1d workbench lab", () => {
+    expect(evolvingBoundaryLayerLab.id).toBe("evolving-boundary-layer");
+    expect(evolvingBoundaryLayerLab.name).toBe("Evolving Boundary Layer");
+    expect(evolvingBoundaryLayerLab.statusLabel).toBe("Simplified 1-D profile evolution");
+    expect(evolvingBoundaryLayerLab.supportedPhysicsCore).toBe("boundary_layer_1d");
+    expect(evolvingBoundaryLayerLab.isSelectable).toBe(true);
+    expect(evolvingBoundaryLayerLab.capabilities).toMatchObject({
+      supportsRun: true,
+      supportsTimeline: true,
+      supportsReplay: true,
+      supportsStaticControls: false,
+    });
+    expect(evolvingBoundaryLayerLab.scenarios.map((scenario) => scenario.name)).toEqual([
+      "Morning stable layer breaks down",
+      "Moist surface, cumulus favorable",
+      "Dry entrainment suppresses potential",
+      "Surface moisture flux enables potential",
+      "Strong cap suppresses growth",
+      "No-flux control",
+    ]);
+    expect(evolvingBoundaryLayerLab.controls.map((control) => control.label)).toEqual(
+      expect.arrayContaining([
+        "Hours from sunrise / duration",
+        "Surface heating strength",
+        "Surface moisture flux",
+        "Initial mixed-layer humidity",
+        "Initial stability / lapse rate",
+        "Inversion height",
+        "Inversion strength",
+        "Dry air above mixed layer",
+        "Entrainment strength",
+        "Vertical levels / profile resolution",
+      ]),
+    );
+    expect(evolvingBoundaryLayerLab.diagnostics.map((diagnostic) => diagnostic.label)).toEqual(
+      expect.arrayContaining([
+        "Cloud formation potential status",
+        "Deterministic limiting reason",
+        "Mixed-layer depth",
+        "LCL",
+        "Mixed-layer depth minus LCL",
+        "RH near mixed-layer top",
+      ]),
+    );
+    expect(evolvingBoundaryLayerLab.visualizationModes.map((mode) => mode.id)).toEqual([
+      "profile-sounding-hero-view",
+      "profile-timeline-replay",
+      "profile-inspector-diagnostics",
+    ]);
+    expect(evolvingBoundaryLayerLab.limitations).toEqual(
+      expect.arrayContaining([
+        "V1 diagnoses cloud formation potential. It does not produce cloud water.",
+        "Not cloud-resolving",
+        "No live Boussinesq coupling",
+      ]),
+    );
   });
 
   it("includes Clouds, Light, and Shadow as a concept shell lab", () => {

@@ -393,6 +393,14 @@ Minimum reference experience:
 
 This reference implementation should establish patterns for future labs.
 
+Evolving Boundary Layer v1 is now the first standalone reduced-model Workbench
+lab. It uses a profile-specific `boundary_layer_1d` run path and profile-frame
+contract rather than the Boussinesq streaming frame contract. The architecture
+pattern is still lab-driven: lab metadata chooses the profile model, scenario
+metadata seeds the profile config, visualization consumes emitted profile
+fields, and inspector diagnostics explain cloud formation potential without
+implying cloud water or cloud-resolving dynamics.
+
 ## Testing Strategy
 
 Tests should verify product flow, not just component rendering.
