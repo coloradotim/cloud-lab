@@ -40,6 +40,13 @@ Cloud Lab is currently in two overlapping modes:
    - Lower Atmosphere Cloud Basics can continue only with honest experimental labels and tighter validation. Fair-weather cumulus is a scenario family inside it, not the lab name.
    - Future Boussinesq-dependent labs should remain prototype-only or pause until trust gaps are resolved or explicitly accepted.
 
+3. **Lower-atmosphere reduced-model implementation**
+   - `boundary_layer_1d` v1 now exists as a standalone backend profile model.
+   - It evolves 1-D temperature, vapor/RH, mixed-layer depth, LCL, cap, heating,
+     moisture, and entrainment-drying diagnostics.
+   - It diagnoses cloud formation potential and intentionally emits no cloud
+     water in v1.
+
 ## Read First
 
 Before doing repo work, read:
@@ -206,8 +213,11 @@ numerical-method findings.
 Near-term science implementation should prioritize:
 
 ```text
-boundary_layer_1d → controlled_cloud_column → CM1 adapter/reference cases → microphysics precipitation diagnostics → optics field contract
+controlled_cloud_column → CM1 adapter/reference cases → microphysics precipitation diagnostics → optics field contract
 ```
+
+`boundary_layer_1d` v1 has landed as the first reduced-model step. Continue from
+`docs/boundary-layer-1d.md` for its backend contract and validation boundary.
 
 ## Do Not Do Without Explicit User Direction
 
@@ -257,5 +267,7 @@ Use the current open issue state to decide, but as of this handoff:
   the issue explicitly asks for it.
 - If lower-atmosphere science architecture is active, work from
   `docs/lower-atmosphere-modeling-strategy.md`.
-- The next science implementation issue should be `boundary_layer_1d` profile
-  model v1 unless the user chooses to update Boussinesq labeling/docs first.
+- The next lower-atmosphere science implementation issue should likely be
+  `controlled_cloud_column` or Evolving Boundary Layer frontend/profile
+  visualization, depending on the user's chosen track. Do not add cloud water to
+  `boundary_layer_1d` v1.

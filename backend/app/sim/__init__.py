@@ -5,6 +5,25 @@ tested, reused, and evolved without browser or transport concerns.
 """
 
 from app.sim.presets import SimulationPreset, fair_weather_cumulus_preset, simulation_presets
+from app.sim.profile_1d import (
+    BoundaryLayer1DState,
+    boundary_layer_1d_scenarios,
+    initialize_profile_state,
+    run_profile,
+    state_to_profile_frame,
+    step_profile_state,
+    stream_profile_frames,
+)
+from app.sim.profile_schemas import (
+    BoundaryLayer1DConfig,
+    BoundaryLayer1DDiagnostics,
+    BoundaryLayer1DFrame,
+    BoundaryLayer1DRun,
+    BoundaryLayer1DScenario,
+    BoundaryLayerHeatingCurve,
+    BoundaryLayerModelType,
+    CloudFormationPotentialStatus,
+)
 from app.sim.runs import RunStatus, SimulationRun, SimulationRunManager, run_manager
 from app.sim.sample import build_grid_metadata, create_sample_frame, make_simulation_fields
 from app.sim.schemas import (
@@ -91,6 +110,14 @@ from app.sim.validation import (
 __all__ = [
     "AtmosphereState",
     "BackgroundWindConfig",
+    "BoundaryLayer1DConfig",
+    "BoundaryLayer1DDiagnostics",
+    "BoundaryLayer1DFrame",
+    "BoundaryLayer1DRun",
+    "BoundaryLayer1DScenario",
+    "BoundaryLayer1DState",
+    "BoundaryLayerHeatingCurve",
+    "BoundaryLayerModelType",
     "BoussinesqDiagnostics",
     "BoussinesqModelSize",
     "BoussinesqReferenceCase",
@@ -103,6 +130,7 @@ __all__ = [
     "CloudArtifactPolicyDiagnostics",
     "CloudArtifactPolicyItem",
     "CloudRegionDiagnostics",
+    "CloudFormationPotentialStatus",
     "CloudWaterPersistenceDiagnostics",
     "DIVERGENCE_VELOCITY_FLOOR_M_PER_S",
     "DisplayScale",
@@ -138,6 +166,7 @@ __all__ = [
     "boussinesq_stabilizer_audit_cases",
     "boussinesq_stabilizer_audit_variants",
     "boussinesq_thermodynamic_validation_cases",
+    "boundary_layer_1d_scenarios",
     "compute_boussinesq_diagnostics",
     "compute_boussinesq_scenario_diagnostics",
     "compute_boussinesq_thermodynamic_diagnostics",
@@ -155,11 +184,13 @@ __all__ = [
     "create_sample_frame",
     "fair_weather_cumulus_preset",
     "initialize_state",
+    "initialize_profile_state",
     "lifted_saturation_sanity_path",
     "lower_atmosphere_sensitivity_scenarios",
     "lower_atmosphere_sensitivity_variants",
     "make_simulation_fields",
     "run_simulation",
+    "run_profile",
     "run_boussinesq_thermodynamic_validation",
     "run_boussinesq_scenario_validation",
     "run_boussinesq_stabilizer_audit",
@@ -170,7 +201,10 @@ __all__ = [
     "simulation_presets",
     "solver_descriptors",
     "state_to_frame",
+    "state_to_profile_frame",
     "step_state",
+    "step_profile_state",
     "stream_simulation_frames",
+    "stream_profile_frames",
     "stream_run",
 ]

@@ -46,6 +46,9 @@ The current public physics paths are:
 
 - `boussinesq_2d`: Yellow prototype visual dynamics scaffold for controlled
   qualitative cloud experiments.
+- `boundary_layer_1d`: standalone 1-D lower-atmosphere profile evolution model
+  for Evolving Boundary Layer v1 and cloud-formation-potential diagnostics. It
+  emits no cloud water in v1.
 - `microphysics_lab`: controlled parcel/box warm-cloud microphysics mode.
 
 The current public `boussinesq_2d` path remains a Yellow prototype scaffold. It
@@ -106,8 +109,10 @@ Science needs:
 
 Current status:
 
-- not yet a full model capability
-- should become a major next science/product direction after the workbench and fair-weather lab are coherent
+- `boundary_layer_1d` v1 exists as a standalone backend profile model.
+- v1 evolves temperature, vapor/RH, mixed-layer depth, LCL, cap, heating,
+  moisture, and entrainment-drying diagnostics.
+- v1 diagnoses cloud formation potential but intentionally emits no cloud water.
 
 This is the bridge between static surface-heating scenarios and more realistic cloud evolution. It should begin as a simplified standalone 1-D profile/boundary-layer model before any later export or coupling path is considered.
 
