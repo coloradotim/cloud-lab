@@ -73,6 +73,13 @@ v1. It is a profile model with `profile-config-v1`, `profile-frame-v1`, and
 vertical profiles and diagnostics, not `sim-frame-v1` 2-D fields, and it emits no
 cloud liquid water in v1.
 
+`controlled_cloud_column` is also separate from the shared 2-D frame interface in
+v1. It uses `cloud-column-config-v1`, `cloud-column-frame-v1`, and
+`cloud-column-run-v1` contracts documented in `docs/controlled-cloud-column.md`.
+It consumes a vertical profile plus prescribed lift, emits parcel/column samples
+with cloud liquid water and diagnostics, and labels lift as prescribed forcing
+rather than predicted dynamics.
+
 ## Structured Initial Conditions
 
 Structured controls are scenario configuration, not renderer state. The current 2-D solvers reduce them to deterministic heating weights and relative-humidity fields:

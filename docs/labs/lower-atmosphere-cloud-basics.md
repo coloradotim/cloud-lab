@@ -275,6 +275,11 @@ Current Boussinesq should not be treated as the main scientifically valid
 lower-atmosphere engine or as the foundation for polished future cloud-resolving
 labs. See `docs/lower-atmosphere-modeling-strategy.md`.
 
+`controlled_cloud_column` now exists as the backend prescribed-lift formation
+model for the second step in this path. It can diagnose first cloud time, cloud
+base, dry failed/capped outcomes, and evaporation cases from a supplied profile,
+while clearly labeling lift as prescribed rather than predicted.
+
 ## Frame / Schema Requirements
 
 V1 requires existing `sim-frame-v1` fields:

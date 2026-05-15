@@ -47,6 +47,10 @@ Cloud Lab is currently in two overlapping modes:
      moisture, and entrainment-drying diagnostics.
    - It diagnoses cloud formation potential and intentionally emits no cloud
      water in v1.
+   - `controlled_cloud_column` v1 now exists as a separate backend prescribed-lift
+     cloud-formation model. It consumes a profile, emits cloud liquid water and
+     deterministic formation diagnostics, and labels lift as prescribed rather
+     than predicted.
 
 ## Read First
 
@@ -214,7 +218,7 @@ numerical-method findings.
 Near-term science implementation should prioritize:
 
 ```text
-controlled_cloud_column → CM1 adapter/reference cases → microphysics precipitation diagnostics → optics field contract
+CM1 adapter/reference cases → microphysics precipitation diagnostics → optics field contract
 ```
 
 `boundary_layer_1d` v1 has landed as the first reduced-model step. Evolving
@@ -223,6 +227,10 @@ profile controls, a profile/sounding view, timeline replay, and deterministic
 cloud formation potential diagnostics. Continue from `docs/boundary-layer-1d.md`
 for the backend contract and from `docs/labs/evolving-boundary-layer.md` for the
 lab contract.
+
+`controlled_cloud_column` v1 has also landed as the second reduced-model step.
+Continue from `docs/controlled-cloud-column.md` for the backend contract,
+prescribed-lift assumptions, scenarios, diagnostics, and validation expectations.
 
 ## Do Not Do Without Explicit User Direction
 

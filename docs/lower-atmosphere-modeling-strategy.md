@@ -595,6 +595,11 @@ Recommended order:
 The first code implementation should not touch current `boussinesq_2d`. It should
 add `boundary_layer_1d`.
 
+As of #178, `controlled_cloud_column` v1 also exists as a standalone backend
+prescribed-lift model. The next lower-atmosphere science work should build on
+those reduced-model contracts rather than re-centering future work on the
+Yellow-status Boussinesq prototype.
+
 ## Validation Philosophy
 
 Validation should protect the model hierarchy.

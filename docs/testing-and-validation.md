@@ -199,11 +199,19 @@ Examples:
 
 - increasing relative humidity lowers expected LCL.
 - decreasing relative humidity raises LCL or suppresses cloud.
+- higher humidity in a controlled cloud column forms cloud earlier than a drier
+  comparable column.
+- stronger prescribed lift in a controlled cloud column forms cloud earlier than
+  weaker prescribed lift, all else equal.
 - stronger heating gives stronger vertical response than weaker heating, all else equal.
 - dry failed cumulus produces motion but little/no cloud.
 - no-lift microphysics case stays cloud-free.
+- no-lift controlled cloud-column cases stay cloud-free.
 - lifted humid parcel condenses.
 - heating offsets lift and delays or reduces condensation.
+- cap suppression in a controlled cloud column delays or prevents cloud relative
+  to an uncapped comparable column.
+- evaporation in subsaturated controlled-column layers reduces cloud liquid water.
 - dry cap/stable layer suppresses cloud depth or cloud amount compared with a comparable uncapped case.
 - paired stable/capped validation changes only the stability or cap structure being tested; humidity, heating, domain, resolution, runtime, and seed remain fixed.
 - multi-thermal forcing creates multiple thermal/cloud regions for at least part of the run, when that is the scenario's stated purpose.
