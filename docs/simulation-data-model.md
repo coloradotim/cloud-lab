@@ -67,6 +67,12 @@ Current solver descriptors are exposed by `GET /simulations/solvers`:
 
 To add a backend, implement the solver interface, register a descriptor in the solver registry, ensure frames validate against `SimulationFrame`, and document any missing fields or approximations.
 
+`boundary_layer_1d` is intentionally separate from this 2-D solver interface in
+v1. It is a profile model with `profile-config-v1`, `profile-frame-v1`, and
+`profile-run-v1` contracts documented in `docs/boundary-layer-1d.md`. It emits
+vertical profiles and diagnostics, not `sim-frame-v1` 2-D fields, and it emits no
+cloud liquid water in v1.
+
 ## Structured Initial Conditions
 
 Structured controls are scenario configuration, not renderer state. The current 2-D solvers reduce them to deterministic heating weights and relative-humidity fields:
@@ -158,6 +164,11 @@ Each field carries `metadata.unit`, `metadata.display_name`, `metadata.descripti
 The `/simulations/sample-frame` endpoint remains a deterministic contract sample. The `/simulations/sample-run` endpoint emits a short run so the frontend can consume time-evolving frames without knowing solver internals. Live playback streams the same frame schema through `WebSocket /simulations/runs/{run_id}/stream`.
 
 Early placeholders intentionally include cloud liquid water and rain water even when zero so visualization and future microphysics work can depend on stable field names.
+
+Standalone profile outputs are different: `boundary_layer_1d` v1 does not carry
+zero placeholder cloud fields because its contract is cloud formation potential,
+not cloud production or 2-D visualization. Any future export from profile output
+into `sim-frame-v1` should be explicit and preserve provenance.
 
 ## Future Compatibility
 

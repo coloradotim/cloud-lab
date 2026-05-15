@@ -44,7 +44,10 @@ V1 is about whether the environment becomes favorable for clouds, not about rend
 
 `concept`
 
-This lab is currently a design/spec lab. It should become the first profile-evolution lab in Cloud Lab. It is not yet implemented, and it should not be implemented as a fully coupled 2-D dynamics model in v1.
+This lab is currently a design/spec lab with the first backend profile model now
+available. `boundary_layer_1d` v1 implements the standalone profile-evolution
+core and diagnostics described here. The user-facing lab workbench, profile
+visualization, and timeline UI are still future work.
 
 The first version should be a standalone 1-D profile-evolution lab that produces time-evolving profiles and diagnostics. Later versions may export evolved profiles into Lower Atmosphere Cloud Basics or loosely couple to `boussinesq_2d`, but that should wait until the 1-D profile model is understandable and validated.
 
@@ -53,6 +56,9 @@ hierarchy in `docs/lower-atmosphere-modeling-strategy.md`: Evolving Boundary
 Layer v1 should use `boundary_layer_1d` as a standalone 1-D profile-evolution
 model. It should not live-couple to `boussinesq_2d` in v1 and should not emit
 cloud water in v1.
+
+See `docs/boundary-layer-1d.md` for the implemented backend profile contract,
+tendencies, diagnostics, presets, validation expectations, and v1 limitations.
 
 ## User Controls
 
@@ -459,7 +465,7 @@ Do not implement all of this in one issue. Recommended follow-on splits:
    - Add setup control groups matching this spec.
    - Add static placeholder profile visualization if the model is not ready.
 
-2. **Implement deterministic 1-D boundary-layer profile model v1**
+2. **Implemented: deterministic 1-D boundary-layer profile model v1**
    - Implement profile state, scenario presets, tendencies, and time evolution.
    - Do not couple to Boussinesq.
    - Do not emit cloud water.

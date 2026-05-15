@@ -38,6 +38,7 @@ Older implementation docs remain useful as technical references, but they should
 
 - `docs/scientific-roadmap.md` — physics maturity path in service of the lab roadmap.
 - `docs/lower-atmosphere-modeling-strategy.md` — authoritative lower-atmosphere model hierarchy: CM1 reference cases, `boundary_layer_1d`, `controlled_cloud_column`, controlled microphysics, field/diagnostic contracts, and optics inputs.
+- `docs/boundary-layer-1d.md` — implemented `boundary_layer_1d` profile-model contract, tendencies, diagnostics, presets, validation expectations, and v1 no-cloud-water boundary.
 - `docs/next-physics-core.md` — physics-core strategy; not the product roadmap.
 - `docs/boussinesq-solver.md` — Boussinesq 2-D physics core implementation notes.
 - `docs/boussinesq-numerical-method.md` — authoritative numerical-method contract for the current `boussinesq_2d` solver and its Yellow trust boundaries.

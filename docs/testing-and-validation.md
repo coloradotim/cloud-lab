@@ -428,6 +428,37 @@ Tests should not claim:
 - droplet-resolved precipitation unless PySDM/droplet outputs are actually present
 - physical rain shafts unless sedimentation/evaporation is implemented and validated
 
+### `boundary_layer_1d`
+
+Role:
+
+- standalone 1-D lower-atmosphere profile evolution model
+- reduced model for Evolving Boundary Layer v1
+- diagnoses cloud formation potential without emitting cloud water in v1
+
+Tests should protect:
+
+- finite temperature, vapor, RH, and diagnostic values
+- strictly increasing height coordinates
+- bounded RH and nonnegative water vapor
+- mixed-layer depth inside the profile domain
+- deterministic output for fixed configs
+- no cloud liquid water field in v1 profile frames
+- no-flux control remains mostly unchanged
+- stronger heating deepens the mixed layer relative to weak heating
+- stronger moisture flux lowers LCL or increases RH relative to dry surface
+- higher initial humidity lowers initial LCL
+- stronger cap suppresses mixed-layer growth
+- dry entrainment worsens potential when air aloft is dry
+- cloud-potential status and reason strings remain deterministic
+
+Tests should not claim:
+
+- cloud water production
+- 2-D cloud dynamics
+- turbulence closure, LES, mesoscale, terrain, precipitation, or optics fidelity
+- live coupling to `boussinesq_2d`
+
 ### `educational_2d`
 
 Role:
