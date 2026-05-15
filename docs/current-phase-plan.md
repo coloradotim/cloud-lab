@@ -8,6 +8,17 @@ The product direction is lab-driven:
 
 The current phase is not about adding more feature panels. It is about making the lab-driven product real in the application.
 
+Workbench V2 remains the product shell path.
+
+For lower-atmosphere science implementation, use
+`docs/lower-atmosphere-modeling-strategy.md`.
+
+The current reduced-model path is:
+
+```text
+boundary_layer_1d → controlled_cloud_column → Lower Atmosphere v2 design → CM1 adapter/reference cases
+```
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:

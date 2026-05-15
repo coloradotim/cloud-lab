@@ -32,6 +32,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/workbench-v2-architecture.md` — source of truth for future frontend structure.
 - `docs/visualization-and-workbench-views.md` — visualization and workbench view guidance; includes current prototype context and future view model.
 - `docs/scenarios.md` — scenario contracts and current scenario catalog; scenarios are lab-specific experiments.
+- `docs/labs/lower-atmosphere-cloud-basics-v2.md` — design for the reduced-model replacement of the current Boussinesq-based Lower Atmosphere lab, using `boundary_layer_1d`, `controlled_cloud_column`, diagnostics, precipitation-ready architecture, and future reference/optics handoffs.
 - `docs/simulation-controls.md` — current/prototype control system and control meanings; Workbench V2 should reorganize controls around labs.
 
 ## Science And Modeling
