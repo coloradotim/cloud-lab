@@ -80,6 +80,34 @@ It consumes a vertical profile plus prescribed lift, emits parcel/column samples
 with cloud liquid water and diagnostics, and labels lift as prescribed forcing
 rather than predicted dynamics.
 
+Lower Atmosphere Cloud Basics v2 connects these two reduced-model contracts in
+the frontend orchestration layer. A selected `BoundaryLayer1DFrame` is converted
+deterministically into a `CloudColumnProfile` using:
+
+- `z_m`
+- `temperature_k`
+- `water_vapor_kg_per_kg` when available, otherwise RH
+- `relative_humidity_percent`
+- `mixed_layer_depth_m`
+- `lcl_m`
+- `inversion_height_m`
+- `inversion_strength_k`
+- default surface pressure `101325 Pa` unless profile pressure metadata exists
+
+The orchestration preserves provenance alongside the cloud-column request:
+
+```text
+source_model = boundary_layer_1d
+source_frame_time_seconds
+source_time_hours_from_sunrise
+source_scenario_id
+source_profile_status
+```
+
+This provenance is UI/orchestration metadata, not a new backend physics field.
+Missing or malformed profile arrays should fail clearly before the cloud-column
+endpoint is called. The handoff does not use or couple to `boussinesq_2d`.
+
 ## Structured Initial Conditions
 
 Structured controls are scenario configuration, not renderer state. The current 2-D solvers reduce them to deterministic heating weights and relative-humidity fields:
