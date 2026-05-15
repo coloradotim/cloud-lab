@@ -232,6 +232,12 @@ lab contract.
 Continue from `docs/controlled-cloud-column.md` for the backend contract,
 prescribed-lift assumptions, scenarios, diagnostics, and validation expectations.
 
+Lower Atmosphere Cloud Basics v2 design lives in
+`docs/labs/lower-atmosphere-cloud-basics-v2.md`. It defines v2 as the
+reduced-model replacement for the current Boussinesq-based Lower Atmosphere path,
+with three flows: atmosphere evolution only, lifted cloud only, and combined
+evolution + lifted cloud.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.

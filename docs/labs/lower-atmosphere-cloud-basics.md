@@ -280,6 +280,9 @@ model for the second step in this path. It can diagnose first cloud time, cloud
 base, dry failed/capped outcomes, and evaporation cases from a supplied profile,
 while clearly labeling lift as prescribed rather than predicted.
 
+The detailed v2 replacement design is now in
+`docs/labs/lower-atmosphere-cloud-basics-v2.md`.
+
 ## Frame / Schema Requirements
 
 V1 requires existing `sim-frame-v1` fields:
