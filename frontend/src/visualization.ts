@@ -45,6 +45,8 @@ export type TruthCategory =
   | "bulk_approximation"
   | "visual_approximation"
   | "prescribed_forcing"
+  | "reference_model_output"
+  | "reduced_model_output"
   | "experimental";
 
 export type TruthMetadata = {
@@ -88,6 +90,14 @@ const TRUTH_CATEGORY_DETAILS: Record<TruthCategory, Omit<TruthMetadata, "categor
   prescribed_forcing: {
     label: "Prescribed forcing",
     explanation: "Imposed input or forcing, not predicted dynamics.",
+  },
+  reference_model_output: {
+    label: "Reference model output",
+    explanation: "Offline reference-model field with source/provenance metadata.",
+  },
+  reduced_model_output: {
+    label: "Reduced model output",
+    explanation: "Interactive simplified-model output with documented approximations.",
   },
   experimental: {
     label: "Experimental",
@@ -475,6 +485,17 @@ export function truthMetadataForField(
       ? MICROPHYSICS_LAB_FIELD_OVERRIDES[fieldKey]
       : FIELD_TRUTH_CATEGORIES[fieldKey] ?? inferTruthCategory(fieldKey, field);
 
+  if (solverType === "boussinesq_2d" && category === "solver_output") {
+    return {
+      category,
+      label: "Experimental solver output",
+      explanation: "Emitted directly by Cloud Lab's Yellow-status Boussinesq prototype.",
+      limitations:
+        FIELD_TRUTH_LIMITATIONS[fieldKey] ??
+        "Useful for qualitative exploration, but shaped by prototype stabilizers and safety caps.",
+    };
+  }
+
   return {
     category,
     ...TRUTH_CATEGORY_DETAILS[category],
@@ -529,8 +550,10 @@ export function truthMetadataForSolver(solverType: string): TruthMetadata {
   if (solverType === "boussinesq_2d") {
     return {
       category: "experimental",
-      ...TRUTH_CATEGORY_DETAILS.experimental,
-      limitations: "Qualitative Boussinesq dynamics scaffold, not quantitative CFD.",
+      label: "Experimental 2-D prototype",
+      explanation: "Yellow-status Boussinesq visual dynamics scaffold.",
+      limitations:
+        "Qualitative exploration only; some behavior is shaped by prototype stabilizers and safety caps.",
     };
   }
 

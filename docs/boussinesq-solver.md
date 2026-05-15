@@ -1,8 +1,12 @@
 # Boussinesq 2-D Physics Core
 
-`boussinesq_2d` is Cloud Lab's current experimental 2-D dynamics physics core.
+`boussinesq_2d` is Cloud Lab's current Yellow-status experimental 2-D dynamics
+prototype.
 
-It is useful for selected labs, especially Lower Atmosphere Cloud Basics, but it is not the product architecture and not the final hard-core cloud model.
+It is useful for selected controlled qualitative Lower Atmosphere Cloud Basics
+experiments, regression checks, and visual dynamics scaffolding. It is not the
+product architecture, not the main scientifically valid lower-atmosphere path,
+and not the final hard-core cloud model.
 
 For validation status and science gates, see `docs/boussinesq-validation.md`.
 
@@ -20,8 +24,8 @@ Current best uses:
 - Lower Atmosphere Cloud Basics Lab
 - controlled shallow-cloud visual experiments
 - source-layer moisture and cloud-base diagnostics
-- early layered-atmosphere experiments where limitations are clear
-- possible early terrain/orographic experiments with validation companions
+- comparison against future reduced and reference-model paths
+- reference-case diagnostics and regression tests
 
 Current non-uses:
 
@@ -29,6 +33,8 @@ Current non-uses:
 - research-grade CFD
 - full turbulence/entrainment modeling
 - droplet-resolved warm rain
+- polished terrain/orographic cloud claims
+- optics truth claims
 - ice or mixed-phase clouds
 - final host for advanced PySDM microphysics
 
@@ -130,6 +136,12 @@ Automated tests and validation reports check that the prototype:
 These are stability, relationship, and lab-support checks. They do not prove atmospheric realism.
 
 ## Lab-Driven Improvement Rule
+
+After #174 and #175, do not treat `boussinesq_2d` as the default science path
+for future lower-atmosphere cloud-resolving claims. The current strategy is to
+move future scientifically valid lower-atmosphere work through CM1 reference
+cases, `boundary_layer_1d`, `controlled_cloud_column`, controlled microphysics,
+normalized field/diagnostic contracts, and optics consuming physical fields.
 
 Improve this core when a lab exposes a specific need:
 

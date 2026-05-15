@@ -25,7 +25,11 @@ This lab should help users build physically correct intuition around:
 - cloud tops responding to thermal strength, stability, and dry air aloft
 - dry, capped, multi-thermal, or low-cloud contrast cases that clarify what the current model can and cannot claim
 
-The lab should be visually engaging, but the first version should stay scientifically honest: it is a qualitative shallow-cloud experiment using an experimental 2-D Boussinesq-style physics core, not a quantitative cloud forecast or research-grade CFD model.
+The lab should be visually engaging, but the first version should stay
+scientifically honest: it is a qualitative shallow-cloud experiment using the
+Yellow-status `boussinesq_2d` prototype visual dynamics scaffold, not a
+quantitative cloud forecast, trusted cloud-resolving atmospheric model, or
+research-grade CFD model.
 
 ## Primary Concepts
 
@@ -45,7 +49,10 @@ The lab should be visually engaging, but the first version should stay scientifi
 
 `prototype`
 
-Lower Atmosphere Cloud Basics is the first reference lab for Workbench V2. It is partly supported by the current `boussinesq_2d` physics core, scenario diagnostics, streamed frames, profile/probe tooling, and scientific 2-D visualization.
+Lower Atmosphere Cloud Basics is the first reference lab for Workbench V2. V1 is
+partly supported by the current Yellow-status `boussinesq_2d` prototype,
+scenario diagnostics, streamed frames, profile/probe tooling, and scientific
+2-D visualization.
 
 Fair-weather cumulus is one scenario family inside this lab, not the lab identity.
 
@@ -232,8 +239,9 @@ The v1 lab should use the current experimental 2-D Boussinesq-style physics core
 
 The UI and docs should disclose:
 
-- `boussinesq_2d` is experimental
+- `boussinesq_2d` is a Yellow-status experimental 2-D prototype
 - dynamics are qualitative
+- some behavior is shaped by prototype stabilizers and safety caps
 - warm-cloud microphysics is simplified
 - turbulence/entrainment are not fully modeled
 - no droplet-size distribution or resolved rain in this lab version
@@ -294,7 +302,8 @@ Future enhancements may need:
 
 The UI should use labels such as:
 
-- Experimental 2-D dynamics
+- Experimental 2-D prototype
+- Yellow prototype scaffold
 - Solver output
 - Derived diagnostic
 - Simplified warm-cloud condensation
@@ -311,7 +320,10 @@ Avoid labels that imply:
 
 Suggested plain-language limitation:
 
-> This lab uses an experimental 2-D cloud-physics model to show qualitative relationships between heating, moisture, stability, and shallow cumulus formation. It is designed for learning and exploration, not weather prediction.
+> This lab currently uses Cloud Lab's Yellow-status Boussinesq prototype to show
+> qualitative relationships between heating, moisture, stability, and shallow
+> cumulus formation. It is designed for learning and exploration, not weather
+> prediction or trusted cloud-resolving atmospheric modeling.
 
 ## Built-In Scenarios
 

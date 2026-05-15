@@ -203,9 +203,22 @@ describe("visualization helpers", () => {
       category: "visual_approximation",
       limitations: expect.stringContaining("not droplet-resolved Mie scattering"),
     });
+    expect(visualizationOptionsFromFrame(null)).toEqual([]);
     expect(truthMetadataForSolver("boussinesq_2d")).toMatchObject({
       category: "experimental",
-      limitations: expect.stringContaining("not quantitative CFD"),
+      label: "Experimental 2-D prototype",
+      limitations: expect.stringContaining("prototype stabilizers and safety caps"),
+    });
+    expect(
+      truthMetadataForField(
+        "cloud_liquid_water_kg_per_kg",
+        frame.fields.cloud_liquid_water_kg_per_kg,
+        "boussinesq_2d",
+      ),
+    ).toMatchObject({
+      category: "solver_output",
+      label: "Experimental solver output",
+      limitations: expect.stringContaining("prototype stabilizers and safety caps"),
     });
   });
 

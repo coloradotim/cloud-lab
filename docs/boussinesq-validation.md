@@ -24,7 +24,10 @@ For product direction, see `docs/lab-roadmap.md`.
 
 ## Role In The Lab Roadmap
 
-`boussinesq_2d` is one physics core that can serve labs. It is not the product architecture and not the final hard-core atmospheric model.
+`boussinesq_2d` is one physics core that can serve labs. It is a Yellow
+prototype visual dynamics scaffold, not the product architecture, not the main
+scientifically valid lower-atmosphere path, and not the final hard-core
+atmospheric model.
 
 Current best uses:
 
@@ -33,7 +36,7 @@ Current best uses:
 - reference-case validation
 - scenario diagnostics
 - UI/schema validation for gridded 2-D fields
-- early terrain/orographic experiments if limitations are labeled
+- comparison against future reduced and reference-model outputs
 
 Current non-uses:
 
@@ -41,6 +44,8 @@ Current non-uses:
 - hosting advanced PySDM microphysics as if dynamics are solved
 - claiming true turbulence/entrainment closure
 - claiming research-grade CFD
+- polished terrain/orographic cloud claims
+- optics truth claims
 
 Improvements should be driven by lab needs. For example, if the fair-weather cumulus baseline inside Lower Atmosphere Cloud Basics produces cloud bases or cloud onset that are physically misleading, that is a good reason to improve Boussinesq thermodynamics or transport. Improving the solver in the abstract without a lab question is not the priority.
 
@@ -115,7 +120,12 @@ The evidence does not support treating it as a quantitatively credible CFD core:
 - the model uses strong prototype stabilizers, simple saturation adjustment, and a diagnostic boundary extrapolation because emitted frames do not carry ghost cells
 - the Lower Atmosphere baseline reaches the theta perturbation safety cap under default constants, and reduced damping/diffusion materially changes cloud amount, timing, and depth
 
-Recommendation: use `boussinesq_2d` where it supports labs, especially Lower Atmosphere Cloud Basics and possibly early Orographic/Terrain Clouds. Do not integrate advanced microphysics on top of it as though the dynamics are solved. Thermodynamic placement of cloud water remains a science gate.
+Recommendation: use `boussinesq_2d` where it supports controlled qualitative
+Lower Atmosphere Cloud Basics experiments, visual dynamics scaffolding, and
+reference diagnostics. Do not integrate advanced microphysics on top of it as
+though the dynamics are solved, and do not use it as the polished terrain,
+precipitation, optics, or future cloud-resolving foundation. Thermodynamic
+placement of cloud water remains a science gate.
 
 ## Stabilizers And Guardrails
 

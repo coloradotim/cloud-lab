@@ -48,13 +48,24 @@ The normal single-run workbench should not show saved run artifacts or compariso
 Cloud Lab labels displayed values and views by what they represent:
 
 - `Solver output`: emitted directly by the selected solver.
+- `Experimental solver output`: emitted directly by a Yellow-status prototype
+  solver such as the current `boussinesq_2d` scaffold.
 - `Derived diagnostic`: computed from solver fields or configuration assumptions, such as relative humidity, estimated LCL, cloud-base markers, or approximate buoyancy.
 - `Bulk approximation`: physically motivated simplified bulk-model output, such as controlled parcel/box microphysics or bulk rain indicators.
 - `Visual approximation`: rendering interpretation of fields rather than a solver-emitted field, such as bulk optical-depth cloud appearance or 2.5-D visual extrusion.
 - `Prescribed forcing`: imposed input rather than predicted dynamics, such as `microphysics_lab` vertical lift.
 - `Experimental`: available for exploration but not quantitatively validated, including the current Boussinesq dynamics scaffold.
+- `Reference model output`: future offline reference-model output, such as CM1
+  case data, with source/provenance metadata.
+- `Reduced model output`: future interactive simplified-model output, such as
+  `boundary_layer_1d` or `controlled_cloud_column`, with approximation labels.
 
 Labels should be short in the UI and paired with tooltips or helper text that explain limitations.
+
+For current `boussinesq_2d` runs, labels should make the Yellow prototype status
+visible. A concise user-facing label is `Experimental 2-D prototype`; helper
+text should say that results are useful for qualitative exploration but some
+behavior is shaped by prototype stabilizers and safety caps.
 
 ## Visualization Modes
 

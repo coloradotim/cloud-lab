@@ -340,7 +340,10 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
       "Cloud onset occurs after thermal motion develops.",
       "Cloud water forms near expected LCL within prototype tolerance.",
     ],
-    limitations: ["Qualitative Boussinesq prototype with simplified entrainment and turbulence."],
+    limitations: [
+      "Uses the Yellow-status Boussinesq prototype; qualitative exploration only.",
+      "Simplified entrainment, turbulence, stabilizers, and safety caps shape some behavior.",
+    ],
   },
   {
     id: "dry-failed-cumulus",
@@ -354,7 +357,10 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
       "Cloud liquid water remains negligible.",
       "Dry failed cloud check reports motion without meaningful cloud.",
     ],
-    limitations: ["Dry suppression is qualitative; entrainment and turbulence are simplified."],
+    limitations: [
+      "Uses the Yellow-status Boussinesq prototype; dry suppression is qualitative.",
+      "Entrainment and turbulence are simplified.",
+    ],
   },
   {
     id: "dry-cap-suppressed-cumulus",
@@ -373,7 +379,9 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
       "Cloud water is reduced relative to similar no-cap setups.",
       "Vertical development is capped or delayed.",
     ],
-    limitations: ["Dry-cap structure is idealized and grid-smoothed."],
+    limitations: [
+      "Uses the Yellow-status Boussinesq prototype; dry-cap structure is idealized and grid-smoothed.",
+    ],
   },
   {
     id: "multi-thermal-cumulus-field",
@@ -387,7 +395,9 @@ const fairWeatherScenarios: LabScenarioDefinition[] = [
       "Cloud regions may remain distinct for a useful part of the run.",
       "The scenario remains a controlled shallow-cumulus experiment, not the whole product vision.",
     ],
-    limitations: ["Cell merger depends on grid resolution, wind, diffusion, and seed."],
+    limitations: [
+      "Uses the Yellow-status Boussinesq prototype; cell merger depends on grid resolution, wind, diffusion, and seed.",
+    ],
   },
 ];
 
@@ -398,7 +408,7 @@ const fairWeatherLab: LabDefinition = {
   description:
     "Explore how heating, moisture, and stability shape basic warm-cloud formation near the ground.",
   status: "prototype",
-  statusLabel: "Experimental 2-D warm-cloud model",
+  statusLabel: "Experimental 2-D prototype",
   supportedPhysicsCore: "boussinesq_2d",
   concepts: [
     "surface sensible heating",
@@ -414,8 +424,9 @@ const fairWeatherLab: LabDefinition = {
     "expected vs observed diagnostics",
   ],
   limitations: [
-    "Qualitative 2-D Boussinesq prototype",
+    "Yellow prototype visual dynamics scaffold",
     "Simplified warm-cloud condensation",
+    "Some behavior is shaped by prototype stabilizers and safety caps",
     "No droplet-size distribution or resolved rain in this lab version",
     "Designed for learning and exploration, not weather prediction",
   ],

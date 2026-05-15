@@ -962,7 +962,7 @@ function VisualizationStage({
         <span>Model assumptions</span>
         <p>
           {viewModel?.truth.label ?? "Solver output"} ·{" "}
-          {viewModel?.solverTruth.label ?? "Experimental"} 2-D dynamics ·{" "}
+          {viewModel?.solverTruth.label ?? "Experimental 2-D prototype"} ·{" "}
           Simplified warm-cloud condensation
         </p>
       </div>
@@ -1353,8 +1353,8 @@ function InspectorPanel({
       <details className="inspector-details">
         <summary>Assumptions & limitations</summary>
         <p className="assumption-copy">
-          Derived diagnostic · Solver output · Experimental 2-D dynamics · Simplified warm-cloud
-          condensation · {lab.limitations[0]}
+          Derived diagnostic · Experimental solver output · Experimental 2-D prototype ·
+          Simplified warm-cloud condensation · {lab.limitations[0]}
         </p>
       </details>
       {saveMessage ? <p className="workbench-message">{saveMessage}</p> : null}
