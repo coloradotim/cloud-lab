@@ -26,6 +26,15 @@ from app.sim.cloud_column_schemas import (
     CloudColumnStatus,
     CloudColumnWaterBudgetSummary,
 )
+from app.sim.lower_atmosphere_v2_scenarios import (
+    LOWER_ATMOSPHERE_V2_HONESTY_LABELS,
+    LowerAtmosphereV2ComparisonPair,
+    LowerAtmosphereV2FlowMode,
+    LowerAtmosphereV2ScenarioContract,
+    PrecipitationStatus,
+    lower_atmosphere_v2_comparison_pairs,
+    lower_atmosphere_v2_scenario_contracts,
+)
 from app.sim.presets import SimulationPreset, fair_weather_cumulus_preset, simulation_presets
 from app.sim.profile_1d import (
     BoundaryLayer1DState,
@@ -181,7 +190,12 @@ __all__ = [
     "LowerAtmosphereSensitivityResult",
     "LowerAtmosphereSensitivityScenario",
     "LowerAtmosphereSensitivityVariant",
+    "LOWER_ATMOSPHERE_V2_HONESTY_LABELS",
+    "LowerAtmosphereV2ComparisonPair",
+    "LowerAtmosphereV2FlowMode",
+    "LowerAtmosphereV2ScenarioContract",
     "MixedLayerDiagnostics",
+    "PrecipitationStatus",
     "RunStatus",
     "SUPPORTED_SOLVER_TYPES",
     "ScalarField2D",
@@ -222,6 +236,8 @@ __all__ = [
     "initialize_profile_state",
     "initialize_cloud_column_state",
     "lifted_saturation_sanity_path",
+    "lower_atmosphere_v2_comparison_pairs",
+    "lower_atmosphere_v2_scenario_contracts",
     "lower_atmosphere_sensitivity_scenarios",
     "lower_atmosphere_sensitivity_variants",
     "make_simulation_fields",

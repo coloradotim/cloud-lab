@@ -550,6 +550,44 @@ Diagnostics:
 - future water-budget drift
 - future effective radius/droplet fields
 
+## Scenario Contract Metadata
+
+Issue #191 adds implementation-facing metadata for the v2 scenario set and
+comparison pairs.
+
+Backend source:
+
+```text
+backend/app/sim/lower_atmosphere_v2_scenarios.py
+```
+
+Frontend source:
+
+```text
+frontend/src/labs/lowerAtmosphereV2Scenarios.ts
+```
+
+The metadata defines the eight v2 scenario contracts, their supported flow
+modes, reduced-model defaults, expected profile/cloud-column/precipitation
+statuses, key diagnostics, teaching purpose, comparison suggestions,
+limitations, and honesty labels.
+
+The metadata is intentionally not the v2 UI shell and does not implement
+profile-to-column orchestration. It exists so future Lower Atmosphere v2 work can
+reuse one coherent scenario contract rather than rediscovering the design in UI
+components.
+
+Required comparison pairs:
+
+- baseline shallow cloud vs dry failed cumulus
+- baseline shallow cloud vs capped/suppressed cloud
+- dry surface vs moist surface
+- weak heating vs strong heating
+- weak lift vs strong lift
+- weak entrainment vs dry entrainment
+- baseline shallow cloud vs humid low-cloud contrast
+- cloud formed vs rain-capable-later placeholder
+
 ## Controls
 
 ### Primary Controls
