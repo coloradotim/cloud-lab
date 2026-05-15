@@ -123,7 +123,7 @@ def lower_atmosphere_v2_scenario_contracts() -> list[LowerAtmosphereV2ScenarioCo
             physical_question="Why can air rise but fail to form cloud?",
             flow_modes=ALL_FLOW_MODES,
             profile_config_defaults=profile["morning-stable-layer-breaks-down"],
-            cloud_column_config_defaults=column["dry-failed-column"],
+            cloud_column_config_defaults=_dry_failed_v2_column_config(column["dry-failed-column"]),
             expected_profile_status="moisture_limited",
             expected_cloud_column_status="dry_failed",
             expected_precipitation_status="not_evaluated",
@@ -455,6 +455,20 @@ def _rain_capable_column_config(base: CloudColumnConfig) -> CloudColumnConfig:
                 update={
                     "lift_duration_seconds": 1_500.0,
                     "runtime_seconds": 2_400.0,
+                }
+            )
+        },
+    )
+
+
+def _dry_failed_v2_column_config(base: CloudColumnConfig) -> CloudColumnConfig:
+    return base.model_copy(
+        deep=True,
+        update={
+            "forcing": base.forcing.model_copy(
+                update={
+                    "updraft_strength_m_per_s": 1.0,
+                    "lift_duration_seconds": 1_200.0,
                 }
             )
         },

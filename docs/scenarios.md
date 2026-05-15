@@ -120,6 +120,13 @@ The rain-capable scenario is an architectural placeholder. Its early v2
 precipitation status is `precipitation_not_enabled`; it must not imply that rain
 physics, PySDM, or droplet distributions are implemented.
 
+The v2 `Dry failed cumulus` scenario is a reduced-model contract, not the older
+Boussinesq prototype scenario below. Its default combined flow should keep the
+profile moisture-limited and the lifted cloud column cloud-free. If a different
+setup produces `profile moisture_limited + column cloud_formed`, the inspector
+should explain that prescribed lift forced cloud from a profile that was not
+cloud-favorable on its own.
+
 ### Fair-weather cumulus / baseline shallow cloud
 
 - Lab: Lower Atmosphere Cloud Basics

@@ -57,6 +57,12 @@ reduced-model and prescribed-lift views, and should not imply Boussinesq,
 cloud-resolving dynamics, implemented precipitation, optics, or weather
 prediction.
 
+When profile and column outcomes split, the inspector should make the split
+visible rather than collapsing it into a single vague result. For example,
+`profile moisture_limited + column cloud_formed` should be labeled as cloud
+formed under prescribed lift and should explain that the column result came from
+controlled forcing, not free convection.
+
 ## Truth / Confidence Labels
 
 Cloud Lab labels displayed values and views by what they represent:

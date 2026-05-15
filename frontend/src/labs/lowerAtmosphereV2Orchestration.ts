@@ -477,7 +477,7 @@ export function buildLowerAtmosphereV2DiagnosticViewModel(
   const resultStatus = cloudStatus ?? profileStatus ?? contract.expectedPrecipitationStatus;
   const profileStatusLabel = profileStatus ? statusLabel(profileStatus) : "Profile not run";
   const cloudColumnStatusLabel = cloudStatus
-    ? lowerAtmosphereV2StatusLabel(cloudStatus)
+    ? lowerAtmosphereV2CloudStatusLabel(cloudStatus, profileStatus)
     : "Cloud column not run";
   const precipitationStatus = precipitationStatusForState(state, contract.expectedPrecipitationStatus);
   const selectedProfileTimeLabel = formatHoursAfterSunrise(selectedFrame.time_hours_from_sunrise);
@@ -491,11 +491,11 @@ export function buildLowerAtmosphereV2DiagnosticViewModel(
     cloudStatus,
   );
   const mainLimitingFactor = mainLowerAtmosphereV2LimitingFactor(profileStatus, cloudStatus);
-  const why = lowerAtmosphereV2Why(resultStatus, selectedFrame, cloudDiagnostics);
+  const why = lowerAtmosphereV2Why(resultStatus, selectedFrame, cloudDiagnostics, profileStatus, cloudStatus);
 
   return {
     resultStatus,
-    resultLabel: lowerAtmosphereV2StatusLabel(resultStatus),
+    resultLabel: lowerAtmosphereV2ResultLabel(profileStatus, cloudStatus, resultStatus),
     why,
     tryNext: lowerAtmosphereV2Suggestions(resultStatus),
     keyNumbers: lowerAtmosphereV2KeyNumbers(selectedFrame, cloudDiagnostics),
@@ -611,7 +611,7 @@ export function buildLowerAtmosphereV2DiagnosticViewModel(
       suggestedNextExperiment: lowerAtmosphereV2Suggestions(resultStatus)[0] ?? "change one physical control and run again",
     },
     scenarioCheck: {
-      expectedLabel: `${statusLabel(contract.expectedProfileStatus)} / ${lowerAtmosphereV2StatusLabel(contract.expectedCloudColumnStatus)}`,
+      expectedLabel: `${statusLabel(contract.expectedProfileStatus)} / ${lowerAtmosphereV2CloudStatusLabel(contract.expectedCloudColumnStatus, contract.expectedProfileStatus)}`,
       observedLabel: `${profileStatusLabel} / ${cloudColumnStatusLabel}`,
       statusLabel: scenarioCheckStatus,
     },
@@ -654,7 +654,7 @@ async function runProfileOnly(
       cloudColumnStatus: "ready",
       profileProvenance: provenanceForFrame(finalFrame, state.selectedScenarioId, "evolved_profile"),
       cloudColumnProvenance: null,
-      message: `Profile evolution complete. Selected ${formatHoursAfterSunrise(finalFrame.time_hours_from_sunrise)} for possible prescribed lift.`,
+      message: `Run complete. Generated ${frames.length} profile samples. Use the timeline to inspect the selected profile.`,
     };
   } catch (error) {
     return {
@@ -689,7 +689,7 @@ async function runCloudColumnOnly(
       cloudColumnRun: run,
       cloudColumnStatus: "complete",
       cloudColumnProvenance: provenance,
-      message: `Cloud-column run complete from ${formatHoursAfterSunrise(provenance.source_time_hours_from_sunrise)}. Lift is prescribed, not predicted dynamics.`,
+      message: lowerAtmosphereV2RunCompleteMessage(state, run.frames.length, provenance),
     };
   } catch (error) {
     return {
@@ -723,6 +723,8 @@ function lowerAtmosphereV2Why(
     | LowerAtmosphereV2PrecipitationStatus,
   frame: BoundaryLayer1DFrame,
   cloudDiagnostics: CloudColumnDiagnostics | null,
+  profileStatus: CloudFormationPotentialStatus | null,
+  cloudStatus: LowerAtmosphereV2CloudColumnStatus | null,
 ): string {
   const mixedLayer = Math.round(frame.mixed_layer_depth_m);
   const lcl = Math.round(frame.lcl_m);
@@ -740,10 +742,22 @@ function lowerAtmosphereV2Why(
     case "cloud_favorable":
       return `The mixed layer reached ${mixedLayer} m with the LCL near ${lcl} m, so the environment became favorable for shallow cloud formation potential.`;
     case "cloud_formed":
+      if (profileStatus && profileStatus !== "cloud_favorable" && cloudStatus === "cloud_formed") {
+        return "The atmosphere did not become cloud-favorable on its own, but prescribed lift cooled the selected profile enough to reach saturation and form cloud. This is controlled lift, not predicted free convection.";
+      }
+      if (profileStatus === "cloud_favorable") {
+        return `The environment was cloud-favorable, and prescribed lift formed cloud liquid water at ${formatDiagnosticSeconds(cloudDiagnostics?.first_cloud_time_seconds ?? null)}.`;
+      }
       return `Prescribed lift cooled the selected profile enough to form cloud liquid water at ${formatDiagnosticSeconds(cloudDiagnostics?.first_cloud_time_seconds ?? null)}.`;
     case "dry_failed":
+      if (profileStatus === "moisture_limited") {
+        return "Both the atmosphere evolution and the lifted column remained too dry to form meaningful cloud water.";
+      }
       return "The parcel was lifted, but the selected profile was too dry to approach saturation and form cloud liquid water.";
     case "lift_too_weak":
+      if (profileStatus === "cap_suppressed") {
+        return "The profile was cap-suppressed, and the prescribed lift was absent or too weak to overcome that limitation in the controlled column.";
+      }
       return "Prescribed lift was absent or too weak to cool the parcel enough for cloud formation.";
     case "evaporated":
       return "Cloud formed during prescribed lift, then evaporated as the parcel encountered subsaturated air.";
@@ -758,6 +772,48 @@ function lowerAtmosphereV2Why(
     case "not_evaluated":
       return "Run the selected Lower Atmosphere v2 flow to compute deterministic diagnostics.";
   }
+}
+
+function lowerAtmosphereV2ResultLabel(
+  profileStatus: CloudFormationPotentialStatus | null,
+  cloudStatus: LowerAtmosphereV2CloudColumnStatus | null,
+  resultStatus:
+    | CloudFormationPotentialStatus
+    | LowerAtmosphereV2CloudColumnStatus
+    | LowerAtmosphereV2PrecipitationStatus,
+): string {
+  if (cloudStatus) {
+    return lowerAtmosphereV2CloudStatusLabel(cloudStatus, profileStatus);
+  }
+  return lowerAtmosphereV2StatusLabel(resultStatus);
+}
+
+function lowerAtmosphereV2CloudStatusLabel(
+  cloudStatus: LowerAtmosphereV2CloudColumnStatus,
+  profileStatus: CloudFormationPotentialStatus | null,
+): string {
+  if (cloudStatus === "cloud_formed" && profileStatus && profileStatus !== "cloud_favorable") {
+    return "Cloud formed under prescribed lift";
+  }
+  if (cloudStatus === "dry_failed") {
+    return "Dry failed / no cloud";
+  }
+  if (cloudStatus === "lift_too_weak") {
+    return "Lift too weak / no cloud";
+  }
+  return lowerAtmosphereV2StatusLabel(cloudStatus);
+}
+
+function lowerAtmosphereV2RunCompleteMessage(
+  state: LowerAtmosphereV2State,
+  cloudColumnSampleCount: number,
+  provenance: LowerAtmosphereV2ProfileProvenance,
+): string {
+  const profileSampleCount = lowerAtmosphereV2ProfileFrames(state).length;
+  if (profileSampleCount > 0) {
+    return `Run complete. Generated ${profileSampleCount} profile samples and ${cloudColumnSampleCount} cloud-column samples. Use the timeline to inspect the selected profile and lifted-column result. Lift is prescribed, not predicted dynamics.`;
+  }
+  return `Run complete. Generated ${cloudColumnSampleCount} cloud-column samples from ${formatHoursAfterSunrise(provenance.source_time_hours_from_sunrise)}. Use the timeline to inspect the lifted-column result. Lift is prescribed, not predicted dynamics.`;
 }
 
 function lowerAtmosphereV2Suggestions(

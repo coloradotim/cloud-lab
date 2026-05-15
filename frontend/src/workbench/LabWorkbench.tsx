@@ -825,12 +825,12 @@ function LowerAtmosphereV2SetupPanel({
   return (
     <aside className="workbench-region setup-region lower-atmosphere-v2-setup" aria-labelledby="setup-region-title">
       <p className="region-label">Setup</p>
-      <h2 id="setup-region-title">{scenario.name}</h2>
+      <h2 id="setup-region-title">Lower Atmosphere v2 setup</h2>
 
       <section className="setup-control-section" aria-labelledby="setup-scenario-title">
         <h3 id="setup-scenario-title">Scenario</h3>
         <label className="control-group">
-          <span>Scenario</span>
+          <span>Choose scenario</span>
           <select
             value={workbench.selectedScenarioId}
             onChange={(event) => {
@@ -838,7 +838,6 @@ function LowerAtmosphereV2SetupPanel({
               setWorkbench((current) => selectWorkbenchScenario(current, lab, scenarioId));
               setState((current) => selectLowerAtmosphereV2Scenario(current, scenarioId));
             }}
-            title={scenario.name}
           >
             {lab.scenarios.map((candidate) => (
               <option key={candidate.id} value={candidate.id}>
