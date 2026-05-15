@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { BoundaryLayer1DFrame, BoundaryLayer1DRun } from "./evolvingBoundaryLayer";
 import { lowerAtmosphereV2ScenarioContracts } from "./lowerAtmosphereV2Scenarios";
 import {
+  buildLowerAtmosphereV2DiagnosticViewModel,
   createInitialLowerAtmosphereV2State,
   lowerAtmosphereV2ObservedCloudStatus,
   lowerAtmosphereV2ProfileFrames,
@@ -141,6 +142,86 @@ describe("Lower Atmosphere v2 orchestration", () => {
     expect(result.message).toContain("no usable frames");
     expect(client.runCloudColumn).not.toHaveBeenCalled();
   });
+
+  it("builds profile-only diagnostics with moisture-limited suggestions and key numbers", async () => {
+    const state = await runLowerAtmosphereV2Flow(
+      createInitialLowerAtmosphereV2State(baselineContract.id),
+      "atmosphere_evolution",
+      mockClient(sampleProfileRun([sampleFrame(0), sampleFrame(1, "moisture_limited")]), sampleCloudRun("cloud_formed")),
+    );
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "atmosphere_evolution",
+      baselineContract,
+    );
+
+    expect(diagnostics.resultLabel).toBe("Moisture limited");
+    expect(diagnostics.why).toContain("LCL");
+    expect(diagnostics.tryNext).toEqual(
+      expect.arrayContaining(["increase surface moisture flux", "start with higher mixed-layer humidity"]),
+    );
+    expect(diagnostics.profile.rows.map((row) => row.label)).toEqual(
+      expect.arrayContaining(["Mixed-layer depth", "LCL", "RH near mixed-layer top", "First favorable time"]),
+    );
+    expect(diagnostics.cloudColumn.available).toBe(false);
+  });
+
+  it("builds lifted-cloud diagnostics with dry-failed suggestions and precipitation honesty", async () => {
+    const state = await runLowerAtmosphereV2Flow(
+      createInitialLowerAtmosphereV2State(baselineContract.id),
+      "lifted_cloud",
+      mockClient(sampleProfileRun(), sampleCloudRun("dry_failed")),
+    );
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "lifted_cloud",
+      baselineContract,
+    );
+
+    expect(diagnostics.resultLabel).toBe("Dry failed");
+    expect(diagnostics.cloudColumn.reason).toContain("Deterministic cloud-column diagnostic");
+    expect(diagnostics.tryNext).toEqual(
+      expect.arrayContaining(["increase humidity", "use a later evolved profile", "increase lift duration"]),
+    );
+    expect(diagnostics.precipitation.statusLabel).toBe("Not evaluated");
+    expect(diagnostics.precipitation.explanation).toContain("not evaluated");
+  });
+
+  it("builds combined diagnostics with scenario check and cap-suppressed suggestions", async () => {
+    const cappedContract = lowerAtmosphereV2ScenarioContracts.find(
+      (scenario) => scenario.id === "lower-atmosphere-v2-capped-suppressed-cloud",
+    );
+    if (!cappedContract) {
+      throw new Error("Missing capped scenario contract");
+    }
+    const state = {
+      ...(await runLowerAtmosphereV2Flow(
+        createInitialLowerAtmosphereV2State(cappedContract.id),
+        "evolution_lifted_cloud",
+        mockClient(
+          sampleProfileRun([sampleFrame(0), sampleFrame(1, "cap_suppressed")]),
+          sampleCloudRun("cap_suppressed"),
+        ),
+      )),
+      selectedScenarioId: cappedContract.id,
+    };
+
+    const diagnostics = buildLowerAtmosphereV2DiagnosticViewModel(
+      state,
+      "evolution_lifted_cloud",
+      cappedContract,
+    );
+
+    expect(diagnostics.scenarioCheck.statusLabel).toBe("Matches scenario");
+    expect(diagnostics.combined.mainLimitingFactor).toBe("Cap / inversion");
+    expect(diagnostics.tryNext).toEqual(
+      expect.arrayContaining(["raise the inversion height", "weaken the inversion"]),
+    );
+    expect(diagnostics.precipitation.statusLabel).toBe("Not evaluated");
+    expect(JSON.stringify(diagnostics)).not.toContain("boussinesq");
+  });
 });
 
 function mockClient(profileRun: BoundaryLayer1DRun, cloudRun: CloudColumnRun): LowerAtmosphereV2Client {
@@ -150,11 +231,11 @@ function mockClient(profileRun: BoundaryLayer1DRun, cloudRun: CloudColumnRun): L
   };
 }
 
-function sampleProfileRun(): BoundaryLayer1DRun {
+function sampleProfileRun(frames: BoundaryLayer1DFrame[] = [sampleFrame(0), sampleFrame(1), sampleFrame(2, "cloud_favorable")]): BoundaryLayer1DRun {
   return {
     schema_version: "profile-run-v1",
     config: createInitialLowerAtmosphereV2State(baselineContract.id).profileConfig,
-    frames: [sampleFrame(0), sampleFrame(1), sampleFrame(2, "cloud_favorable")],
+    frames,
   };
 }
 
