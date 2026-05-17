@@ -7,8 +7,17 @@ from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from app.main import app
-from app.sim.cloud_column import cloud_column_scenarios, run_cloud_column
-from app.sim.cloud_column_schemas import CloudColumnConfig, CloudColumnFrame, CloudColumnProfile
+from app.sim.cloud_column import (
+    cloud_column_microphysics_handoff,
+    cloud_column_scenarios,
+    run_cloud_column,
+)
+from app.sim.cloud_column_schemas import (
+    CloudColumnConfig,
+    CloudColumnFrame,
+    CloudColumnMicrophysicsHandoff,
+    CloudColumnProfile,
+)
 
 pytestmark = [pytest.mark.lab, pytest.mark.diagnostic]
 
@@ -164,6 +173,127 @@ def test_water_budget_diagnostics_are_finite_and_bounded() -> None:
     assert all(math.isfinite(value) for value in budget.model_dump().values())
     assert budget.max_absolute_drift_kg_per_kg <= 1.0e-8
     assert budget.total_condensed_kg_per_kg > 0.0
+
+
+def test_cloud_column_microphysics_handoff_preserves_cloud_water_and_provenance() -> None:
+    run = run_cloud_column(_scenario_config("humid-lifted-column"))
+
+    handoff = cloud_column_microphysics_handoff(
+        run,
+        source_scenario_id="lower-atmosphere-v2-baseline-shallow-cloud",
+        source_profile_time_seconds=14_400.0,
+        source_profile_time_hours_from_sunrise=4.0,
+        cloud_column_run_id="local-run-1",
+    )
+
+    assert handoff.schema_version == "cloud-column-microphysics-handoff-v1"
+    assert handoff.source_model == "controlled_cloud_column"
+    assert handoff.source_scenario_id == "lower-atmosphere-v2-baseline-shallow-cloud"
+    assert handoff.source_profile_time_seconds == pytest.approx(14_400.0)
+    assert handoff.source_profile_time_hours_from_sunrise == pytest.approx(4.0)
+    assert handoff.cloud_column_run_id == "local-run-1"
+    assert handoff.precipitation_status == "precipitation_not_enabled"
+    assert handoff.microphysics_source == "none"
+    assert handoff.droplet_effective_radius_source == "absent"
+    assert handoff.rain_water_kg_per_kg is None
+    assert handoff.first_rain_time_seconds is None
+    assert handoff.max_rain_water_kg_per_kg is None
+    assert handoff.max_cloud_liquid_water_kg_per_kg == pytest.approx(
+        run.diagnostics.max_cloud_liquid_water_kg_per_kg
+    )
+    assert handoff.first_cloud_time_seconds == run.diagnostics.first_cloud_time_seconds
+    assert handoff.cloud_base_m == run.diagnostics.cloud_base_m
+    assert handoff.cloud_top_proxy_m == run.diagnostics.cloud_top_proxy_m
+    assert handoff.total_condensed_kg_per_kg == pytest.approx(
+        run.diagnostics.water_budget.total_condensed_kg_per_kg
+    )
+    assert handoff.total_evaporated_kg_per_kg == pytest.approx(
+        run.diagnostics.water_budget.total_evaporated_kg_per_kg
+    )
+    assert handoff.water_budget_summary == run.diagnostics.water_budget
+    assert handoff.prescribed_lift_summary == run.diagnostics.forcing
+    assert handoff.cloud_column_time_seconds == [frame.time_seconds for frame in run.frames]
+    assert handoff.cloud_liquid_water_kg_per_kg == [
+        frame.cloud_liquid_water_kg_per_kg for frame in run.frames
+    ]
+    assert handoff.temperature_k == [frame.temperature_k for frame in run.frames]
+    assert handoff.water_vapor_kg_per_kg == [frame.water_vapor_kg_per_kg for frame in run.frames]
+    assert handoff.relative_humidity_percent == [
+        frame.relative_humidity_percent for frame in run.frames
+    ]
+    assert handoff.cloud_water_integral > 0.0
+
+
+def test_cloud_column_microphysics_handoff_keeps_rain_fields_optional() -> None:
+    run = run_cloud_column(_scenario_config("humid-lifted-column"))
+
+    handoff = CloudColumnMicrophysicsHandoff.model_validate(
+        cloud_column_microphysics_handoff(run).model_dump()
+    )
+
+    assert handoff.precipitation_status == "precipitation_not_enabled"
+    assert handoff.rain_water_kg_per_kg is None
+    assert handoff.effective_radius_um is None
+    assert handoff.droplet_size_distribution is None
+    assert handoff.number_concentration_m3 is None
+
+
+def test_cloud_column_microphysics_handoff_rejects_boussinesq_source() -> None:
+    payload = cloud_column_microphysics_handoff(
+        run_cloud_column(_scenario_config("humid-lifted-column"))
+    ).model_dump()
+    payload["source_model"] = "boussinesq_2d"
+
+    with pytest.raises(ValidationError):
+        CloudColumnMicrophysicsHandoff.model_validate(payload)
+
+
+def test_cloud_column_microphysics_handoff_allows_declared_future_statuses_and_sources() -> None:
+    payload = cloud_column_microphysics_handoff(
+        run_cloud_column(_scenario_config("humid-lifted-column"))
+    ).model_dump()
+
+    for status in [
+        "precipitation_not_enabled",
+        "not_evaluated",
+        "cloud_no_rain",
+        "rain_threshold_reached",
+        "rain_formed",
+        "evaporation_limited",
+    ]:
+        assert (
+            CloudColumnMicrophysicsHandoff.model_validate(
+                payload | {"precipitation_status": status}
+            ).precipitation_status
+            == status
+        )
+
+    for source in ["none", "bulk", "PySDM", "reference", "synthetic"]:
+        assert (
+            CloudColumnMicrophysicsHandoff.model_validate(
+                payload | {"microphysics_source": source}
+            ).microphysics_source
+            == source
+        )
+
+    for radius_source in ["absent", "assumed", "bulk_estimate", "PySDM", "reference"]:
+        assert (
+            CloudColumnMicrophysicsHandoff.model_validate(
+                payload | {"droplet_effective_radius_source": radius_source}
+            ).droplet_effective_radius_source
+            == radius_source
+        )
+
+
+def test_cloud_column_microphysics_handoff_marks_missing_cloud_water_not_evaluated() -> None:
+    run = run_cloud_column(_scenario_config("no-lift-control"))
+
+    handoff = cloud_column_microphysics_handoff(run)
+
+    assert handoff.max_cloud_liquid_water_kg_per_kg == pytest.approx(0.0)
+    assert handoff.first_cloud_time_seconds is None
+    assert handoff.precipitation_status == "not_evaluated"
+    assert handoff.cloud_water_integral == pytest.approx(0.0)
 
 
 def test_cloud_column_api_exposes_scenarios_and_run_payload() -> None:
