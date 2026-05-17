@@ -252,6 +252,13 @@ the three v2 flows, setup groups for profile and prescribed-lift controls,
 science views, inspector sections, precipitation placeholder status, and labels
 including `No Boussinesq default`.
 
+As of #197, the old Boussinesq-centered Lower Atmosphere v1 scenarios are
+quarantined as developer/prototype metadata in the frontend scenario catalog.
+They are not presented by the normal Lab Picker or the Lower Atmosphere v2
+scenario selector. Backend `boussinesq_2d` code, validation docs, and technical
+scenario helpers remain available for diagnostics/regression work only; solver
+physics was not changed.
+
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
 - atmosphere evolution only calls `boundary_layer_1d`

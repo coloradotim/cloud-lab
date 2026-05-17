@@ -28,6 +28,7 @@ export type BuiltInScenario = {
   description: string;
   intendedPhenomenon: string;
   solverMode: SimulationConfig["solver_type"];
+  visibility?: "normal" | "developer_prototype";
   thermodynamicAssumptions: string;
   forcingSetup: string;
   expectedOutcome: string;
@@ -36,6 +37,8 @@ export type BuiltInScenario = {
   category: "exploratory" | "diagnostic" | "visualization";
   apply: (config: SimulationConfig) => SimulationConfig;
 };
+
+export const BOUSSINESQ_PROTOTYPE_VISIBILITY = "developer_prototype" as const;
 
 export type BoussinesqModelSize = {
   slug: string;
@@ -419,6 +422,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
     intendedPhenomenon:
       "Baseline shallow fair-weather cumulus from a single heated patch near the ground.",
     solverMode: "boussinesq_2d",
+    visibility: BOUSSINESQ_PROTOTYPE_VISIBILITY,
     thermodynamicAssumptions:
       "Surface-moist source layer, finite LCL hundreds of meters above ground, drier free air aloft.",
     forcingSetup: "Single warm patch centered in the domain.",
@@ -464,6 +468,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
     description: "Two heated regions in a shared source layer for separated shallow cloud cells.",
     intendedPhenomenon: "Multiple thermals and cloud cells from structured surface heating.",
     solverMode: "boussinesq_2d",
+    visibility: BOUSSINESQ_PROTOTYPE_VISIBILITY,
     thermodynamicAssumptions:
       "Moderately humid source layer with drier free air; source-layer vapor is intended to feed multiple thermals.",
     forcingSetup: "Two hot patches of similar width and strength.",
@@ -509,6 +514,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
     description: "A weakly heated dry boundary layer that lifts but should not make appreciable cloud water.",
     intendedPhenomenon: "Buoyant motion without condensation.",
     solverMode: "boussinesq_2d",
+    visibility: BOUSSINESQ_PROTOTYPE_VISIBILITY,
     thermodynamicAssumptions: "Lower RH keeps the LCL above the modeled thermal reach.",
     forcingSetup: "Single heated patch, weaker than the cloud-forming fair-weather case.",
     expectedOutcome: "A thermal/updraft pattern appears while cloud liquid water stays zero or negligible.",
@@ -552,6 +558,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
       "Near-saturated air with a very low LCL; this contrast case is intentionally not classic fair-weather cumulus.",
     intendedPhenomenon: "Low-cloud or foggy boundary-layer behavior.",
     solverMode: "boussinesq_2d",
+    visibility: BOUSSINESQ_PROTOTYPE_VISIBILITY,
     thermodynamicAssumptions: "Very high RH places the expected LCL near the surface.",
     forcingSetup: "Weak uneven heating in an almost saturated mixed layer.",
     expectedOutcome:
@@ -596,6 +603,7 @@ export const BUILT_IN_SCENARIOS: BuiltInScenario[] = [
     description: "Moisture below with a drier cap aloft to show why heating does not always make clouds.",
     intendedPhenomenon: "Environmental inhibition of cumulus growth.",
     solverMode: "boussinesq_2d",
+    visibility: BOUSSINESQ_PROTOTYPE_VISIBILITY,
     thermodynamicAssumptions: "Moist lower layer and dry cap near the boundary-layer top.",
     forcingSetup: "Moderate localized heating below the cap.",
     expectedOutcome: "Thermals lift, but cloud growth is limited, delayed, or suppressed.",

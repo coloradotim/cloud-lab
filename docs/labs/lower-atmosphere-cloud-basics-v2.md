@@ -51,6 +51,12 @@ boussinesq_2d = Yellow prototype visual dynamics scaffold
 
 v2 should not depend on Boussinesq for its core user promise.
 
+As of #197, the normal user path opens the v2 reduced-model flow and the
+Boussinesq-centered v1 scenario catalog is quarantined as developer/prototype
+metadata. The normal Lab Picker and Lower Atmosphere v2 scenario selector do
+not expose the Boussinesq v1 scenarios as trusted/default Lower Atmosphere
+experiences.
+
 Allowed Boussinesq role, if kept temporarily:
 
 - developer-only comparison

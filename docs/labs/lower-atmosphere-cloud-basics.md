@@ -290,6 +290,11 @@ Boussinesq-centered 2-D run screen. Profile-to-cloud-column orchestration is a
 follow-on; the current shell exposes flow selection, setup groups, placeholder
 science views, inspector sections, and honesty labels.
 
+As of #197, the Boussinesq-centered v1 UI is not part of the normal
+Lower Atmosphere user path. Its old frontend scenario definitions remain only
+as developer/prototype metadata for technical diagnostics and regression work;
+they are not shown in the Lab Picker or the v2 scenario selector.
+
 ## Frame / Schema Requirements
 
 V1 requires existing `sim-frame-v1` fields:

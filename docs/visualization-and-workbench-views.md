@@ -57,6 +57,11 @@ reduced-model and prescribed-lift views, and should not imply Boussinesq,
 cloud-resolving dynamics, implemented precipitation, optics, or weather
 prediction.
 
+The former Boussinesq-centered Lower Atmosphere v1 2-D field screen is no
+longer a normal Lower Atmosphere visualization path. If it is used for
+technical diagnostics later, it should be treated as a developer/prototype view
+with Yellow-status labels, not as the default or trusted v2 science view.
+
 When profile and column outcomes split, the inspector should make the split
 visible rather than collapsing it into a single vague result. For example,
 `profile moisture_limited + column cloud_formed` should be labeled as cloud
