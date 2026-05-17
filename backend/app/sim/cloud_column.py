@@ -8,10 +8,12 @@ from app.sim.cloud_column_schemas import (
     CloudColumnConfig,
     CloudColumnForcing,
     CloudColumnFrame,
+    CloudColumnMicrophysicsHandoff,
     CloudColumnProfile,
     CloudColumnRun,
     CloudColumnScenario,
     CloudColumnWaterBudgetSummary,
+    PrecipitationHandoffStatus,
 )
 from app.sim.thermodynamics import (
     DRY_ADIABATIC_LAPSE_RATE_K_PER_M,
@@ -117,6 +119,47 @@ def run_cloud_column(config: CloudColumnConfig | None = None) -> CloudColumnRun:
         and resolved_config.forcing.cap_suppression_strength > 0.0,
     )
     return CloudColumnRun(config=resolved_config, frames=frames, diagnostics=diagnostics)
+
+
+def cloud_column_microphysics_handoff(
+    run: CloudColumnRun,
+    *,
+    source_scenario_id: str | None = None,
+    source_profile_time_seconds: float | None = None,
+    source_profile_time_hours_from_sunrise: float | None = None,
+    cloud_column_run_id: str | None = None,
+) -> CloudColumnMicrophysicsHandoff:
+    """Build a precipitation-ready handoff payload without implementing rain physics."""
+
+    frames = run.frames
+    if not frames:
+        raise ValueError("cloud-column microphysics handoff requires at least one frame")
+    diagnostics = run.diagnostics
+    cloud_water = [frame.cloud_liquid_water_kg_per_kg for frame in frames]
+    times = [frame.time_seconds for frame in frames]
+    return CloudColumnMicrophysicsHandoff(
+        source_scenario_id=source_scenario_id,
+        source_profile_time_seconds=source_profile_time_seconds,
+        source_profile_time_hours_from_sunrise=source_profile_time_hours_from_sunrise,
+        cloud_column_run_id=cloud_column_run_id,
+        cloud_column_time_seconds=times,
+        cloud_liquid_water_kg_per_kg=cloud_water,
+        max_cloud_liquid_water_kg_per_kg=diagnostics.max_cloud_liquid_water_kg_per_kg,
+        cloud_water_integral=_time_integral(times, cloud_water),
+        first_cloud_time_seconds=diagnostics.first_cloud_time_seconds,
+        cloud_base_m=diagnostics.cloud_base_m,
+        cloud_top_proxy_m=diagnostics.cloud_top_proxy_m,
+        total_condensed_kg_per_kg=diagnostics.water_budget.total_condensed_kg_per_kg,
+        total_evaporated_kg_per_kg=diagnostics.water_budget.total_evaporated_kg_per_kg,
+        water_budget_summary=diagnostics.water_budget,
+        prescribed_lift_summary=diagnostics.forcing,
+        temperature_k=[frame.temperature_k for frame in frames],
+        water_vapor_kg_per_kg=[frame.water_vapor_kg_per_kg for frame in frames],
+        relative_humidity_percent=[frame.relative_humidity_percent for frame in frames],
+        precipitation_status=_handoff_precipitation_status(
+            diagnostics.max_cloud_liquid_water_kg_per_kg
+        ),
+    )
 
 
 def stream_cloud_column_frames(config: CloudColumnConfig) -> Iterator[CloudColumnFrame]:
@@ -359,3 +402,19 @@ def _water_budget(frames: list[CloudColumnFrame]) -> CloudColumnWaterBudgetSumma
             for frame in frames
         ),
     )
+
+
+def _time_integral(times_seconds: list[float], values: list[float]) -> float:
+    if len(times_seconds) < 2:
+        return 0.0
+    total = 0.0
+    for index in range(1, len(times_seconds)):
+        dt = times_seconds[index] - times_seconds[index - 1]
+        total += max(0.0, dt) * (values[index - 1] + values[index]) * 0.5
+    return total
+
+
+def _handoff_precipitation_status(max_cloud_liquid_water: float) -> PrecipitationHandoffStatus:
+    if max_cloud_liquid_water <= 0.0:
+        return "not_evaluated"
+    return "precipitation_not_enabled"

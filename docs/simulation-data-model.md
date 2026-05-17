@@ -108,6 +108,30 @@ This provenance is UI/orchestration metadata, not a new backend physics field.
 Missing or malformed profile arrays should fail clearly before the cloud-column
 endpoint is called. The handoff does not use or couple to `boussinesq_2d`.
 
+For future warm-rain work, `controlled_cloud_column` can also emit a
+`cloud-column-microphysics-handoff-v1` payload. This payload is a contract bridge,
+not rain physics. It preserves:
+
+- `source_model = controlled_cloud_column`
+- source scenario and selected-profile time, when available
+- cloud-column run id or local equivalent
+- cloud-column time samples
+- cloud liquid water time series, maximum, and time integral
+- first cloud time, cloud base, and cloud-top proxy
+- total condensed and evaporated amounts
+- water-budget summary
+- prescribed-lift summary
+- temperature, water vapor, and RH time series
+- precipitation status
+- microphysics and droplet/effective-radius source labels
+
+Early Lower Atmosphere v2 handoffs use `precipitation_not_enabled` when cloud
+water exists but rain physics is deferred, or `not_evaluated` when no cloud water
+formed. Rain-water fields, effective radius, droplet-size distributions, number
+concentration, PySDM output, and optics products remain optional and absent until
+separately scoped work adds them. The handoff does not use or couple to
+`boussinesq_2d`.
+
 ## Structured Initial Conditions
 
 Structured controls are scenario configuration, not renderer state. The current 2-D solvers reduce them to deterministic heating weights and relative-humidity fields:

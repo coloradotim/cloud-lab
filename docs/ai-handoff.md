@@ -265,6 +265,15 @@ The v2 handoff preserves selected-profile provenance (`source_model`,
 `source_scenario_id`, and `source_profile_status`) and does not use
 `boussinesq_2d`.
 
+Lower Atmosphere Cloud Basics v2 also has a precipitation/microphysics handoff
+contract in `backend/app/sim/cloud_column_schemas.py`. The
+`cloud-column-microphysics-handoff-v1` payload preserves controlled-column cloud
+water, time series, water-budget metadata, prescribed-lift metadata, and
+selected-profile provenance for future warm-rain diagnostics. It can report
+`precipitation_not_enabled` when cloud water is available but rain physics is
+deferred, or `not_evaluated` when no cloud water formed. It does not implement
+rain, PySDM, droplet distributions, optics, or Boussinesq coupling.
+
 Lower Atmosphere Cloud Basics v2 scenario interpretation now treats `Dry failed
 cumulus` as a cloud-free default combined-flow contract. Split outcomes remain
 valid in other setups, but `profile moisture_limited + column cloud_formed`
@@ -324,8 +333,8 @@ Use the current open issue state to decide, but as of this handoff:
   The inspector covers result, why, try-next guidance, key numbers,
   expected-vs-observed scenario status, and a precipitation placeholder without
   freeform AI explanation.
-- The next lower-atmosphere science implementation issue may proceed to the
-  separately scoped precipitation/microphysics handoff, or to scientific
-  visualization depth on top of the current v2 orchestration and inspector. Do
-  not broaden those issues into solver physics, CM1, optics, or Boussinesq
-  behavior unless explicitly scoped.
+- The next lower-atmosphere science implementation issue may proceed to
+  controlled warm-rain diagnostics (#182) or scientific visualization depth on
+  top of the current v2 orchestration, inspector, and handoff contracts. Do not
+  broaden those issues into solver physics, CM1, optics, or Boussinesq behavior
+  unless explicitly scoped.

@@ -47,6 +47,99 @@ The recommended first implementation is an optional top-level `microphysics` fie
 because it allows existing solvers and frontend consumers to keep working. Absence of
 the field, or `microphysics: null`, means no droplet distribution is available.
 
+## Lower Atmosphere v2 Handoff Contract
+
+Lower Atmosphere Cloud Basics v2 uses a separate handoff before any optional
+droplet payload exists:
+
+```text
+cloud-column-microphysics-handoff-v1
+```
+
+The handoff source is intentionally limited to:
+
+```text
+source_model = controlled_cloud_column
+```
+
+It is not a `boussinesq_2d` coupling point and it does not implement rain
+physics. It preserves controlled-column cloud-water timing, amount, water-budget
+metadata, prescribed-lift metadata, source scenario and selected-profile
+provenance, and the scalar time series future controlled microphysics needs.
+
+Required handoff fields:
+
+```text
+source_model
+source_scenario_id
+source_profile_time_seconds
+source_profile_time_hours_from_sunrise
+cloud_column_run_id
+cloud_column_time_seconds
+cloud_liquid_water_kg_per_kg
+max_cloud_liquid_water_kg_per_kg
+cloud_water_integral
+first_cloud_time_seconds
+cloud_base_m
+cloud_top_proxy_m
+total_condensed_kg_per_kg
+total_evaporated_kg_per_kg
+water_budget_summary
+prescribed_lift_summary
+temperature_k
+water_vapor_kg_per_kg
+relative_humidity_percent
+precipitation_status
+microphysics_source
+droplet_effective_radius_source
+```
+
+Rain and droplet fields are optional and absent in early v2:
+
+```text
+rain_water_kg_per_kg
+first_rain_time_seconds
+max_rain_water_kg_per_kg
+effective_radius_um
+droplet_size_distribution
+number_concentration_m3
+```
+
+Precipitation statuses:
+
+```text
+precipitation_not_enabled
+not_evaluated
+cloud_no_rain
+rain_threshold_reached
+rain_formed
+evaporation_limited
+```
+
+Early Lower Atmosphere v2 should use `precipitation_not_enabled` when cloud water
+is available for later warm-rain diagnostics and `not_evaluated` when no cloud
+water formed.
+
+Microphysics source labels:
+
+```text
+none
+bulk
+PySDM
+reference
+synthetic
+```
+
+Droplet/effective-radius source labels:
+
+```text
+absent
+assumed
+bulk_estimate
+PySDM
+reference
+```
+
 ## Proposed Frame Shape
 
 ```json

@@ -176,6 +176,28 @@ and optics consuming physical fields.
 `controlled_cloud_column` produces bulk cloud liquid water but no rain,
 sedimentation, droplet spectra, or PySDM output.
 
+Issue #196 adds a lightweight `cloud-column-microphysics-handoff-v1` contract for
+future warm-rain diagnostics. The handoff preserves controlled-column cloud-water
+timing, amount, water-budget metadata, prescribed-lift metadata, source scenario
+and selected-profile provenance, and profile time series needed by a future
+microphysics path.
+
+Early handoff payloads may report:
+
+```text
+precipitation_status = precipitation_not_enabled
+```
+
+when cloud water is available but rain physics is deferred, or:
+
+```text
+precipitation_status = not_evaluated
+```
+
+when no cloud water formed. Rain-water fields, droplet distributions, effective
+radius, number concentration, PySDM output, and optics inputs remain optional and
+absent until later scoped work.
+
 Warm Rain / Droplet Growth should remain a separate controlled microphysics path
 until a lab requires explicit coupling.
 

@@ -739,7 +739,9 @@ Required:
 
 ### Precipitation-Ready Diagnostics
 
-Do not require full rain implementation in #183, but define fields for later:
+Do not require full rain implementation in early v2. Issue #196 adds the
+`cloud-column-microphysics-handoff-v1` contract so future warm-rain diagnostics
+can consume controlled-cloud output without coupling to Boussinesq.
 
 - precipitation status
 - first rain time
@@ -750,11 +752,16 @@ Do not require full rain implementation in #183, but define fields for later:
 - effective radius / droplet payload availability
 - microphysics source label: `none`, `bulk`, `PySDM`, `reference`
 
-Allowed early status:
+Allowed early statuses:
 
 ```text
 precipitation_not_enabled
+not_evaluated
 ```
+
+`precipitation_not_enabled` means cloud water is available but rain physics is
+deferred. `not_evaluated` means no cloud water formed, so rain cannot be
+evaluated honestly.
 
 ## Deterministic Explanation Pattern
 
@@ -935,10 +942,33 @@ That means:
 
 - cloud-column output should preserve cloud-water timing and amount
 - diagnostics should have a precipitation placeholder/status
-- future microphysics handoff should be clear
+- future microphysics handoff should use `cloud-column-microphysics-handoff-v1`
 - optics should know whether rain/droplet fields are absent, assumed, bulk, reference, or microphysics-generated
 
-Do not implement full rain in the #183 design issue.
+Do not implement full rain in the v2 design or handoff issues.
+
+The handoff contract preserves:
+
+- `source_model = controlled_cloud_column`
+- source scenario id and selected-profile time, when available
+- cloud-column run id or local equivalent
+- cloud-column time samples
+- cloud liquid water time series
+- max cloud liquid water
+- cloud-water integral
+- first cloud time
+- cloud base and cloud-top proxy
+- total condensed and evaporated amounts
+- water-budget summary
+- prescribed-lift summary
+- temperature, water vapor, and RH time series
+- precipitation status
+- microphysics and droplet/effective-radius source labels
+
+Future optional fields include rain water, first rain time, max rain water,
+effective radius, droplet-size distribution, number concentration, and a
+microphysics source label. These fields are optional so early v2 does not imply
+rain, PySDM, or droplet-resolved output.
 
 Future precipitation path:
 
