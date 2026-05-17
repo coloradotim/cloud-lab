@@ -76,6 +76,11 @@ visualization. It shows placeholder profile/cloud-column/combined views until
 profile-to-cloud-column orchestration lands, and it does not present
 `boussinesq_2d` as the default Lower Atmosphere engine.
 
+The old Boussinesq-centered Lower Atmosphere v1 scenarios may remain in
+technical code as developer/prototype metadata, but the normal Lab Picker and
+Lower Atmosphere v2 scenario selector should not expose them as user-facing
+Lower Atmosphere choices.
+
 ## Default Workbench State
 
 Default workbench view should show:

@@ -31,7 +31,9 @@ The phase is successful when Cloud Lab opens into a clear lab-driven experience,
 Lower Atmosphere Cloud Basics opens into the v2 reduced-model shell by default,
 Evolving Boundary Layer exposes the standalone `boundary_layer_1d` profile path,
 and the old dashboard/Boussinesq-centered Lower Atmosphere screen is no longer
-the default product model.
+the default product model. As of #197, Boussinesq-centered Lower Atmosphere v1
+frontend scenarios are quarantined as developer/prototype metadata and are not
+presented by the normal Lab Picker or Lower Atmosphere v2 scenario selector.
 
 ## Authoritative Product Docs
 

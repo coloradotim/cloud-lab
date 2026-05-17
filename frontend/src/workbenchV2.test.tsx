@@ -10,6 +10,7 @@ import {
   labCatalog,
   labById,
 } from "./labs/labCatalog";
+import { BUILT_IN_SCENARIOS } from "./simulationControls";
 import { LabPicker } from "./workbench/LabPicker";
 import { LabWorkbench, WorkbenchErrorFallback } from "./workbench/LabWorkbench";
 
@@ -80,6 +81,26 @@ describe("Workbench V2 lab picker", () => {
       view: "workbench",
       selectedLabId: "fair-weather-cumulus",
     });
+  });
+
+  it("does not expose quarantined Boussinesq prototype scenarios in the normal Lab Picker", () => {
+    const html = renderToStaticMarkup(<LabPicker labs={labCatalog} onSelectLab={vi.fn()} />);
+    const boussinesqScenarios = BUILT_IN_SCENARIOS.filter(
+      (scenario) => scenario.solverMode === "boussinesq_2d",
+    );
+
+    expect(boussinesqScenarios.length).toBeGreaterThan(0);
+    expect(
+      boussinesqScenarios.every(
+        (scenario) => scenario.visibility === "developer_prototype",
+      ),
+    ).toBe(true);
+    for (const scenario of boussinesqScenarios) {
+      expect(html).not.toContain(scenario.name);
+    }
+    expect(html).not.toContain("Experimental Boussinesq prototype");
+    expect(html).not.toContain("Yellow-status Boussinesq");
+    expect(selectLabForWorkbench("boussinesq_2d")).toEqual({ view: "lab-picker" });
   });
 });
 
@@ -292,6 +313,24 @@ describe("Workbench V2 shell", () => {
     expect(html).not.toContain("Scientific 2-D field view");
     expect(html).not.toContain("Experimental 2-D prototype");
     expect(html).not.toContain("boussinesq_2d");
+  });
+
+  it("keeps Boussinesq prototype scenarios out of the Lower Atmosphere v2 scenario selector", () => {
+    const html = renderToStaticMarkup(
+      <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
+    );
+    const boussinesqScenarioSlugs = BUILT_IN_SCENARIOS.filter(
+      (scenario) => scenario.solverMode === "boussinesq_2d",
+    ).map((scenario) => scenario.slug);
+
+    expect(html).toContain("Lower Atmosphere v2 setup");
+    expect(html).toContain("Baseline shallow cloud");
+    expect(html).toContain("Rain-capable warm cloud later");
+    for (const scenarioSlug of boussinesqScenarioSlugs) {
+      expect(html).not.toContain(`value="${scenarioSlug}"`);
+    }
+    expect(html).not.toContain("Scientific 2-D field view");
+    expect(html).not.toContain("Experimental 2-D prototype");
   });
 
   it("keeps Lower Atmosphere v2 scenario setup copy from duplicating the selected name", () => {
