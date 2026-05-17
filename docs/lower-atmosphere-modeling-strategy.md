@@ -146,6 +146,11 @@ processes such as thunderstorms and turbulent flow. Cloud Lab should not embed
 CM1 in the browser app or require it for normal local use. Instead, Cloud Lab
 should ingest offline CM1 outputs through an adapter.
 
+For realistic 2-D cloud evolution, CM1 reference output is the credibility
+anchor. `boundary_layer_1d` and `controlled_cloud_column` are explanatory and
+interactive reduced models; they should not be treated as the primary source of
+realistic spatial cloud evolution.
+
 Target flow:
 
 ```text

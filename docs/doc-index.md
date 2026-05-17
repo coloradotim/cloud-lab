@@ -39,6 +39,7 @@ Older implementation docs remain useful as technical references, but they should
 
 - `docs/scientific-roadmap.md` — physics maturity path in service of the lab roadmap.
 - `docs/lower-atmosphere-modeling-strategy.md` — authoritative lower-atmosphere model hierarchy: CM1 reference cases, `boundary_layer_1d`, `controlled_cloud_column`, controlled microphysics, field/diagnostic contracts, and optics inputs.
+- `docs/reference-models/cm1.md` — CM1 offline reference-output adapter contract, reference-frame schema, field mapping, diagnostics, provenance, and data/dependency policy.
 - `docs/boundary-layer-1d.md` — implemented `boundary_layer_1d` profile-model contract, tendencies, diagnostics, presets, validation expectations, and v1 no-cloud-water boundary.
 - `docs/controlled-cloud-column.md` — implemented `controlled_cloud_column` prescribed-lift cloud-formation model, schemas, diagnostics, scenarios, and validation expectations.
 - `docs/next-physics-core.md` — physics-core strategy; not the product roadmap.
