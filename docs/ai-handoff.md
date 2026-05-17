@@ -277,6 +277,12 @@ dry-failed cumulus and shallow-cumulus baseline pair, plus early/later capped,
 humid low-cloud, warm-rain, and terrain cases. It is docs/design only: no CM1
 was run, no output files were added, and no Boussinesq behavior changed.
 
+Local macOS CM1 setup guidance now lives in
+`docs/reference-models/cm1-local-setup-macos.md`, with helper scripts under
+`scripts/reference/cm1/`. These scripts check prerequisites and run prepared
+local cases only when explicitly requested; they do not install CM1, download
+large files, commit output, or make CM1 a Cloud Lab runtime dependency.
+
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
 - atmosphere evolution only calls `boundary_layer_1d`
