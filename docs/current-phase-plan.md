@@ -19,6 +19,16 @@ The current reduced-model path is:
 boundary_layer_1d → controlled_cloud_column → Lower Atmosphere v2 design → CM1 adapter/reference cases
 ```
 
+The current visual credibility path is:
+
+```text
+CM1 adapter → CM1 visual case library → local CM1 setup → first real CM1 reference pair → 2-D scientific reference replay → appearance view
+```
+
+The reduced-model path remains useful for explanation and fast interaction, but
+credible 2-D lower-atmosphere cloud visualization should be anchored by CM1
+reference output first.
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:

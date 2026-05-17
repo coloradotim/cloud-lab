@@ -221,6 +221,9 @@ Near-term science implementation should prioritize:
 CM1 adapter/reference cases → microphysics precipitation diagnostics → optics field contract
 ```
 
+The reduced-model stack explains cloud formation and supports fast interaction,
+but the credible 2-D cloud visualization path is CM1 reference output first.
+
 `boundary_layer_1d` v1 has landed as the first reduced-model step. Evolving
 Boundary Layer v1 now exposes it in Workbench V2 with scenario selection,
 profile controls, a profile/sounding view, timeline replay, and deterministic
@@ -258,6 +261,15 @@ They are not presented by the normal Lab Picker or the Lower Atmosphere v2
 scenario selector. Backend `boussinesq_2d` code, validation docs, and technical
 scenario helpers remain available for diagnostics/regression work only; solver
 physics was not changed.
+
+CM1 reference-output adapter v1 now exists under `backend/app/reference/`.
+It maps tiny CM1-like fixture payloads into `reference-run-v1` /
+`reference-frame-v1` records with source provenance, field units, missing-field
+warnings, cloud base/top, first cloud time, max cloud water, max updraft, and
+rain diagnostics when rain fields exist. It deliberately does not run CM1, add
+NetCDF/xarray dependencies, commit real model output, build a frontend viewer,
+or compare reduced-model output. Continue real case-library/setup/viewer work
+through the follow-up CM1 issues.
 
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
@@ -340,8 +352,12 @@ Use the current open issue state to decide, but as of this handoff:
   The inspector covers result, why, try-next guidance, key numbers,
   expected-vs-observed scenario status, and a precipitation placeholder without
   freeform AI explanation.
-- The next lower-atmosphere science implementation issue may proceed to
-  controlled warm-rain diagnostics (#182) or scientific visualization depth on
-  top of the current v2 orchestration, inspector, and handoff contracts. Do not
-  broaden those issues into solver physics, CM1, optics, or Boussinesq behavior
-  unless explicitly scoped.
+- The active lower-atmosphere visual credibility path is:
+
+  ```text
+  #179 → #180 → #207 → #208 → #209 → #181 → #210 → #198
+  ```
+
+  This means CM1 reference output anchors credible 2-D cloud visualization
+  before reduced-model comparison or cloud-appearance work. Do not broaden any
+  one issue into the full sequence unless explicitly scoped.

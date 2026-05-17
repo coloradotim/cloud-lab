@@ -229,6 +229,36 @@ zero placeholder cloud fields because its contract is cloud formation potential,
 not cloud production or 2-D visualization. Any future export from profile output
 into `sim-frame-v1` should be explicit and preserve provenance.
 
+## Reference Model Frame Schema
+
+Offline reference-model output uses a distinct reference contract rather than
+pretending to be live interactive solver output.
+
+The first reference path is CM1:
+
+```text
+CM1 output
+  ↓
+Cloud Lab reference adapter
+  ↓
+reference-run-v1 / reference-frame-v1
+  ↓
+diagnostics
+  ↓
+future 2-D scientific visualization, comparison, and appearance views
+```
+
+`ReferenceFrame` records `source_model = "CM1"`, a source case id, source-file
+metadata, time, x/z grid coordinates, mapped scalar fields with units and source
+variable provenance, assumptions, and missing-field warnings. `ReferenceRun`
+wraps a frame sequence plus deterministic diagnostics such as cloud base, cloud
+top, first cloud time, max cloud water, max updraft, rain onset when rain fields
+exist, and source provenance.
+
+Reference frames are offline reference data. They are not `SimulationFrame`
+outputs from a normal app run, and Cloud Lab does not run CM1 during normal app
+sessions. See `docs/reference-models/cm1.md`.
+
 ## Future Compatibility
 
 Future PySDM, 2.5-D, and 3-D work should either preserve these v1 fields or introduce a new schema version. New modeled fields must document units in code and docs, include validation or validation notes, and keep solver internals separate from frontend rendering.
