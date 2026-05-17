@@ -41,6 +41,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/lower-atmosphere-modeling-strategy.md` — authoritative lower-atmosphere model hierarchy: CM1 reference cases, `boundary_layer_1d`, `controlled_cloud_column`, controlled microphysics, field/diagnostic contracts, and optics inputs.
 - `docs/reference-models/cm1.md` — CM1 offline reference-output adapter contract, reference-frame schema, field mapping, diagnostics, provenance, and data/dependency policy.
 - `docs/reference-models/cm1-lower-atmosphere-cases.md` — CM1 lower-atmosphere visual reference case library, including the immediate dry-failed/shallow-cumulus pair, early/later cases, required fields, storage policy, and optics relationship.
+- `docs/reference-models/cm1-local-setup-macos.md` — local macOS CM1 setup, build, run, output storage, and helper-script workflow for offline Cloud Lab reference runs.
 - `docs/boundary-layer-1d.md` — implemented `boundary_layer_1d` profile-model contract, tendencies, diagnostics, presets, validation expectations, and v1 no-cloud-water boundary.
 - `docs/controlled-cloud-column.md` — implemented `controlled_cloud_column` prescribed-lift cloud-formation model, schemas, diagnostics, scenarios, and validation expectations.
 - `docs/next-physics-core.md` — physics-core strategy; not the product roadmap.
