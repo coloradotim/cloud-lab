@@ -229,3 +229,9 @@ Reference cases are offline datasets used to anchor visual understanding and
 diagnostics. Interactive reduced models do not need to match every CM1
 morphology detail; they should match teaching-relevant relationships and
 diagnostics.
+
+The first lower-atmosphere visual case library is defined in
+`docs/reference-models/cm1-lower-atmosphere-cases.md`. It prioritizes the
+immediate dry-failed cumulus and shallow-cumulus baseline pair before local CM1
+setup, first real reference output generation, scientific 2-D replay, appearance
+rendering, and reduced-model comparison.

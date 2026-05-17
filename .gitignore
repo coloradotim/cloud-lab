@@ -24,6 +24,9 @@ frontend/.vite/
 !.env.example
 .dev/
 
+# Local generated reference model output
+data/reference/cm1/
+
 # Editors
 .idea/
 .vscode/

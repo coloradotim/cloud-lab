@@ -271,6 +271,12 @@ NetCDF/xarray dependencies, commit real model output, build a frontend viewer,
 or compare reduced-model output. Continue real case-library/setup/viewer work
 through the follow-up CM1 issues.
 
+The first CM1 lower-atmosphere visual reference case library now lives in
+`docs/reference-models/cm1-lower-atmosphere-cases.md`. It defines the immediate
+dry-failed cumulus and shallow-cumulus baseline pair, plus early/later capped,
+humid low-cloud, warm-rain, and terrain cases. It is docs/design only: no CM1
+was run, no output files were added, and no Boussinesq behavior changed.
+
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
 - atmosphere evolution only calls `boundary_layer_1d`
