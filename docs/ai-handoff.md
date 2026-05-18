@@ -461,5 +461,13 @@ Use the current open issue state to decide, but as of this handoff:
   After #221, the immediate CM1 reference path has adapter, case library, local
   setup/run assets, real local output ingestion, scientific replay, optics
   contract, appearance view, qualitative reduced/reference comparison, and a
-  manual real-output acceptance report. Next work should proceed to #222 polish,
-  not case calibration.
+  manual real-output acceptance report. Issue #222 polish should stay focused
+  on readability, labels, layout, and view payoff, not case calibration or new
+  science.
+
+  #222 keeps the accepted CM1 science fixed while polishing the experience:
+  clearer cloud/no-signal field readouts, stronger cloud-water appearance
+  response, structured comparison rows for narrow/export-like layouts, grouped
+  source/view/assumption labels, pre-run copy explaining that the CM1 reference
+  is offline/precomputed, and softer temperature/theta field notes when
+  potential temperature is available.

@@ -46,9 +46,10 @@ describe("Lower Atmosphere v2 CM1 reference comparison", () => {
         "CM1 reference output",
         "Offline reference case",
         "Derived diagnostic",
-        "Not a live interactive CM1 simulation",
+        "Not live CM1 simulation",
       ]),
     );
+    expect(viewModel.preRunExplanation).toContain("Reference case is available before you run");
     expect(viewModel.rows.map((row) => row.diagnostic)).toEqual(
       expect.arrayContaining([
         "Cloud/no-cloud status",
@@ -92,8 +93,9 @@ describe("Lower Atmosphere v2 CM1 reference comparison", () => {
 
     expect(viewModel.morphologyNote).toContain("Exact cloud morphology is not presented as pass/fail");
     expect(JSON.stringify(viewModel)).not.toMatch(/morphology pass/i);
-    expect(viewModel.sourceLabels).toContain("Not a live interactive CM1 simulation");
+    expect(viewModel.sourceLabels).toContain("Not live CM1 simulation");
     expect(viewModel.sourceLabels).toContain("Synthetic fixture data");
     expect(viewModel.sourceLabels).toContain("Not scientific truth");
+    expect(viewModel.rows.every((row) => row.category.length > 0)).toBe(true);
   });
 });

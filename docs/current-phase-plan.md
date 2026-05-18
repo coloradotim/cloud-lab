@@ -72,9 +72,23 @@ Manual acceptance of the first real local CM1 reference pair is documented in
 `docs/reference-models/cm1-real-output-acceptance.md`. The dry-failed case is
 usable as motion without meaningful cloud, and the shallow-cumulus baseline is
 usable as meaningful cloud formation. Do not calibrate the first CM1 cases
-before #222; the next step is polishing the scientific replay, appearance view,
-comparison layout, labels, pre-run explanation, and missing-temperature warning
-copy.
+before or inside #222.
+
+Issue #222 polish keeps the science fixed and improves the app experience
+around the accepted real-output path:
+
+- scientific replay uses clearer field readouts, cloud/no-signal states,
+  display-scale notes, and less alarming temperature/theta field messaging
+- cloud appearance remains a visual interpretation of CM1/reference cloud
+  water while increasing cloud visibility and preserving zero-cloud dry cases
+- comparison layout uses compact structured rows so narrow/export-like views do
+  not collapse into vertical text
+- source, view, and assumption labels are grouped to reduce repetition while
+  preserving `Real local ingested output`, `Synthetic fixture data`, `Not
+  scientific truth`, `Not direct radiative transfer`, and `Not live CM1
+  simulation`
+- the pre-run comparison state explains that offline CM1 reference output is
+  already available and the Run v2 flow computes the reduced-model side
 
 ## Current Phase Goal
 

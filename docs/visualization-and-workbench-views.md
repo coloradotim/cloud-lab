@@ -162,14 +162,21 @@ The view must show source labels:
 CM1 reference output
 Offline reference case
 Scientific field view
-Not live interactive simulation
+Not live CM1 simulation
 ```
 
 If a field, frame, grid coordinate, or diagnostic is missing, the view should
-show an explicit fallback rather than a blank panel. The reference replay view
-should not compare reduced-model output with CM1 output; #198 owns comparison.
-It should not run CM1, commit large model output, or implement cloud appearance
-/ 2.5-D rendering.
+show an explicit fallback rather than a blank panel. Cloud and rain fields with
+zero or below-threshold signal should show a clear no-cloud/no-signal state
+instead of inventing clouds. If `temperature_k` is unavailable but
+`potential_temperature_k` exists, the UI should present that as a field note
+rather than a scary broken-output warning.
+
+The #222 replay polish adds selected-frame min/max readouts, display-scale
+notes, clearer cloud-water contrast, grouped source/view/assumption labels, and
+timeline/frame context while preserving the source reference fields. The
+reference replay view should not run CM1, commit large model output, or mutate
+reference data.
 
 ### Cloud Appearance View
 
@@ -199,6 +206,13 @@ The first CM1/reference appearance mode uses an assumed effective radius and a
 cloud-depth proxy from the reference grid to derive opacity/brightness from
 `cloud_liquid_water_kg_per_kg`. It is a visual interpretation of reference
 fields, not direct radiative transfer or a new cloud model.
+
+#222 polish strengthens the display transfer function so shallow-cumulus cloud
+water is more visible, while zero-cloud dry cases remain visually cloud-free.
+The view must keep labeling assumed droplet radius, lack of direct radiative
+transfer, visual interpretation status, and the fact that CM1 is not running
+live in the app. The display mapping must not mutate source reference fields or
+hide scientific warnings.
 
 Clouds, Light, and Shadow now has a first lightweight rendered appearance view backed by deterministic preset source scenes. It derives opacity, attenuation, approximate single-scattering brightness, optical-depth, and light-path/shadow displays from the source `cloud_density` field and renderer controls. Sun angle, view angle, density, depth, optical strength, and light color change the renderer state only; they must not mutate the source scene field.
 
@@ -230,11 +244,18 @@ No CM1 reference case is available for this scenario yet.
 ```
 
 The panel labels `Reduced model output`, `CM1 reference output`, `Offline
-reference case`, `Derived diagnostic`, and `Not a live interactive CM1
-simulation`. It also distinguishes `Real local ingested output` from
-`Synthetic fixture data`. It compares cloud/no-cloud status, first cloud time,
-cloud base, cloud top, max cloud water, max updraft, rain onset, and profile
-context. Exact cloud morphology is not displayed as a pass/fail condition.
+reference case`, `Derived diagnostic`, and `Not live CM1 simulation`. It also
+distinguishes `Real local ingested output` from `Synthetic fixture data`. It
+compares cloud/no-cloud status, first cloud time, cloud base, cloud top, max
+cloud water, max updraft, rain onset, and profile context. Exact cloud
+morphology is not displayed as a pass/fail condition.
+
+The comparison should explain the pre-run state: offline CM1 reference output
+can be visible before the reduced-model Run v2 flow because the reference is
+precomputed/ingested, while Run v2 computes the reduced-model side. The
+diagnostic comparison should use compact structured rows or an equivalent
+responsive layout so narrow/export-like views do not wrap labels into vertical
+letter fragments.
 
 ## Rendering Architecture
 

@@ -80,7 +80,7 @@ export function isSyntheticReferenceRun(run: ReferenceRun | null): boolean {
 
 export function referenceRunSourceLabels(run: ReferenceRun | null): string[] {
   if (!run) {
-    return ["CM1 reference output", "Offline reference case", "Not live interactive simulation"];
+    return ["CM1 reference output", "Offline reference case"];
   }
   return isSyntheticReferenceRun(run)
     ? [
@@ -89,14 +89,12 @@ export function referenceRunSourceLabels(run: ReferenceRun | null): string[] {
         "Synthetic fixture data",
         "Not scientific truth",
         "For UI/testing only",
-        "Not live interactive simulation",
       ]
     : [
         "CM1 reference output",
         "Offline local reference case",
         "Real local ingested output",
         "Reference model output",
-        "Not live interactive simulation",
       ];
 }
 

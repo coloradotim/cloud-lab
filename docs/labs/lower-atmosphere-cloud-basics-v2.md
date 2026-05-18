@@ -66,6 +66,17 @@ real local artifact is available, the shallow-cumulus fixture remains visible
 only as `Synthetic fixture data`, `Not scientific truth`, and `For UI/testing
 only`.
 
+#222 polish keeps the first real-output science fixed and improves the v2
+experience around it. The scientific replay should show clearer cloud-water
+contrast, selected-frame min/max readouts, no-cloud/no-signal states for the dry
+case, and a field note when potential temperature is available but direct
+temperature is missing. The appearance mode should make shallow-cumulus cloud
+water more visible while preserving zero-cloud dry behavior and labeling it as
+an assumed-radius visual interpretation, not direct radiative transfer. The
+comparison panel should remain readable in narrow/export-like layouts and should
+explain that the offline CM1 reference is visible before Run v2 computes the
+reduced-model side.
+
 The v2 user should be able to ask:
 
 ```text

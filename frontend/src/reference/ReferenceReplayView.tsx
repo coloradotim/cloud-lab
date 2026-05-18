@@ -17,6 +17,7 @@ import {
   defaultReferenceFieldKey,
   frameCountLabel,
   referenceFieldOptions,
+  referenceMissingFieldNotes,
   referenceReplayFallback,
 } from "./referenceReplay";
 import type { ReferenceRun } from "./referenceTypes";
@@ -40,10 +41,16 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
     : `${fieldOptions.find((field) => field.key === selectedFieldKey)?.label ?? "Reference field"} unavailable`;
   const frameCount = referenceRun?.frames.length ?? 0;
   const diagnostics = referenceRun?.diagnostics ?? null;
-  const provenance = referenceRun?.frames[0]?.provenance ?? diagnostics?.source_provenance ?? null;
   const displayedFrameIndex = viewModel?.frameIndex ?? 0;
   const sourceLabels = referenceRunSourceLabels(referenceRun);
   const syntheticFixture = isSyntheticReferenceRun(referenceRun);
+  const missingFieldNotes = referenceMissingFieldNotes(referenceRun);
+  const viewLabels = viewMode === "cloud-appearance"
+    ? ["Cloud appearance view", "Visual interpretation"]
+    : ["Scientific field view"];
+  const assumptionLabels = viewMode === "cloud-appearance"
+    ? ["Assumed droplet radius", "Not direct radiative transfer", "Not live CM1 simulation"]
+    : ["Not live CM1 simulation"];
 
   return (
     <section className="reference-replay-panel" aria-labelledby="cm1-reference-replay-title">
@@ -177,6 +184,28 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
             <span className="legend-ramp" />
             <span>{formatLegendValue(viewModel.range.max, viewModel.summary.unit)}</span>
           </div>
+          <dl className="stage-stats reference-field-readout" aria-label="Selected CM1 reference field readout">
+            <div>
+              <dt>Field status</dt>
+              <dd>{viewModel.signal.statusLabel}</dd>
+            </div>
+            <div>
+              <dt>Selected frame min / max</dt>
+              <dd>
+                {formatNullable(viewModel.signal.minValue, viewModel.field.metadata.unit)} /{" "}
+                {formatNullable(viewModel.signal.maxValue, viewModel.field.metadata.unit)}
+              </dd>
+            </div>
+            <div>
+              <dt>Display scale</dt>
+              <dd>{viewModel.scaling.scale} / {viewModel.scaling.range}</dd>
+            </div>
+          </dl>
+          {!viewModel.signal.hasSignal ? (
+            <p className="stage-helper reference-no-signal">{viewModel.signal.helper}</p>
+          ) : (
+            <p className="stage-helper">{viewModel.signal.helper}</p>
+          )}
           {viewModel.fallbackMessage ? <p className="stage-helper">{viewModel.fallbackMessage}</p> : null}
         </div>
       ) : (
@@ -235,22 +264,20 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
         </div>
       </dl>
 
-      {diagnostics?.missing_field_warnings.length ? (
-        <p className="stage-helper">Missing fields: {diagnostics.missing_field_warnings.join(" ")}</p>
+      {missingFieldNotes.length ? (
+        <p className="stage-helper">Field notes: {dedupe(missingFieldNotes).join(" ")}</p>
       ) : null}
       {syntheticFixture && referenceRun ? (
         <p className="stage-helper">{missingRealReferenceOutputMessage(referenceRun.source_case_id)}</p>
       ) : null}
 
       <div className="assumption-labels" aria-label="CM1 reference source labels">
-        <span>Source labels</span>
-        <p>
-          {sourceLabels.join(" · ")} ·{" "}
-          {viewMode === "cloud-appearance"
-            ? "Cloud appearance view · Visual interpretation of CM1 reference field · Assumed droplet radius · Not direct radiative transfer · Not live CM1 simulation"
-            : "Scientific field view · Not live interactive simulation"}
-          {provenance?.source_is_synthetic_fixture ? " · Synthetic fixture, not scientific truth" : ""}
-        </p>
+        <span>Source</span>
+        <p>{sourceLabels.join(" · ")}</p>
+        <span>View</span>
+        <p>{viewLabels.join(" · ")}</p>
+        <span>Assumptions</span>
+        <p>{assumptionLabels.join(" · ")}</p>
       </div>
     </section>
   );
@@ -314,14 +341,14 @@ function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
       </dl>
       <p className="stage-helper">
         {hasCloud
-          ? "Cloud water is mapped to opacity and brightness for a visual interpretation."
+          ? "Cloud water is mapped to opacity and brightness for a visual interpretation; source fields are unchanged."
           : "Zero cloud water renders no meaningful cloud in the appearance view."}
       </p>
       {model.fallbackMessage ? <p className="stage-helper">{model.fallbackMessage}</p> : null}
       <div className="assumption-labels reference-appearance-labels" aria-label="CM1 reference appearance labels">
         <span>Appearance labels</span>
         <p>
-          Cloud appearance view · Visual interpretation of CM1 reference field · Assumed droplet radius · Not direct radiative transfer · Not live CM1 simulation
+          Visual interpretation of CM1 reference field · Assumed droplet radius · Not direct radiative transfer · Not live CM1 simulation
         </p>
       </div>
     </div>
@@ -340,4 +367,8 @@ function formatLegendValue(value: number, unit: string): string {
     return "n/a";
   }
   return `${Math.abs(value) >= 1_000 ? value.toExponential(1) : value.toPrecision(3)} ${unit}`;
+}
+
+function dedupe(labels: string[]): string[] {
+  return [...new Set(labels.filter(Boolean))];
 }

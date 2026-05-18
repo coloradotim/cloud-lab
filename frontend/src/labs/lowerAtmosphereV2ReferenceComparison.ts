@@ -19,6 +19,7 @@ import {
 } from "./lowerAtmosphereV2Orchestration";
 
 export type LowerAtmosphereV2ReferenceComparisonRow = {
+  category: "Outcome" | "Cloud structure" | "Dynamics" | "Context";
   diagnostic: string;
   reducedValue: string;
   referenceValue: string;
@@ -31,6 +32,7 @@ export type LowerAtmosphereV2ReferenceComparisonViewModel = {
   fallbackMessage: string | null;
   rows: LowerAtmosphereV2ReferenceComparisonRow[];
   sourceLabels: string[];
+  preRunExplanation: string | null;
   morphologyNote: string;
 };
 
@@ -69,10 +71,13 @@ export function buildLowerAtmosphereV2ReferenceComparisonViewModel({
     sourceLabels: [
       "Reduced model output",
       ...referenceRunSourceLabels(referenceRun),
-      "Not a live interactive CM1 simulation",
       "Derived diagnostic",
       "Qualitative diagnostic comparison",
+      "Not live CM1 simulation",
     ],
+    preRunExplanation: cloudColumnHasRun(state)
+      ? null
+      : "Reference case is available before you run the reduced model. Run the v2 flow to compare your reduced-model result against this CM1 reference.",
     morphologyNote:
       "Exact cloud morphology is not presented as pass/fail; compare teaching-relevant diagnostics and outcomes instead.",
   };
@@ -91,8 +96,10 @@ function emptyComparison(
       "Reduced model output",
       "CM1 reference output",
       "Offline reference case",
-      "Not a live interactive CM1 simulation",
+      "Not live CM1 simulation",
     ],
+    preRunExplanation:
+      "Reference case is available before you run the reduced model. Run the v2 flow to compute the reduced-model side of the comparison.",
     morphologyNote:
       "Reference comparison is qualitative and diagnostic; exact CM1 cloud morphology is not a pass/fail target.",
   };
@@ -115,48 +122,56 @@ function comparisonRows(
 
   return [
     {
+      category: "Outcome",
       diagnostic: "Cloud/no-cloud status",
       reducedValue: reducedCloudStatus ? lowerAtmosphereV2StatusLabel(reducedCloudStatus) : "Cloud column not run",
       referenceValue: referenceCloudStatus ? lowerAtmosphereV2StatusLabel(referenceCloudStatus) : "unavailable",
       interpretation: "Outcome comparison, not morphology scoring.",
     },
     {
+      category: "Outcome",
       diagnostic: "First cloud time",
       reducedValue: formatSeconds(cloudDiagnostics?.first_cloud_time_seconds ?? null),
       referenceValue: formatSeconds(referenceDiagnostics?.first_cloud_time_seconds ?? null),
       interpretation: "Timing should be read qualitatively across different model classes.",
     },
     {
+      category: "Cloud structure",
       diagnostic: "Cloud base",
       reducedValue: formatMeters(cloudDiagnostics?.cloud_base_m ?? null),
       referenceValue: formatMeters(referenceDiagnostics?.cloud_base_m ?? null),
       interpretation: "Compare cloud-base relationship and order of magnitude.",
     },
     {
+      category: "Cloud structure",
       diagnostic: "Cloud top",
       reducedValue: formatMeters(cloudDiagnostics?.cloud_top_proxy_m ?? null),
       referenceValue: formatMeters(referenceDiagnostics?.cloud_top_m ?? null),
       interpretation: "Reduced model uses a cloud-top proxy; CM1 provides a 2-D field diagnostic.",
     },
     {
+      category: "Cloud structure",
       diagnostic: "Max cloud water",
       reducedValue: formatKgPerKg(cloudDiagnostics?.max_cloud_liquid_water_kg_per_kg ?? null),
       referenceValue: formatKgPerKg(referenceDiagnostics?.max_cloud_liquid_water_kg_per_kg ?? null),
       interpretation: "Compare cloud amount as a teaching diagnostic, not a calibrated forecast.",
     },
     {
+      category: "Dynamics",
       diagnostic: "Max updraft",
       reducedValue: reducedUpdraftLabel(cloudDiagnostics),
       referenceValue: formatMetersPerSecond(referenceDiagnostics?.max_updraft_m_per_s ?? null),
       interpretation: "Reduced lift is prescribed; CM1 updraft is reference-model output.",
     },
     {
+      category: "Outcome",
       diagnostic: "Rain onset",
       reducedValue: "not evaluated",
       referenceValue: formatSeconds(referenceDiagnostics?.first_rain_time_seconds ?? null),
       interpretation: "Rain comparison remains deferred until reduced warm-rain diagnostics are enabled.",
     },
     {
+      category: "Context",
       diagnostic: "Profile context",
       reducedValue: profileFrame
         ? `${formatMeters(profileFrame.mixed_layer_depth_m)} mixed layer / ${formatMeters(profileFrame.lcl_m)} LCL`
@@ -176,6 +191,10 @@ function reducedUpdraftLabel(diagnostics: CloudColumnDiagnostics | null): string
     return "Cloud column not run";
   }
   return `${diagnostics.forcing.updraft_strength_m_per_s.toFixed(2)} m/s prescribed lift`;
+}
+
+function cloudColumnHasRun(state: LowerAtmosphereV2State): boolean {
+  return state.cloudColumnRun !== null;
 }
 
 function formatSeconds(value: number | null): string {

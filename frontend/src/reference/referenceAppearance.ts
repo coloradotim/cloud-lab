@@ -70,11 +70,13 @@ export function buildReferenceAppearanceViewModel(
         pathLengthM,
         effectiveRadiusUm: DEFAULT_EFFECTIVE_RADIUS_UM,
       }, edgeLighting);
-      const densityResponse = maxCloudWater > 0 ? Math.sqrt(Math.max(0, value) / maxCloudWater) : 0;
-      const opacity = maxCloudWater <= 0 ? 0 : Math.min(0.92, densityResponse * 0.6 + optical.opacity * 3);
+      const densityResponse = maxCloudWater > 0
+        ? Math.pow(Math.max(0, value) / maxCloudWater, 0.38)
+        : 0;
+      const opacity = maxCloudWater <= 0 ? 0 : Math.min(0.94, densityResponse * 0.76 + optical.opacity * 4.2);
       const brightness = maxCloudWater <= 0
         ? 0
-        : Math.min(1, Math.max(0, optical.brightness + edgeLighting * 0.18));
+        : Math.min(1, Math.max(0.18, optical.brightness * 0.9 + edgeLighting * 0.24));
 
       maxOpticalDepth = Math.max(maxOpticalDepth, optical.opticalDepth);
       opacitySum += opacity;
@@ -193,10 +195,10 @@ function cloudAppearanceFill(opacity: number, brightness: number): string {
     return "rgb(218 235 241 / 0)";
   }
 
-  const red = Math.round(205 + brightness * 42);
-  const green = Math.round(218 + brightness * 34);
-  const blue = Math.round(224 + brightness * 28);
-  return `rgb(${red} ${green} ${blue} / ${Math.min(0.92, opacity).toFixed(3)})`;
+  const red = Math.round(214 + brightness * 38);
+  const green = Math.round(224 + brightness * 30);
+  const blue = Math.round(230 + brightness * 24);
+  return `rgb(${red} ${green} ${blue} / ${Math.min(0.94, opacity).toFixed(3)})`;
 }
 
 function clampFrameIndex(run: ReferenceRun, frameIndex: number): number {
