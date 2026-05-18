@@ -65,6 +65,8 @@ import {
   type BoundaryLayer1DState,
 } from "../labs/evolvingBoundaryLayer";
 import type { LabDefinition } from "../labs/labTypes";
+import { createTinyCm1ReferenceRunFixture } from "../reference/referenceFixtures";
+import { ReferenceReplayView } from "../reference/ReferenceReplayView";
 import { CONTROL_LIMITS, SURFACE_HEATING_PATTERNS } from "../simulationControls";
 import { defaultWorkbenchRunClient, type RunStreamCleanup, type WorkbenchRunClient } from "../simulation/runClient";
 import type { SimulationFrame } from "../simulationTypes";
@@ -1797,6 +1799,7 @@ function LowerAtmosphereV2VisualizationStage({
   state: LowerAtmosphereV2State;
   setState: Dispatch<SetStateAction<LowerAtmosphereV2State>>;
 }) {
+  const referenceRunPreview = useMemo(() => createTinyCm1ReferenceRunFixture(), []);
   const scenario = selectedLabScenario(lab, workbench);
   const contract = lowerAtmosphereV2ScenarioForId(scenario?.id);
   const profileFrames = lowerAtmosphereV2ProfileFrames(state);
@@ -1900,6 +1903,8 @@ function LowerAtmosphereV2VisualizationStage({
           </p>
         </section>
       </div>
+
+      <ReferenceReplayView referenceRun={referenceRunPreview} />
 
       <section className="boundary-layer-replay-panel" aria-label="Lower Atmosphere v2 timeline scrubber">
         <div className="boundary-layer-replay-heading">

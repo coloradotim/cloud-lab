@@ -751,6 +751,84 @@ h2 {
   margin: 0;
 }
 
+.reference-replay-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d3e0da;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fbf8;
+}
+
+.reference-replay-panel h3 {
+  margin: 0;
+  color: #153137;
+  font-size: 1rem;
+}
+
+.reference-replay-toolbar {
+  align-items: end;
+}
+
+.reference-field-shell {
+  min-height: 290px;
+}
+
+.reference-field-shell .scientific-plot-frame {
+  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-rows: minmax(250px, 1fr) auto;
+  min-height: 280px;
+}
+
+.reference-field-shell .scientific-plot-area {
+  grid-column: 2;
+  min-height: 250px;
+}
+
+.reference-field-shell .axis-label-x {
+  grid-column: 2;
+}
+
+.reference-plot-area {
+  background: #eef7f6;
+}
+
+.reference-overlay-line {
+  stroke: #153137;
+  stroke-width: 0.08;
+  stroke-dasharray: 0.4 0.25;
+  opacity: 0.85;
+}
+
+.reference-cloud-base {
+  stroke: #2f7d64;
+}
+
+.reference-cloud-top {
+  stroke: #6f5bc8;
+}
+
+.reference-updraft-marker {
+  fill: none;
+  stroke: #d45d3f;
+  stroke-width: 0.1;
+}
+
+.reference-replay-timeline {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid #dbe5e0;
+  padding-top: 10px;
+}
+
+.reference-replay-timeline input {
+  width: 100%;
+}
+
+.reference-diagnostics-summary {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
 .segmented-control {
   display: grid;
   gap: 6px;

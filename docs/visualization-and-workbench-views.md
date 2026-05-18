@@ -62,6 +62,14 @@ longer a normal Lower Atmosphere visualization path. If it is used for
 technical diagnostics later, it should be treated as a developer/prototype view
 with Yellow-status labels, not as the default or trusted v2 science view.
 
+Lower Atmosphere Cloud Basics v2 also includes the first CM1/reference replay
+panel. It renders `reference-frame-v1` data as an offline scientific x-z field
+with a field selector, timeline scrubber, source labels, diagnostics summary,
+and simple cloud-base/cloud-top/max-updraft overlays. The first mounted data is
+a tiny synthetic CM1-like fixture for UI/test coverage only; it is labeled as a
+synthetic fixture and not scientific truth. Real local CM1 outputs should be
+ingested through the reference adapter before they replace the fixture.
+
 When profile and column outcomes split, the inspector should make the split
 visible rather than collapsing it into a single vague result. For example,
 `profile moisture_limited + column cloud_formed` should be labeled as cloud
@@ -108,6 +116,37 @@ The scientific view renders fields from `SimulationFrame` directly:
 This is the most literal view of the solver output.
 
 Scientific 2-D views should label both physical axes and show rational major tick marks/gridlines derived from the displayed domain scale, such as horizontal distance `x` in meters and height `z` in meters. The ticks are interpretive display aids; they must not change solver fields or frame data.
+
+### CM1 Reference Replay View
+
+The CM1/reference replay view renders offline `reference-frame-v1` data, not
+live interactive solver output.
+
+It should support:
+
+- cloud liquid water
+- water vapor / RH when available
+- temperature or potential temperature
+- vertical velocity
+- rain water when available
+- time replay / scrubber
+- cloud base and cloud top overlays when diagnostics provide them
+- first cloud time and max-updraft indicators when diagnostics provide them
+
+The view must show source labels:
+
+```text
+CM1 reference output
+Offline reference case
+Scientific field view
+Not live interactive simulation
+```
+
+If a field, frame, grid coordinate, or diagnostic is missing, the view should
+show an explicit fallback rather than a blank panel. The reference replay view
+should not compare reduced-model output with CM1 output; #198 owns comparison.
+It should not run CM1, commit large model output, or implement cloud appearance
+/ 2.5-D rendering.
 
 ### Cloud Appearance View
 

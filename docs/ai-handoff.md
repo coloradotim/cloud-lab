@@ -290,6 +290,14 @@ live under `reference/cm1/cases/`, with pair-run guidance in
 belongs under ignored local paths such as `data/reference/cm1/`; no large model
 output should be committed.
 
+The first CM1/reference scientific replay view now lives under
+`frontend/src/reference/` and is mounted in the Lower Atmosphere v2 stage as an
+offline reference panel. It uses a tiny synthetic CM1-like fixture for UI/test
+coverage only, labels the source as CM1 reference output / offline reference
+case / not live interactive simulation, and does not run CM1 or compare
+reduced-model output. Real local CM1 output should replace the fixture only
+through the reference adapter and a separately scoped ingestion path.
+
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
 - atmosphere evolution only calls `boundary_layer_1d`
@@ -380,3 +388,6 @@ Use the current open issue state to decide, but as of this handoff:
   This means CM1 reference output anchors credible 2-D cloud visualization
   before reduced-model comparison or cloud-appearance work. Do not broaden any
   one issue into the full sequence unless explicitly scoped.
+
+  After #209, the next scoped issue in this path is #181, the cloud optics
+  physical-field contract.
