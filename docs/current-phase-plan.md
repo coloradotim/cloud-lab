@@ -54,13 +54,19 @@ or make Boussinesq part of the credibility path.
 The current CM1 priority is now:
 
 ```text
-real local CM1 output → adapter ingestion → 2-D replay → appearance view → comparison
+repeatable local reference-pair runs → real local CM1 output → adapter ingestion → 2-D replay → appearance view → comparison
 ```
 
 Generated local reference artifacts and frontend local indexes remain ignored
 by git. The app should prefer real local ingested artifacts when
 `frontend/public/reference/cm1/local/index.json` exists, and should otherwise
 label the tiny fixture/demo path as synthetic and not scientific truth.
+
+The committed first-pair CM1 namelists request NetCDF output
+(`output_format = 2`). Local execution therefore requires a NetCDF-capable
+`cm1.exe`, `LANDUSE.TBL` copied into generated run directories, and soundings
+that extend above the grid top. The reference-pair scripts now preflight these
+conditions and fail when expected `.nc` output is missing.
 
 ## Current Phase Goal
 

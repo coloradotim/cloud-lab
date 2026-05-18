@@ -64,6 +64,16 @@ the preferred path for later Cloud Lab ingestion. If a local CM1 build or case
 requires GrADS output instead, keep the generated output local and update the
 manifest/docs in a follow-up calibration PR.
 
+Because `output_format = 2` is committed for both cases, the local `cm1.exe`
+used for this pair must be built with NetCDF support. The run scripts now warn
+when `nf-config` is unavailable and report the known CM1 NetCDF build error
+with the rebuild instruction instead of treating the run as successful.
+
+The committed `input_sounding` files must extend above the configured grid top.
+Both first-pair soundings include a 20000 m final level so they cover the
+60 x 60 x 40 grid with 500 m vertical spacing. Keep that invariant when
+adjusting the soundings.
+
 ## Case 1: Dry Failed Cumulus
 
 | Required detail | Definition |
@@ -126,6 +136,21 @@ scripts/reference/cm1/run_reference_pair.sh \
   --execute
 ```
 
+During execution, `run_reference_pair.sh` delegates each case to
+`run_cm1_case.sh`. The case runner copies required runtime support files from
+`--cm1-run-dir`, including `LANDUSE.TBL` when present. These first-pair
+namelists enable surface-flux setup, so `LANDUSE.TBL` is required beside
+`cm1.exe` in each generated run directory. If it is missing from the source
+CM1 run directory, the script fails before launching CM1.
+
+For NetCDF-output cases, the script expects at least one `.nc` file after CM1
+exits. If no expected output exists, it returns nonzero and prints the stdout /
+stderr log paths plus hints for known local failures:
+
+- CM1 was not compiled with NetCDF support.
+- `LANDUSE.TBL` is missing.
+- `input_sounding` ends below the grid top.
+
 For MPI:
 
 ```bash
@@ -166,6 +191,41 @@ notes
 
 The committed manifests do not include machine-specific absolute paths,
 secrets, generated outputs, or local binaries.
+
+## Repeatable Local Workflow
+
+Use this order when regenerating the first pair:
+
+1. Check the local environment:
+
+   ```bash
+   scripts/reference/cm1/check_cm1_environment.sh
+   ```
+
+2. Build CM1 with NetCDF enabled in the external CM1 checkout. The committed
+   namelists require NetCDF output.
+3. Run the pair:
+
+   ```bash
+   scripts/reference/cm1/run_reference_pair.sh \
+     --cm1-run-dir /path/to/cm1/run \
+     --output-root data/reference/cm1/runs \
+     --execute
+   ```
+
+4. Confirm each generated run directory contains `.nc` output.
+5. Ingest the pair:
+
+   ```bash
+   scripts/reference/cm1/ingest_reference_pair.sh \
+     --dry-input data/reference/cm1/runs/<local-dry-run> \
+     --shallow-input data/reference/cm1/runs/<local-shallow-run> \
+     --output data/reference/cm1/ingested \
+     --public-output frontend/public/reference/cm1/local
+   ```
+
+6. Open the app and use the Lower Atmosphere v2 reference panel for the #221
+   acceptance path.
 
 ## Data Management
 
