@@ -29,3 +29,12 @@ Do not commit:
 
 Cloud Lab should ingest selected CM1 output through the reference adapter, not
 by pointing the frontend directly at raw CM1 output.
+
+The first committed case assets live under:
+
+```text
+reference/cm1/cases/
+```
+
+Generated output from those cases should still stay under the ignored local
+`data/reference/cm1/` tree.

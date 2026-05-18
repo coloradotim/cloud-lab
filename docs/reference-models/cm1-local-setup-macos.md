@@ -199,8 +199,18 @@ scripts/reference/cm1/run_cm1_case.sh \
   --execute
 ```
 
-The example case directory above is illustrative. Issue #208 should add the
-first real dry-failed and shallow-cumulus case assets.
+The example case directory above is illustrative. Issue #208 adds the first
+dry-failed and shallow-cumulus case assets.
+
+After #208, the first pair can be dry-run or executed with:
+
+```bash
+scripts/reference/cm1/run_reference_pair.sh \
+  --cm1-run-dir ~/src/cm1/CM1/run
+```
+
+Add `--execute` only when you want to copy the case assets into ignored local
+output directories and run CM1.
 
 ## Output Storage
 

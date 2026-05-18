@@ -240,3 +240,9 @@ Local macOS setup guidance for downloading, building, and running CM1 outside
 Cloud Lab lives in `docs/reference-models/cm1-local-setup-macos.md`. The helper
 scripts under `scripts/reference/cm1/` check prerequisites and run prepared
 local cases without making CM1 a default app dependency.
+
+The first committed dry-failed-cumulus and shallow-cumulus-baseline case assets
+live under `reference/cm1/cases/` and are documented in
+`docs/reference-models/cm1-first-reference-pair.md`. Generated CM1 output from
+those cases must remain under ignored local paths such as
+`data/reference/cm1/` until a separate artifact/storage policy exists.
