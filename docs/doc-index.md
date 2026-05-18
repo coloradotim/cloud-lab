@@ -44,6 +44,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/reference-models/cm1-lower-atmosphere-cases.md` — CM1 lower-atmosphere visual reference case library, including the immediate dry-failed/shallow-cumulus pair, early/later cases, required fields, storage policy, and optics relationship.
 - `docs/reference-models/cm1-local-setup-macos.md` — local macOS CM1 setup, build, run, output storage, and helper-script workflow for offline Cloud Lab reference runs.
 - `docs/reference-models/cm1-first-reference-pair.md` — first committed CM1 dry-failed-cumulus and shallow-cumulus case assets, run commands, manifest format, diagnostics, and local output policy.
+- `docs/reference-models/cm1-real-output-acceptance.md` — #221 manual UX/science acceptance report for the first real local CM1 dry-failed and shallow-cumulus reference pair, including #222 polish recommendations.
 - `docs/boundary-layer-1d.md` — implemented `boundary_layer_1d` profile-model contract, tendencies, diagnostics, presets, validation expectations, and v1 no-cloud-water boundary.
 - `docs/controlled-cloud-column.md` — implemented `controlled_cloud_column` prescribed-lift cloud-formation model, schemas, diagnostics, scenarios, and validation expectations.
 - `docs/next-physics-core.md` — physics-core strategy; not the product roadmap.

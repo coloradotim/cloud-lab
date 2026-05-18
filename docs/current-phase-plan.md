@@ -54,7 +54,7 @@ or make Boussinesq part of the credibility path.
 The current CM1 priority is now:
 
 ```text
-repeatable local reference-pair runs → real local CM1 output → adapter ingestion → 2-D replay → appearance view → comparison
+real-output acceptance → #222 visual/replay/appearance polish
 ```
 
 Generated local reference artifacts and frontend local indexes remain ignored
@@ -67,6 +67,14 @@ The committed first-pair CM1 namelists request NetCDF output
 `cm1.exe`, `LANDUSE.TBL` copied into generated run directories, and soundings
 that extend above the grid top. The reference-pair scripts now preflight these
 conditions and fail when expected `.nc` output is missing.
+
+Manual acceptance of the first real local CM1 reference pair is documented in
+`docs/reference-models/cm1-real-output-acceptance.md`. The dry-failed case is
+usable as motion without meaningful cloud, and the shallow-cumulus baseline is
+usable as meaningful cloud formation. Do not calibrate the first CM1 cases
+before #222; the next step is polishing the scientific replay, appearance view,
+comparison layout, labels, pre-run explanation, and missing-temperature warning
+copy.
 
 ## Current Phase Goal
 

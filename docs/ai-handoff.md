@@ -305,7 +305,14 @@ script validates that `input_sounding` extends above the grid top, copies
 `LANDUSE.TBL` from the provided CM1 run directory into each generated run
 directory, and returns nonzero if CM1 exits without the expected `.nc` output.
 Use the workflow: check environment, run reference pair, inspect `.nc` output,
-ingest reference pair, then open the app for the #221 acceptance path.
+ingest reference pair, then open the app for acceptance or polish work.
+
+Manual real-output acceptance for #221 is documented in
+`docs/reference-models/cm1-real-output-acceptance.md`. The first real local CM1
+reference pair is scientifically usable for the current milestone: dry failed
+shows motion without meaningful cloud, and shallow cumulus forms meaningful
+cloud. Do not calibrate the first cases before #222; proceed to view/layout/
+visual polish.
 
 The first CM1/reference scientific replay view now lives under
 `frontend/src/reference/` and is mounted in the Lower Atmosphere v2 stage as an
@@ -371,7 +378,7 @@ controlled forcing, not free convection.
 The current CM1 reference priority is:
 
 ```text
-real local CM1 output → adapter ingestion → 2-D replay → appearance view → comparison
+real-output acceptance → #222 visual/replay/appearance polish
 ```
 
 Issue #220 added the local ingestion path from ignored CM1 output directories
@@ -381,6 +388,12 @@ real local ingested artifacts when the index exists. If no real artifact is
 available, the tiny fixture remains a demo/test fallback only and must be
 labeled as `Synthetic fixture data`, `Not scientific truth`, and `For
 UI/testing only`.
+
+Issue #221 accepted the real local dry-failed and shallow-cumulus CM1 reference
+path for the current milestone. Remaining work belongs in #222 polish: improve
+scientific field readability, appearance visual payoff, comparison layout,
+source/provenance labels, pre-run reference explanation, and the confusing
+missing-temperature warning when potential temperature is available.
 
 ## Do Not Do Without Explicit User Direction
 
@@ -445,8 +458,8 @@ Use the current open issue state to decide, but as of this handoff:
   before reduced-model comparison or cloud-appearance work. Do not broaden any
   one issue into the full sequence unless explicitly scoped.
 
-  After #198, the immediate CM1 reference path has adapter, case library, local
-  setup/run assets, scientific replay, optics contract, appearance view, and
-  qualitative reduced/reference comparison coverage. Further work should replace
-  synthetic fixtures with real ingested local reference outputs or broaden case
-  coverage through separately scoped issues.
+  After #221, the immediate CM1 reference path has adapter, case library, local
+  setup/run assets, real local output ingestion, scientific replay, optics
+  contract, appearance view, qualitative reduced/reference comparison, and a
+  manual real-output acceptance report. Next work should proceed to #222 polish,
+  not case calibration.
