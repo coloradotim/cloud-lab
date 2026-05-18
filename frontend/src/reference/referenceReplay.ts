@@ -241,6 +241,25 @@ export function referenceMissingFieldNotes(run: ReferenceRun | null): string[] {
   });
 }
 
+export function referenceFieldHelper(fieldKey: string): string {
+  switch (fieldKey) {
+    case "cloud_liquid_water_kg_per_kg":
+      return "Cloud liquid water shows where cloud exists in the CM1 reference field.";
+    case "vertical_velocity_m_per_s":
+      return "Vertical velocity shows where air is rising or sinking.";
+    case "water_vapor_kg_per_kg":
+      return "Water vapor shows the moisture supply for cloud formation.";
+    case "potential_temperature_k":
+      return "Potential temperature shows stability and heating structure.";
+    case "temperature_k":
+      return "Temperature shows the thermal structure when CM1 provides direct temperature.";
+    case "rain_water_kg_per_kg":
+      return "Rain water shows where precipitation appears, if the field is available.";
+    default:
+      return "This CM1 reference field is shown with source units and provenance.";
+  }
+}
+
 export function referenceReplayFallback(
   run: ReferenceRun | null,
   selectedFieldKey: string,

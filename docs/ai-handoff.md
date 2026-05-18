@@ -471,3 +471,10 @@ Use the current open issue state to decide, but as of this handoff:
   source/view/assumption labels, pre-run copy explaining that the CM1 reference
   is offline/precomputed, and softer temperature/theta field notes when
   potential temperature is available.
+
+  #230 should continue as product-level UX restructuring only. The desired
+  Lower Atmosphere CM1/reference hierarchy is deterministic story/result card,
+  primary CM1 replay/appearance view, responsive comparison cards, compact
+  reduced-model support diagnostics, and grouped provenance/assumptions. Keep
+  "shell" language out of the user-facing Lower Atmosphere path. Do not add
+  CM1 cases, tune science, change Boussinesq, or start #231 / warm-rain work.

@@ -77,6 +77,24 @@ comparison panel should remain readable in narrow/export-like layouts and should
 explain that the offline CM1 reference is visible before Run v2 computes the
 reduced-model side.
 
+#230 keeps that same accepted CM1 science and restructures the Lower Atmosphere
+experience around the user story. The main stage should use a product title
+such as `Cloud Formation Experiment`, then show:
+
+```text
+story/result card
+→ primary CM1 scientific replay / cloud appearance view
+→ responsive comparison cards
+→ reduced-model support diagnostics
+→ grouped source/view/assumption details
+```
+
+The story card should deterministically explain pre-run, cloud-formed, and
+dry-failed outcomes without AI generation. Comparison cards should show
+Reduced, CM1, and Interpretation, and should stay readable in narrow/export-like
+layouts. Setup controls remain available, but after a result exists they should
+be visually secondary to the story, replay, and comparison.
+
 The v2 user should be able to ask:
 
 ```text

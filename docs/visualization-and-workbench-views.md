@@ -44,11 +44,11 @@ The visualization stage should support:
 
 The normal single-run workbench should not show saved run artifacts or comparison as large default panels beneath the canvas. Those belong behind explicit `Saved Runs` and `Compare` workflows.
 
-Lower Atmosphere Cloud Basics v2 now uses a reduced-model shell as its default
-stage. The stage can run profile evolution, prescribed cloud-column lift, or the
-combined profile-to-cloud-column flow. Its scientific visualization surfaces are
-still intentionally modest: profile view, cloud-column view, combined result,
-timeline/scrubber, and status cards.
+Lower Atmosphere Cloud Basics v2 now uses a guided cloud-formation experiment
+as its default stage. The stage can run profile evolution, prescribed
+cloud-column lift, or the combined profile-to-cloud-column flow. Technical
+model labels such as `boundary_layer_1d` and `controlled_cloud_column` belong
+in details/provenance, not in the primary title.
 
 The v2 inspector is part of the scientific view contract. It should present
 deterministic result, why, try-next, key-number, profile-diagnostic,
@@ -178,6 +178,14 @@ timeline/frame context while preserving the source reference fields. The
 reference replay view should not run CM1, commit large model output, or mutate
 reference data.
 
+After #230, the CM1/reference area should lead with a deterministic story card
+that answers what happened, what changed or limited the result, and what to
+watch next. The CM1 replay/appearance view is the primary visual element; setup
+and reduced-model cards support the story rather than dominating the stage.
+The replay should include educational field helper text, play/pause and step
+controls, event text for first cloud/rain/final frame, and no-cloud guidance for
+dry-failed cases.
+
 ### Cloud Appearance View
 
 The cloud appearance view uses cloud liquid water and documented assumptions to produce a more cloud-like image.
@@ -253,9 +261,9 @@ morphology is not displayed as a pass/fail condition.
 The comparison should explain the pre-run state: offline CM1 reference output
 can be visible before the reduced-model Run v2 flow because the reference is
 precomputed/ingested, while Run v2 computes the reduced-model side. The
-diagnostic comparison should use compact structured rows or an equivalent
-responsive layout so narrow/export-like views do not wrap labels into vertical
-letter fragments.
+diagnostic comparison should use responsive cards or an equivalent robust
+layout so narrow/export-like views do not wrap labels into vertical letter
+fragments. Each card should clearly show Reduced, CM1, and Interpretation.
 
 ## Rendering Architecture
 

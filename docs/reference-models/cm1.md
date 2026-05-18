@@ -238,6 +238,21 @@ missing but `potential_temperature_k` is available. Appearance rendering should
 make shallow-cumulus cloud water more visible while keeping zero-cloud dry cases
 cloud-free and preserving source fields.
 
+The #230 UX structure keeps the same science and data contracts but changes the
+Lower Atmosphere presentation order. The CM1/reference area should read as a
+guided learning experience:
+
+```text
+story/result summary
+→ main CM1 replay or appearance view
+→ reduced-model vs CM1 comparison cards
+→ details/provenance/assumptions
+```
+
+The story and comparison are deterministic products of scenario id, reduced
+model status, CM1 reference status, and diagnostics. They must not imply exact
+morphology validation, live CM1 execution, or new science calibration.
+
 The first reduced-model/reference comparison view now consumes the same
 `ReferenceRun` diagnostics without changing the adapter contract. It maps Lower
 Atmosphere v2 scenario ids to CM1 reference case ids, displays comparison rows

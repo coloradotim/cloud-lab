@@ -2,7 +2,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { ReferenceReplayView } from "./ReferenceReplayView";
-import { createTinyCm1ReferenceRunFixture } from "./referenceFixtures";
+import {
+  createTinyCm1DryFailedReferenceRunFixture,
+  createTinyCm1ReferenceRunFixture,
+} from "./referenceFixtures";
 import {
   buildReferenceAppearanceViewModel,
   cloneReferenceCloudWaterValues,
@@ -131,6 +134,20 @@ describe("CM1 reference replay component", () => {
     expect(html).toContain("Run the local CM1 reference-pair workflow and ingest the output");
     expect(html).toContain("Field status");
     expect(html).toContain("No cloud formed");
+    expect(html).toContain("Scientific Fields");
+    expect(html).toContain("Cloud Appearance");
+    expect(html).toContain("Cloud liquid water shows where cloud exists");
+    expect(html).toContain("Replay the CM1 reference case to see when cloud water appears");
+    expect(html).toContain("300 s - first cloud");
+  });
+
+  it("renders no-cloud timeline guidance for dry failed references", () => {
+    const html = renderToStaticMarkup(
+      <ReferenceReplayView referenceRun={createTinyCm1DryFailedReferenceRunFixture()} />,
+    );
+
+    expect(html).toContain("No cloud formed during");
+    expect(html).toContain("Inspect vertical velocity to see motion without cloud water");
   });
 
   it("renders real local ingested labels separately from fixture labels", () => {
@@ -234,7 +251,7 @@ describe("CM1 reference appearance view", () => {
     expect(appearanceHtml).toContain("CM1 reference output");
     expect(appearanceHtml).toContain("Zero cloud water renders no meaningful cloud");
     expect(scientificHtml).toContain("Scientific field view");
-    expect(scientificHtml).toContain("Appearance");
+    expect(scientificHtml).toContain("Cloud Appearance");
   });
 });
 

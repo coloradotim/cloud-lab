@@ -94,7 +94,7 @@ function LabRoadmapGroup({
             <p className="lab-question">{lab.question}</p>
             {lab.isSelectable ? (
               <button type="button" className="secondary-lab-cta" onClick={() => onSelectLab(lab.id)}>
-                Open {lab.name} shell
+                Open {lab.name}
               </button>
             ) : (
               <p className="roadmap-unavailable">Not open yet</p>

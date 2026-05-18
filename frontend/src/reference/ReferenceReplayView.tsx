@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { formatSeconds } from "../workbench/workbenchRunLoop";
 import {
@@ -16,6 +16,7 @@ import {
   buildReferenceReplayViewModel,
   defaultReferenceFieldKey,
   frameCountLabel,
+  referenceFieldHelper,
   referenceFieldOptions,
   referenceMissingFieldNotes,
   referenceReplayFallback,
@@ -31,6 +32,7 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
   const [selectedFieldKey, setSelectedFieldKey] = useState(defaultReferenceFieldKey(referenceRun));
   const [frameIndex, setFrameIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ReferenceAppearanceMode>(initialViewMode);
+  const [playing, setPlaying] = useState(false);
   const fieldOptions = referenceFieldOptions(referenceRun);
   const viewModel = buildReferenceReplayViewModel(referenceRun, selectedFieldKey, frameIndex);
   const fallback = referenceReplayFallback(referenceRun, selectedFieldKey, frameIndex);
@@ -46,18 +48,31 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
   const syntheticFixture = isSyntheticReferenceRun(referenceRun);
   const missingFieldNotes = referenceMissingFieldNotes(referenceRun);
   const viewLabels = viewMode === "cloud-appearance"
-    ? ["Cloud appearance view", "Visual interpretation"]
+    ? ["Cloud appearance view", "Visual interpretation from cloud liquid water"]
     : ["Scientific field view"];
   const assumptionLabels = viewMode === "cloud-appearance"
     ? ["Assumed droplet radius", "Not direct radiative transfer", "Not live CM1 simulation"]
     : ["Not live CM1 simulation"];
+  const timelineEvents = referenceTimelineEvents(referenceRun);
+
+  useEffect(() => {
+    if (!playing || frameCount <= 1) {
+      return undefined;
+    }
+
+    const timer = window.setInterval(() => {
+      setFrameIndex((current) => (current >= frameCount - 1 ? 0 : current + 1));
+    }, 700);
+
+    return () => window.clearInterval(timer);
+  }, [playing, frameCount]);
 
   return (
     <section className="reference-replay-panel" aria-labelledby="cm1-reference-replay-title">
       <div className="stage-heading">
         <p className="region-label">CM1 reference replay</p>
         <div className="stage-title-row">
-          <h3 id="cm1-reference-replay-title">Scientific field view</h3>
+          <h3 id="cm1-reference-replay-title">Watch the CM1 reference case</h3>
           <div className="frame-readout" aria-label="CM1 reference frame readout">
             <span>
               Frame {frameCount > 0 ? displayedFrameIndex + 1 : 0} / {frameCount}
@@ -76,14 +91,14 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
               aria-pressed={viewMode === "scientific-field"}
               onClick={() => setViewMode("scientific-field")}
             >
-              Field
+              Scientific Fields
             </button>
             <button
               type="button"
               aria-pressed={viewMode === "cloud-appearance"}
               onClick={() => setViewMode("cloud-appearance")}
             >
-              Appearance
+              Cloud Appearance
             </button>
           </div>
         </fieldset>
@@ -106,6 +121,11 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
           {viewMode === "cloud-appearance"
             ? "Cloud appearance view - visual interpretation"
             : activeFieldLabel}
+        </p>
+        <p className="reference-field-helper">
+          {viewMode === "cloud-appearance"
+            ? "Cloud Appearance is a visual interpretation from CM1/reference cloud liquid water."
+            : referenceFieldHelper(selectedFieldKey)}
         </p>
       </div>
 
@@ -217,9 +237,10 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
 
       <section className="reference-replay-timeline" aria-label="CM1 reference timeline scrubber">
         <div className="boundary-layer-replay-heading">
-          <strong>Time replay</strong>
-          <span>{frameCountLabel(referenceRun)}</span>
+          <strong>Replay the CM1 reference case</strong>
+          <span>{timelineEvents.summary}</span>
         </div>
+        <p className="stage-helper">{timelineEvents.guidance}</p>
         <input
           type="range"
           min="0"
@@ -233,12 +254,31 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
           <button type="button" disabled={frameCount === 0} onClick={() => setFrameIndex(0)}>
             First
           </button>
-          <button type="button" disabled title="Automatic playback is reserved for the next replay polish pass.">
-            Play
+          <button
+            type="button"
+            disabled={frameCount <= 1}
+            onClick={() => setFrameIndex((current) => Math.max(0, current - 1))}
+          >
+            Step back
+          </button>
+          <button type="button" disabled={frameCount <= 1} onClick={() => setPlaying((current) => !current)}>
+            {playing ? "Pause" : "Play"}
+          </button>
+          <button
+            type="button"
+            disabled={frameCount <= 1}
+            onClick={() => setFrameIndex((current) => Math.min(frameCount - 1, current + 1))}
+          >
+            Step forward
           </button>
           <button type="button" disabled={frameCount === 0} onClick={() => setFrameIndex(frameCount - 1)}>
             Final
           </button>
+        </div>
+        <div className="reference-timeline-events" aria-label="CM1 reference timeline events">
+          {timelineEvents.events.map((event) => (
+            <span key={event}>{event}</span>
+          ))}
         </div>
       </section>
 
@@ -345,12 +385,6 @@ function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
           : "Zero cloud water renders no meaningful cloud in the appearance view."}
       </p>
       {model.fallbackMessage ? <p className="stage-helper">{model.fallbackMessage}</p> : null}
-      <div className="assumption-labels reference-appearance-labels" aria-label="CM1 reference appearance labels">
-        <span>Appearance labels</span>
-        <p>
-          Visual interpretation of CM1 reference field · Assumed droplet radius · Not direct radiative transfer · Not live CM1 simulation
-        </p>
-      </div>
     </div>
   );
 }
@@ -371,4 +405,40 @@ function formatLegendValue(value: number, unit: string): string {
 
 function dedupe(labels: string[]): string[] {
   return [...new Set(labels.filter(Boolean))];
+}
+
+function referenceTimelineEvents(run: ReferenceRun | null): {
+  summary: string;
+  guidance: string;
+  events: string[];
+} {
+  const frameCount = frameCountLabel(run);
+  const frames = run?.frames ?? [];
+  const finalTime = frames.length ? frames[frames.length - 1].time_seconds : null;
+  const firstCloud = run?.diagnostics?.first_cloud_time_seconds ?? null;
+  const firstRain = run?.diagnostics?.first_rain_time_seconds ?? null;
+  const maxCloud = run?.diagnostics?.max_cloud_liquid_water_kg_per_kg ?? null;
+  const noCloud = maxCloud !== null && maxCloud <= 0;
+  const timeRange =
+    frames.length > 0
+      ? `${formatSeconds(frames[0].time_seconds)}-${formatSeconds(finalTime)}`
+      : "no time range";
+
+  if (noCloud) {
+    return {
+      summary: `${frameCount}; ${timeRange}`,
+      guidance: "No cloud formed during this CM1 reference replay. Inspect vertical velocity to see motion without cloud water.",
+      events: [`No cloud formed during ${timeRange}`, finalTime !== null ? `${formatSeconds(finalTime)} - final frame` : "Final frame unavailable"],
+    };
+  }
+
+  return {
+    summary: `${frameCount}; ${timeRange}`,
+    guidance: "Replay the CM1 reference case to see when cloud water appears.",
+    events: [
+      firstCloud !== null ? `${formatSeconds(firstCloud)} - first cloud` : "First cloud unavailable",
+      firstRain !== null ? `${formatSeconds(firstRain)} - rain onset` : "Rain onset unavailable",
+      finalTime !== null ? `${formatSeconds(finalTime)} - final frame` : "Final frame unavailable",
+    ],
+  };
 }

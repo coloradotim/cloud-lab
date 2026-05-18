@@ -74,7 +74,7 @@ usable as motion without meaningful cloud, and the shallow-cumulus baseline is
 usable as meaningful cloud formation. Do not calibrate the first CM1 cases
 before or inside #222.
 
-Issue #222 polish keeps the science fixed and improves the app experience
+Issue #222 polish kept the science fixed and improved the app experience
 around the accepted real-output path:
 
 - scientific replay uses clearer field readouts, cloud/no-signal states,
@@ -89,6 +89,22 @@ around the accepted real-output path:
   simulation`
 - the pre-run comparison state explains that offline CM1 reference output is
   already available and the Run v2 flow computes the reduced-model side
+
+Issue #230 is the next UX structure step for the same accepted science path.
+It should not add cases, tune CM1, change Boussinesq, or start warm-rain work.
+The Lower Atmosphere CM1/reference experience should be organized as:
+
+```text
+story/result summary
+→ primary CM1 scientific replay / cloud appearance view
+→ responsive reduced-model vs CM1 comparison cards
+→ reduced-model support diagnostics
+→ details/provenance/assumptions
+```
+
+The main stage should use user-facing cloud-formation language, not
+developer-facing "reduced-model shell" language. Setup remains available, but
+after a run the result/replay hierarchy should become visually primary.
 
 ## Current Phase Goal
 
