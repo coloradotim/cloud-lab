@@ -210,6 +210,23 @@ Comparison should be an explicit mode. It may display two scenarios or saved run
 
 Comparison should not be mounted as a normal single-run panel by default.
 
+Lower Atmosphere v2 now includes a scoped reference diagnostic comparison panel
+inside the CM1/reference path. This is not the old generic saved-run comparison
+mode: it maps the selected reduced-model scenario to a CM1 reference case id and
+shows teaching diagnostics when an offline `ReferenceRun` exists. The first
+available mapping is baseline shallow cloud to
+`cm1-shallow-cumulus-baseline-v1`; other mapped cases show:
+
+```text
+No CM1 reference case is available for this scenario yet.
+```
+
+The panel labels `Reduced model output`, `CM1 reference output`, `Offline
+reference case`, `Derived diagnostic`, and `Not a live interactive CM1
+simulation`. It compares cloud/no-cloud status, first cloud time, cloud base,
+cloud top, max cloud water, max updraft, rain onset, and profile context. Exact
+cloud morphology is not displayed as a pass/fail condition.
+
 ## Rendering Architecture
 
 Renderer code should consume frames, diagnostics, and visualization settings.

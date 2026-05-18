@@ -22,7 +22,7 @@ boundary_layer_1d → controlled_cloud_column → Lower Atmosphere v2 design →
 The current visual credibility path is:
 
 ```text
-CM1 adapter → CM1 visual case library → local CM1 setup → first real CM1 reference pair assets → 2-D scientific reference replay → optics field contract → appearance view
+CM1 adapter → CM1 visual case library → local CM1 setup → first real CM1 reference pair assets → 2-D scientific reference replay → optics field contract → appearance view → reduced/reference diagnostic comparison
 ```
 
 The reduced-model path remains useful for explanation and fast interaction, but
@@ -42,8 +42,14 @@ validation labels without changing solver or reference output.
 The first CM1/reference cloud appearance mode is now represented in the Lower
 Atmosphere v2 reference panel. It consumes reference cloud liquid water,
 preserves replay/source labels, uses an assumed-radius visual interpretation,
-and keeps the scientific field view available. It does not run CM1 or replace
-the separate reduced-model/reference comparison issue.
+and keeps the scientific field view available. It does not run CM1.
+
+The first reduced-model/reference comparison panel is now represented in Lower
+Atmosphere v2 as a qualitative diagnostic comparison. It maps v2 scenarios to
+CM1 reference case ids, compares teaching-relevant diagnostics when a reference
+run exists, and shows a clear missing-reference fallback for mapped scenarios
+without loaded reference data. It does not score exact CM1 morphology, run CM1,
+or make Boussinesq part of the credibility path.
 
 ## Current Phase Goal
 

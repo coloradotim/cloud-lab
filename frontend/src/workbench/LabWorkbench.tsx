@@ -38,6 +38,10 @@ import {
   type LowerAtmosphereV2State,
 } from "../labs/lowerAtmosphereV2Orchestration";
 import {
+  buildLowerAtmosphereV2ReferenceComparisonViewModel,
+  type LowerAtmosphereV2ReferenceComparisonViewModel,
+} from "../labs/lowerAtmosphereV2ReferenceComparison";
+import {
   boundaryLayer1DScenarioForId,
   boundaryLayerDiagnosticViewModel,
   boundaryLayerDisplayedFrame,
@@ -1824,6 +1828,11 @@ function LowerAtmosphereV2VisualizationStage({
       </section>
     );
   }
+  const referenceComparison = buildLowerAtmosphereV2ReferenceComparisonViewModel({
+    contract,
+    state,
+    referenceRuns: [referenceRunPreview],
+  });
 
   return (
     <section
@@ -1906,6 +1915,8 @@ function LowerAtmosphereV2VisualizationStage({
 
       <ReferenceReplayView referenceRun={referenceRunPreview} />
 
+      <LowerAtmosphereV2ReferenceComparisonPanel viewModel={referenceComparison} />
+
       <section className="boundary-layer-replay-panel" aria-label="Lower Atmosphere v2 timeline scrubber">
         <div className="boundary-layer-replay-heading">
           <strong>Timeline / scrubber</strong>
@@ -1974,6 +1985,70 @@ function LowerAtmosphereV2VisualizationStage({
       </div>
 
       {state.message ? <p className="workbench-message">{state.message}</p> : null}
+    </section>
+  );
+}
+
+function LowerAtmosphereV2ReferenceComparisonPanel({
+  viewModel,
+}: {
+  viewModel: LowerAtmosphereV2ReferenceComparisonViewModel;
+}) {
+  return (
+    <section
+      className="reference-diagnostic-compare"
+      aria-labelledby="lower-atmosphere-reference-comparison-title"
+    >
+      <div className="stage-heading">
+        <p className="region-label">Reference comparison</p>
+        <div className="stage-title-row">
+          <h3 id="lower-atmosphere-reference-comparison-title">Reduced model vs CM1 reference</h3>
+          <span className="diagnostic-status diagnostic-status-not_evaluated">
+            Diagnostic comparison
+          </span>
+        </div>
+      </div>
+
+      {viewModel.mapping ? (
+        <div className="reference-compare-summary">
+          <p>
+            Scenario maps to <strong>{viewModel.mapping.referenceCaseName}</strong>{" "}
+            (<code>{viewModel.mapping.referenceCaseId}</code>).
+          </p>
+          <p>{viewModel.mapping.expectedReferenceOutcome}</p>
+          <p className="control-helper">{viewModel.mapping.comparisonNote}</p>
+        </div>
+      ) : null}
+
+      {viewModel.fallbackMessage ? (
+        <div
+          className="stage-empty-state reference-compare-empty"
+          role="status"
+          aria-label="CM1 reference comparison fallback"
+        >
+          <strong>{viewModel.fallbackMessage}</strong>
+          <p>Reduced-model diagnostics remain available, but no offline reference run is loaded for this scenario.</p>
+        </div>
+      ) : (
+        <dl className="reference-compare-diagnostics">
+          {viewModel.rows.map((row) => (
+            <div key={row.diagnostic}>
+              <dt>{row.diagnostic}</dt>
+              <dd>
+                <span>Reduced model output: {row.reducedValue}</span>
+                <span>CM1 reference output: {row.referenceValue}</span>
+                <em>{row.interpretation}</em>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      <p className="stage-helper">{viewModel.morphologyNote}</p>
+      <div className="assumption-labels" aria-label="CM1 reference comparison source labels">
+        <span>Comparison labels</span>
+        <p>{viewModel.sourceLabels.join(" · ")}</p>
+      </div>
     </section>
   );
 }

@@ -302,8 +302,8 @@ The first CM1/reference scientific replay view now lives under
 `frontend/src/reference/` and is mounted in the Lower Atmosphere v2 stage as an
 offline reference panel. It uses a tiny synthetic CM1-like fixture for UI/test
 coverage only, labels the source as CM1 reference output / offline reference
-case / not live interactive simulation, and does not run CM1 or compare
-reduced-model output. Real local CM1 output should replace the fixture only
+case / not live interactive simulation, and does not run CM1. Real local CM1
+output should replace the fixture only
 through the reference adapter and a separately scoped ingestion path.
 
 That reference panel now includes the first CM1/reference cloud appearance mode.
@@ -312,6 +312,16 @@ visual interpretation, preserves the timeline and provenance labels, labels
 assumed droplet radius / not direct radiative transfer / not live CM1
 simulation, and keeps the scientific field view available. It still uses the
 tiny synthetic fixture until real local CM1 output is ingested.
+
+Lower Atmosphere v2 now also includes the first CM1/reference comparison panel.
+It maps reduced-model scenario ids to CM1 reference case ids and compares
+teaching diagnostics such as cloud/no-cloud status, first cloud time, cloud
+base/top, max cloud water, max updraft, and rain onset when a reference run is
+loaded. The only currently loaded reference run is the tiny shallow-cumulus
+fixture; other mapped scenarios show the explicit missing-reference fallback.
+The panel labels reduced output, CM1 reference output, offline reference case,
+derived diagnostics, and not-live-CM1 status. Exact cloud morphology is not a
+pass/fail condition.
 
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
@@ -404,5 +414,8 @@ Use the current open issue state to decide, but as of this handoff:
   before reduced-model comparison or cloud-appearance work. Do not broaden any
   one issue into the full sequence unless explicitly scoped.
 
-  After #210, the next scoped issue in this path is #198, reduced-model versus
-  reference-case comparison.
+  After #198, the immediate CM1 reference path has adapter, case library, local
+  setup/run assets, scientific replay, optics contract, appearance view, and
+  qualitative reduced/reference comparison coverage. Further work should replace
+  synthetic fixtures with real ingested local reference outputs or broaden case
+  coverage through separately scoped issues.

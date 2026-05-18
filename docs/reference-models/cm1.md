@@ -230,6 +230,23 @@ direct radiative transfer, preserves source provenance, and keeps the scientific
 field view available. It does not run CM1, ingest real local output, render
 precipitation, or compare against reduced models.
 
+The first reduced-model/reference comparison view now consumes the same
+`ReferenceRun` diagnostics without changing the adapter contract. It maps Lower
+Atmosphere v2 scenario ids to CM1 reference case ids, displays comparison rows
+for teaching diagnostics, and labels both sources:
+
+```text
+Reduced model output
+CM1 reference output
+Offline reference case
+Derived diagnostic
+Not a live interactive CM1 simulation
+```
+
+The comparison intentionally avoids exact morphology matching. Missing reference
+runs show a fallback instead of blank charts, and the app still does not run CM1
+or require CM1 dependencies in normal sessions.
+
 ## Future Real CM1 Cases
 
 Real reference cases should be added through the case-library and local-run

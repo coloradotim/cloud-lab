@@ -163,6 +163,7 @@ pytest backend/tests/test_lower_atmosphere_v2_scenarios.py
 
 cd frontend
 npm run test -- lowerAtmosphereV2Scenarios
+npm run test -- lowerAtmosphereV2ReferenceComparison
 ```
 
 These are metadata/contract checks. They ensure the required v2 scenario ids,
@@ -172,6 +173,12 @@ They also protect scenario interpretation details such as the default
 `Dry failed cumulus` combined flow remaining cloud-free and deterministic
 expected-vs-observed handling for split profile/column outcomes. They do not run
 Boussinesq validation.
+
+The reference-comparison tests protect the qualitative mapping from Lower
+Atmosphere v2 scenarios to CM1 reference case ids, missing-reference fallback,
+source/provenance labels, comparison diagnostics, and the rule that exact CM1
+cloud morphology is not treated as a pass/fail target. They do not run CM1 or
+require real CM1 output in CI.
 
 Hard failure policy:
 
