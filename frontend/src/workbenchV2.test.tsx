@@ -253,63 +253,68 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Ready");
   });
 
-  it("renders setup, visualization, and inspector regions for the v2 shell", () => {
+  it("replaces the old setup/stage/inspector regions with a guided experiment surface", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("Setup");
-    expect(html).toContain("Visualization stage");
-    expect(html).toContain("Inspector");
-    expect(html).toContain("Timeline / scrubber");
+    expect(html).toContain("Guided cloud experiment");
+    expect(html).toContain("Choose an experiment");
+    expect(html).toContain("Watch the cloud evolve");
+    expect(html).toContain("Understand why");
+    expect(html).toContain("Try next");
+    expect(html).toContain("Model details / Why trust this?");
+    expect(html).not.toContain("Visualization stage");
+    expect(html).not.toContain("Lower Atmosphere v2 setup");
+    expect(html).not.toContain("Inspector");
+    expect(html).not.toContain("Timeline / scrubber");
   });
 
-  it("opens the Lower Atmosphere cloud-formation experiment by default", () => {
+  it("opens Lower Atmosphere as a guided cloud experiment by default", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("Scenario");
+    expect(html).toContain("Choose an experiment");
+    expect(html).toContain("What cloud question do you want to test?");
     expect(html).toContain("Baseline shallow cloud");
     expect(html).toContain("Dry failed cumulus");
     expect(html).toContain("Capped / suppressed cloud");
     expect(html).toContain("Moist surface enables cloud");
-    expect(html).toContain("What do you want to explore?");
-    expect(html).toContain("Evolve atmosphere");
-    expect(html).toContain("Lift cloud column");
+    expect(html).toContain("Reference-backed baseline");
+    expect(html).toContain("Reference-backed contrast");
+    expect(html).toContain("watch the cloud field evolve");
+    expect(html).toContain("Shallow cloud appears, grows, and fades.");
+    expect(html).toContain("Motion without meaningful cloud water.");
+    expect(html).toContain("Atmosphere only");
+    expect(html).toContain("Lift only");
     expect(html).toContain("Evolve + lift");
-    expect(html).toContain("Atmosphere profile");
-    expect(html).toContain("Surface forcing");
-    expect(html).toContain("Cap / inversion");
-    expect(html).toContain("Entrainment");
-    expect(html).toContain("Prescribed lift");
-    expect(html).toContain("Advanced settings");
-    expect(html).toContain("Surface heating strength");
-    expect(html).toContain("Surface moisture flux");
-    expect(html).toContain("Initial mixed-layer humidity");
-    expect(html).toContain("Dry air above mixed layer");
-    expect(html).toContain("Inversion height");
-    expect(html).toContain("Inversion strength");
-    expect(html).toContain("Lift strength");
-    expect(html).toContain("Lift duration");
-    expect(html).not.toContain("Model size / runtime");
-    expect(html).toContain(">Run v2 flow<");
+    expect(html).toContain(">Run experiment<");
     expect(html).not.toContain(">Stop<");
     expect(html).toContain(">Reset<");
-    expect(html).toContain("Cloud Formation Experiment");
-    expect(html).toContain("Atmosphere profile");
-    expect(html).toContain("Lifted column");
-    expect(html).toContain("Reduced model detail: boundary_layer_1d diagnoses cloud formation potential.");
-    expect(html).toContain("Reduced model detail: controlled_cloud_column uses prescribed lift");
-    expect(html).toContain("Expected vs observed");
-    expect(html).toContain("Precipitation status placeholder");
-    expect(html).toContain("Reduced model");
-    expect(html).toContain("1-D profile evolution");
-    expect(html).toContain("Prescribed lift");
-    expect(html).toContain("Controlled cloud formation");
-    expect(html).toContain("Not cloud-resolving dynamics");
-    expect(html).toContain("No Boussinesq default");
-    expect(html).toContain("Not weather prediction");
+    expect(html).toContain("Pick a setup, then run the cloud experiment");
+    expect(html).toContain("The reference cloud evolution is already available because it is offline");
+    expect(html).toContain("Cloud liquid water");
+    expect(html).toContain("Vertical velocity");
+    expect(html).toContain("Potential temperature");
+    expect(html).toContain("Make the same atmosphere drier");
+    expect(html).toContain("Model details / Why trust this?");
+    expect(html).toContain('<details class="guided-model-details">');
+    expect(html).toContain("Offline reference plus simplified explanation");
+    expect(html).toContain("Exact morphology is not pass/fail");
+    expect(html).toContain("Key cloud experiment numbers");
+    expect(html).toContain("First cloud");
+    expect(html).toContain("Cloud base");
+    expect(html).toContain("Cloud top");
+    expect(html).toContain("Max updraft");
+    expect(html).toContain("Max cloud water");
+    expect(html).not.toContain("Surface heating strength");
+    expect(html).not.toContain("Inversion strength");
+    expect(html).not.toContain("Lift duration");
+    expect(html).not.toContain("Model size / runtime");
+    expect(html).not.toContain("Run v2 flow");
+    expect(html).not.toContain("boundary_layer_1d");
+    expect(html).not.toContain("controlled_cloud_column");
     expect(html).not.toContain("Scientific 2-D field view");
     expect(html).not.toContain("Experimental 2-D prototype");
     expect(html).not.toContain("boussinesq_2d");
@@ -323,7 +328,7 @@ describe("Workbench V2 shell", () => {
       (scenario) => scenario.solverMode === "boussinesq_2d",
     ).map((scenario) => scenario.slug);
 
-    expect(html).toContain("Lower Atmosphere v2 setup");
+    expect(html).toContain("Choose an experiment");
     expect(html).toContain("Baseline shallow cloud");
     expect(html).toContain("Rain-capable warm cloud later");
     for (const scenarioSlug of boussinesqScenarioSlugs) {
@@ -333,7 +338,7 @@ describe("Workbench V2 shell", () => {
     expect(html).not.toContain("Experimental 2-D prototype");
   });
 
-  it("keeps Lower Atmosphere v2 scenario setup copy from duplicating the selected name", () => {
+  it("keeps guided experiment copy from duplicating the selected name like a setup header", () => {
     const dryFailedScenario = fairWeatherLab.scenarios.find(
       (scenario) => scenario.id === "lower-atmosphere-v2-dry-failed-cumulus",
     );
@@ -352,12 +357,11 @@ describe("Workbench V2 shell", () => {
       <LabWorkbench lab={dryFirstLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("Lower Atmosphere v2 setup");
-    expect(html).toContain("Choose scenario");
+    expect(html).toContain("Choose an experiment");
     expect(html).toContain("Why can air rise but fail to form cloud?");
-    expect(html).toContain("Air is lifted, but low humidity keeps the column cloud-free.");
+    expect(html).toContain("Motion without meaningful cloud water.");
     expect(html).not.toContain('<h2 id="setup-region-title">Dry failed cumulus</h2>');
-    expect(html.match(/Dry failed cumulus/g)?.length ?? 0).toBeLessThanOrEqual(3);
+    expect(html.match(/Dry failed cumulus/g)?.length ?? 0).toBeLessThanOrEqual(4);
   });
 
   it("keeps saved runs and comparison out of large default panels", () => {

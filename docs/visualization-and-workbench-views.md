@@ -178,13 +178,16 @@ timeline/frame context while preserving the source reference fields. The
 reference replay view should not run CM1, commit large model output, or mutate
 reference data.
 
-After #230, the CM1/reference area should lead with a deterministic story card
-that answers what happened, what changed or limited the result, and what to
-watch next. The CM1 replay/appearance view is the primary visual element; setup
-and reduced-model cards support the story rather than dominating the stage.
-The replay should include educational field helper text, play/pause and step
-controls, event text for first cloud/rain/final frame, and no-cloud guidance for
-dry-failed cases.
+After #233, Lower Atmosphere Cloud Basics should no longer present the old
+setup/sidebar/stage/inspector structure as the main user experience. It should
+open as a guided experiment: choose an experiment card, watch cloud evolution,
+read a short atmospheric explanation, inspect 4-5 key numbers, and try the next
+scenario-specific contrast. Cloud Appearance should be the default after a run,
+Scientific Fields should remain one clear toggle away with variable
+explanations, and replay should start from the first frame and stop at the
+final frame. CM1/reference provenance, diagnostic comparison, and validation
+details should remain available under collapsed Model details / Why trust this
+rather than dominating the first screen.
 
 ### Cloud Appearance View
 
@@ -258,12 +261,12 @@ compares cloud/no-cloud status, first cloud time, cloud base, cloud top, max
 cloud water, max updraft, rain onset, and profile context. Exact cloud
 morphology is not displayed as a pass/fail condition.
 
-The comparison should explain the pre-run state: offline CM1 reference output
-can be visible before the reduced-model Run v2 flow because the reference is
-precomputed/ingested, while Run v2 computes the reduced-model side. The
-diagnostic comparison should use responsive cards or an equivalent robust
-layout so narrow/export-like views do not wrap labels into vertical letter
-fragments. Each card should clearly show Reduced, CM1, and Interpretation.
+The comparison should explain the pre-run state when the user opens Model
+details: offline CM1 reference output can be visible before the interactive
+experiment runs because the reference is precomputed/ingested, while the run
+button computes the simplified explanatory side. The diagnostic comparison
+should use responsive cards or an equivalent robust layout so
+narrow/export-like views do not wrap labels into vertical letter fragments.
 
 ## Rendering Architecture
 

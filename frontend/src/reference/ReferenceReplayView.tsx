@@ -26,9 +26,26 @@ import type { ReferenceRun } from "./referenceTypes";
 type ReferenceReplayViewProps = {
   referenceRun: ReferenceRun | null;
   initialViewMode?: ReferenceAppearanceMode;
+  preferredViewMode?: ReferenceAppearanceMode;
+  autoReplayKey?: string | number | null;
+  title?: string;
+  regionLabel?: string;
+  replayLabel?: string;
+  fieldSelectorLabel?: string;
+  showSourceDetails?: boolean;
 };
 
-export function ReferenceReplayView({ referenceRun, initialViewMode = "scientific-field" }: ReferenceReplayViewProps) {
+export function ReferenceReplayView({
+  referenceRun,
+  initialViewMode = "scientific-field",
+  preferredViewMode,
+  autoReplayKey = null,
+  title = "Watch cloud evolution",
+  regionLabel = "Cloud replay",
+  replayLabel = "Replay cloud evolution",
+  fieldSelectorLabel = "Reference field",
+  showSourceDetails = true,
+}: ReferenceReplayViewProps) {
   const [selectedFieldKey, setSelectedFieldKey] = useState(defaultReferenceFieldKey(referenceRun));
   const [frameIndex, setFrameIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ReferenceAppearanceMode>(initialViewMode);
@@ -56,12 +73,33 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
   const timelineEvents = referenceTimelineEvents(referenceRun);
 
   useEffect(() => {
+    if (preferredViewMode) {
+      setViewMode(preferredViewMode);
+    }
+  }, [preferredViewMode]);
+
+  useEffect(() => {
+    if (autoReplayKey === null || autoReplayKey === undefined || frameCount <= 0) {
+      return;
+    }
+
+    setFrameIndex(0);
+    setPlaying(frameCount > 1);
+  }, [autoReplayKey, frameCount]);
+
+  useEffect(() => {
     if (!playing || frameCount <= 1) {
       return undefined;
     }
 
     const timer = window.setInterval(() => {
-      setFrameIndex((current) => (current >= frameCount - 1 ? 0 : current + 1));
+      setFrameIndex((current) => {
+        if (current >= frameCount - 1) {
+          setPlaying(false);
+          return current;
+        }
+        return current + 1;
+      });
     }, 700);
 
     return () => window.clearInterval(timer);
@@ -70,10 +108,10 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
   return (
     <section className="reference-replay-panel" aria-labelledby="cm1-reference-replay-title">
       <div className="stage-heading">
-        <p className="region-label">CM1 reference replay</p>
+        <p className="region-label">{regionLabel}</p>
         <div className="stage-title-row">
-          <h3 id="cm1-reference-replay-title">Watch the CM1 reference case</h3>
-          <div className="frame-readout" aria-label="CM1 reference frame readout">
+          <h3 id="cm1-reference-replay-title">{title}</h3>
+          <div className="frame-readout" aria-label="Reference frame readout">
             <span>
               Frame {frameCount > 0 ? displayedFrameIndex + 1 : 0} / {frameCount}
             </span>
@@ -103,9 +141,9 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
           </div>
         </fieldset>
         <label className="field-selector">
-          <span>Reference field</span>
+          <span>{fieldSelectorLabel}</span>
           <select
-            aria-label="CM1 reference field"
+            aria-label="Reference field"
             value={selectedFieldKey}
             disabled={viewMode === "cloud-appearance"}
             onChange={(event) => setSelectedFieldKey(event.currentTarget.value)}
@@ -133,7 +171,7 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
         appearanceModel ? (
           <ReferenceAppearancePanel model={appearanceModel} />
         ) : (
-          <div className="stage-empty-state" role="status" aria-label="CM1 reference appearance fallback">
+          <div className="stage-empty-state" role="status" aria-label="Reference appearance fallback">
             <strong>{appearanceFallback ?? "Reference cloud appearance unavailable."}</strong>
             <p>Load CM1/reference cloud liquid water to view a visual interpretation.</p>
           </div>
@@ -148,7 +186,7 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
                 viewBox={`0 0 ${viewModel.columns} ${viewModel.rows}`}
                 preserveAspectRatio="none"
                 role="img"
-                aria-label={`CM1 reference output: ${viewModel.field.metadata.display_name} at ${formatSeconds(
+                aria-label={`Reference output: ${viewModel.field.metadata.display_name} at ${formatSeconds(
                   viewModel.frame.time_seconds,
                 )}`}
               >
@@ -229,15 +267,15 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
           {viewModel.fallbackMessage ? <p className="stage-helper">{viewModel.fallbackMessage}</p> : null}
         </div>
       ) : (
-        <div className="stage-empty-state" role="status" aria-label="CM1 reference fallback">
+          <div className="stage-empty-state" role="status" aria-label="Reference fallback">
           <strong>{fallback ?? "Reference frame unavailable."}</strong>
           <p>Load mapped CM1 reference frames to view a scientific 2-D x-z field.</p>
         </div>
       )}
 
-      <section className="reference-replay-timeline" aria-label="CM1 reference timeline scrubber">
+      <section className="reference-replay-timeline" aria-label="Reference timeline scrubber">
         <div className="boundary-layer-replay-heading">
-          <strong>Replay the CM1 reference case</strong>
+          <strong>{replayLabel}</strong>
           <span>{timelineEvents.summary}</span>
         </div>
         <p className="stage-helper">{timelineEvents.guidance}</p>
@@ -247,10 +285,10 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
           max={Math.max(0, frameCount - 1)}
           value={frameCount > 0 ? displayedFrameIndex : 0}
           disabled={frameCount === 0}
-          aria-label="CM1 reference timeline scrubber"
+          aria-label="Reference timeline scrubber"
           onChange={(event) => setFrameIndex(Number(event.currentTarget.value))}
         />
-        <div className="timeline-actions" aria-label="CM1 reference replay actions">
+        <div className="timeline-actions" aria-label="Reference replay actions">
           <button type="button" disabled={frameCount === 0} onClick={() => setFrameIndex(0)}>
             First
           </button>
@@ -261,7 +299,16 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
           >
             Step back
           </button>
-          <button type="button" disabled={frameCount <= 1} onClick={() => setPlaying((current) => !current)}>
+          <button
+            type="button"
+            disabled={frameCount <= 1}
+            onClick={() => {
+              if (!playing && frameIndex >= frameCount - 1) {
+                setFrameIndex(0);
+              }
+              setPlaying((current) => !current);
+            }}
+          >
             {playing ? "Pause" : "Play"}
           </button>
           <button
@@ -275,7 +322,7 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
             Final
           </button>
         </div>
-        <div className="reference-timeline-events" aria-label="CM1 reference timeline events">
+        <div className="reference-timeline-events" aria-label="Reference timeline events">
           {timelineEvents.events.map((event) => (
             <span key={event}>{event}</span>
           ))}
@@ -304,21 +351,23 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
         </div>
       </dl>
 
-      {missingFieldNotes.length ? (
+      {showSourceDetails && missingFieldNotes.length ? (
         <p className="stage-helper">Field notes: {dedupe(missingFieldNotes).join(" ")}</p>
       ) : null}
-      {syntheticFixture && referenceRun ? (
+      {showSourceDetails && syntheticFixture && referenceRun ? (
         <p className="stage-helper">{missingRealReferenceOutputMessage(referenceRun.source_case_id)}</p>
       ) : null}
 
-      <div className="assumption-labels" aria-label="CM1 reference source labels">
-        <span>Source</span>
-        <p>{sourceLabels.join(" · ")}</p>
-        <span>View</span>
-        <p>{viewLabels.join(" · ")}</p>
-        <span>Assumptions</span>
-        <p>{assumptionLabels.join(" · ")}</p>
-      </div>
+      {showSourceDetails ? (
+        <div className="assumption-labels" aria-label="CM1 reference source labels">
+          <span>Source</span>
+          <p>{sourceLabels.join(" · ")}</p>
+          <span>View</span>
+          <p>{viewLabels.join(" · ")}</p>
+          <span>Assumptions</span>
+          <p>{assumptionLabels.join(" · ")}</p>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -427,14 +476,14 @@ function referenceTimelineEvents(run: ReferenceRun | null): {
   if (noCloud) {
     return {
       summary: `${frameCount}; ${timeRange}`,
-      guidance: "No cloud formed during this CM1 reference replay. Inspect vertical velocity to see motion without cloud water.",
+      guidance: "No cloud formed during this replay. Inspect vertical velocity to see motion without cloud water.",
       events: [`No cloud formed during ${timeRange}`, finalTime !== null ? `${formatSeconds(finalTime)} - final frame` : "Final frame unavailable"],
     };
   }
 
   return {
     summary: `${frameCount}; ${timeRange}`,
-    guidance: "Replay the CM1 reference case to see when cloud water appears.",
+    guidance: "Replay the cloud evolution to see when cloud water appears.",
     events: [
       firstCloud !== null ? `${formatSeconds(firstCloud)} - first cloud` : "First cloud unavailable",
       firstRain !== null ? `${formatSeconds(firstRain)} - rain onset` : "Rain onset unavailable",

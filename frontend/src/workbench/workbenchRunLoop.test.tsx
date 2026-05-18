@@ -132,31 +132,34 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(displayedFirst.isReplayPaused).toBe(true);
   });
 
-  it("Lower Atmosphere v2 renders story, replay, and comparison before technical details", () => {
+  it("Lower Atmosphere renders a guided experiment before model details", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("Cloud Formation Experiment");
-    expect(html).not.toContain("Lower Atmosphere v2 reduced-model shell");
-    expect(html).toContain("CM1 reference is ready");
-    expect(html).toContain("Run the v2 flow to generate the reduced-model side of the comparison");
-    expect(html).toContain("Atmosphere profile");
-    expect(html).toContain("Lifted column");
-    expect(html).toContain("Timeline / scrubber");
-    expect(html).toContain("No Boussinesq default");
-    expect(html).toContain("CM1 reference replay");
+    expect(html).toContain("Guided cloud experiment");
+    expect(html).toContain("Choose an experiment");
+    expect(html).toContain("Pick a setup, then run the cloud experiment");
+    expect(html).toContain("The reference cloud evolution is already available because it is offline");
+    expect(html).toContain("Watch the cloud evolve");
+    expect(html).toContain("Replay the experiment");
+    expect(html).toContain("Understand why");
+    expect(html).toContain("Try next");
+    expect(html).toContain("Model details / Why trust this?");
+    expect(html).toContain('<details class="guided-model-details">');
     expect(html).toContain("Scientific Fields");
-    expect(html).toContain("Reduced model vs CM1 reference");
-    expect(html).toContain("Reduced</dt>");
-    expect(html).toContain("CM1</dt>");
-    expect(html).toContain("Interpretation:");
+    expect(html).toContain("Cloud Appearance");
+    expect(html).toContain("Interactive</dt>");
+    expect(html).toContain("Reference</dt>");
+    expect(html).toContain("Read as:");
     expect(html).toContain("Reduced model output");
     expect(html).toContain("CM1 reference output");
     expect(html).toContain("Exact cloud morphology is not presented as pass/fail");
     expect(html).toContain("Not live CM1 simulation");
-    expect(html).toContain("Reference case is available before you run the reduced model");
+    expect(html).toContain("Reference cloud evolution is available before you run the interactive experiment");
     expect(html).toContain("Field status");
+    expect(html).not.toContain("Lower Atmosphere v2 reduced-model shell");
+    expect(html).not.toContain("Run v2 flow");
     expect(html).not.toContain("Experimental 2-D prototype");
   });
 
@@ -233,24 +236,25 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(available.artifactWarnings).toEqual([]);
   });
 
-  it("v2 inspector shell renders deterministic sections and honesty labels cleanly", () => {
+  it("guided Lower Atmosphere details keep deterministic diagnostics and honesty labels available", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("Profile diagnostics");
-    expect(html).toContain("Cloud-column diagnostics");
-    expect(html).toContain("Expected vs observed");
-    expect(html).toContain("Precipitation status placeholder");
+    expect(html).toContain("Model details / Why trust this?");
+    expect(html).toContain("Reduced-model support diagnostics");
+    expect(html).toContain("Selected profile time");
+    expect(html).toContain("Profile status");
+    expect(html).toContain("Cloud-column status");
+    expect(html).toContain("Diagnostic comparison");
     expect(html).toContain("Reduced model");
-    expect(html).toContain("Prescribed lift");
-    expect(html).toContain("Controlled cloud formation");
-    expect(html).toContain("No Boussinesq default");
+    expect(html).toContain("Offline reference case");
+    expect(html).toContain("Exact morphology is not pass/fail");
     expect(html).not.toContain("Experimental solver output");
     expect(html).not.toContain("Experimental 2-D prototype");
   });
 
-  it("visualization stage remains mounted when the inspector is closed", () => {
+  it("guided experience remains mounted when the old inspector is closed", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench
         lab={fairWeatherLab}
@@ -259,7 +263,8 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
       />,
     );
 
-    expect(html).toContain("Cloud Formation Experiment");
+    expect(html).toContain("Guided cloud experiment");
+    expect(html).toContain("Watch the cloud evolve");
     expect(html).not.toContain("inspector-region");
   });
 
@@ -277,16 +282,17 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(readySave.saveMessage).toContain("ready for the saved-run workflow");
   });
 
-  it("renders one Run/Reset group at rest and no old default saved-run or comparison panels", () => {
+  it("renders guided run controls at rest and no old default saved-run or comparison panels", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(matchCount(html, ">Run v2 flow<")).toBe(1);
+    expect(matchCount(html, ">Run experiment<")).toBe(2);
     expect(matchCount(html, ">Stop<")).toBe(0);
-    expect(matchCount(html, ">Reset<")).toBe(1);
+    expect(matchCount(html, ">Reset<")).toBe(2);
     expect(html).not.toContain("saved-runs-panel");
     expect(html).not.toContain("comparison-panel");
+    expect(html).not.toContain(">Compare<");
   });
 });
 

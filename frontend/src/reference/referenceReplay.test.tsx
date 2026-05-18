@@ -137,7 +137,7 @@ describe("CM1 reference replay component", () => {
     expect(html).toContain("Scientific Fields");
     expect(html).toContain("Cloud Appearance");
     expect(html).toContain("Cloud liquid water shows where cloud exists");
-    expect(html).toContain("Replay the CM1 reference case to see when cloud water appears");
+    expect(html).toContain("Replay the cloud evolution to see when cloud water appears");
     expect(html).toContain("300 s - first cloud");
   });
 
@@ -252,6 +252,24 @@ describe("CM1 reference appearance view", () => {
     expect(appearanceHtml).toContain("Zero cloud water renders no meaningful cloud");
     expect(scientificHtml).toContain("Scientific field view");
     expect(scientificHtml).toContain("Cloud Appearance");
+  });
+
+  it("can render as the guided post-run cloud appearance without main source details", () => {
+    const html = renderToStaticMarkup(
+      <ReferenceReplayView
+        referenceRun={createTinyCm1ReferenceRunFixture()}
+        initialViewMode="cloud-appearance"
+        preferredViewMode="cloud-appearance"
+        autoReplayKey="completed-run"
+        showSourceDetails={false}
+      />,
+    );
+
+    expect(html).toContain("Cloud appearance view");
+    expect(html).toContain("Scientific Fields");
+    expect(html).toContain("Cloud Appearance");
+    expect(html).not.toContain("Synthetic fixture data");
+    expect(html).not.toContain("No real local CM1 reference output is available");
   });
 });
 
