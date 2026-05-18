@@ -180,6 +180,20 @@ source/provenance labels, comparison diagnostics, and the rule that exact CM1
 cloud morphology is not treated as a pass/fail target. They do not run CM1 or
 require real CM1 output in CI.
 
+CM1 local-ingestion tests protect the repo-side path from ignored local output
+to Cloud Lab reference artifacts:
+
+```bash
+cd backend
+.venv/bin/python -m pytest tests/test_cm1_adapter.py tests/test_cm1_ingest.py -q
+```
+
+These checks use tiny adapter-input fixtures only. They verify
+`reference-run-v1` / `reference-frame-v1` artifact generation, manifests,
+provenance, diagnostics, missing-field warnings, invalid-grid failures, and
+script help/syntax. They do not run CM1, read large local output, or require
+NetCDF/xarray in CI.
+
 Hard failure policy:
 
 - A scenario that violates its core promise should fail or be renamed/reframed.

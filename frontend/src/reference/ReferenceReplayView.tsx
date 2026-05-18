@@ -2,6 +2,11 @@ import { useState } from "react";
 
 import { formatSeconds } from "../workbench/workbenchRunLoop";
 import {
+  isSyntheticReferenceRun,
+  missingRealReferenceOutputMessage,
+  referenceRunSourceLabels,
+} from "./localReferenceRuns";
+import {
   buildReferenceAppearanceViewModel,
   referenceAppearanceFallback,
   referenceAppearanceHasMeaningfulCloud,
@@ -37,6 +42,8 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
   const diagnostics = referenceRun?.diagnostics ?? null;
   const provenance = referenceRun?.frames[0]?.provenance ?? diagnostics?.source_provenance ?? null;
   const displayedFrameIndex = viewModel?.frameIndex ?? 0;
+  const sourceLabels = referenceRunSourceLabels(referenceRun);
+  const syntheticFixture = isSyntheticReferenceRun(referenceRun);
 
   return (
     <section className="reference-replay-panel" aria-labelledby="cm1-reference-replay-title">
@@ -231,11 +238,14 @@ export function ReferenceReplayView({ referenceRun, initialViewMode = "scientifi
       {diagnostics?.missing_field_warnings.length ? (
         <p className="stage-helper">Missing fields: {diagnostics.missing_field_warnings.join(" ")}</p>
       ) : null}
+      {syntheticFixture && referenceRun ? (
+        <p className="stage-helper">{missingRealReferenceOutputMessage(referenceRun.source_case_id)}</p>
+      ) : null}
 
       <div className="assumption-labels" aria-label="CM1 reference source labels">
         <span>Source labels</span>
         <p>
-          CM1 reference output · Offline reference case ·{" "}
+          {sourceLabels.join(" · ")} ·{" "}
           {viewMode === "cloud-appearance"
             ? "Cloud appearance view · Visual interpretation of CM1 reference field · Assumed droplet radius · Not direct radiative transfer · Not live CM1 simulation"
             : "Scientific field view · Not live interactive simulation"}

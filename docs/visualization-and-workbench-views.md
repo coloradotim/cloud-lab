@@ -71,6 +71,14 @@ a tiny synthetic CM1-like fixture for UI/test coverage only; it is labeled as a
 synthetic fixture and not scientific truth. Real local CM1 outputs should be
 ingested through the reference adapter before they replace the fixture.
 
+When a generated local frontend index exists at
+`frontend/public/reference/cm1/local/index.json`, the replay panel prefers real
+local ingested `reference-run-v1` artifacts for matching case ids. If the local
+index is absent, the panel keeps the tiny fixture visible only with explicit
+`Synthetic fixture data`, `Not scientific truth`, and `For UI/testing only`
+labels plus an actionable prompt to run and ingest the local CM1 reference
+pair.
+
 The same replay panel now includes the first CM1/reference cloud appearance
 mode. It consumes the reference cloud liquid water field, maps it to opacity and
 brightness as a visual interpretation, preserves the replay timeline and source
@@ -223,9 +231,10 @@ No CM1 reference case is available for this scenario yet.
 
 The panel labels `Reduced model output`, `CM1 reference output`, `Offline
 reference case`, `Derived diagnostic`, and `Not a live interactive CM1
-simulation`. It compares cloud/no-cloud status, first cloud time, cloud base,
-cloud top, max cloud water, max updraft, rain onset, and profile context. Exact
-cloud morphology is not displayed as a pass/fail condition.
+simulation`. It also distinguishes `Real local ingested output` from
+`Synthetic fixture data`. It compares cloud/no-cloud status, first cloud time,
+cloud base, cloud top, max cloud water, max updraft, rain onset, and profile
+context. Exact cloud morphology is not displayed as a pass/fail condition.
 
 ## Rendering Architecture
 

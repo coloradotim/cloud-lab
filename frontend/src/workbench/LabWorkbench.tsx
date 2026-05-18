@@ -69,8 +69,14 @@ import {
   type BoundaryLayer1DState,
 } from "../labs/evolvingBoundaryLayer";
 import type { LabDefinition } from "../labs/labTypes";
+import {
+  loadLocalReferenceRuns,
+  preferredReferenceRuns,
+  referenceRunForCase,
+} from "../reference/localReferenceRuns";
 import { createTinyCm1ReferenceRunFixture } from "../reference/referenceFixtures";
 import { ReferenceReplayView } from "../reference/ReferenceReplayView";
+import type { ReferenceRun } from "../reference/referenceTypes";
 import { CONTROL_LIMITS, SURFACE_HEATING_PATTERNS } from "../simulationControls";
 import { defaultWorkbenchRunClient, type RunStreamCleanup, type WorkbenchRunClient } from "../simulation/runClient";
 import type { SimulationFrame } from "../simulationTypes";
@@ -1804,6 +1810,7 @@ function LowerAtmosphereV2VisualizationStage({
   setState: Dispatch<SetStateAction<LowerAtmosphereV2State>>;
 }) {
   const referenceRunPreview = useMemo(() => createTinyCm1ReferenceRunFixture(), []);
+  const [localReferenceRuns, setLocalReferenceRuns] = useState<ReferenceRun[]>([]);
   const scenario = selectedLabScenario(lab, workbench);
   const contract = lowerAtmosphereV2ScenarioForId(scenario?.id);
   const profileFrames = lowerAtmosphereV2ProfileFrames(state);
@@ -1815,6 +1822,24 @@ function LowerAtmosphereV2VisualizationStage({
   const cloudStatusLabel = cloudDiagnostics
     ? lowerAtmosphereV2FriendlyStatusLabel(cloudDiagnostics.cloud_formation_status)
     : "Not evaluated";
+
+  useEffect(() => {
+    let canceled = false;
+    loadLocalReferenceRuns()
+      .then((runs) => {
+        if (!canceled) {
+          setLocalReferenceRuns(runs);
+        }
+      })
+      .catch(() => {
+        if (!canceled) {
+          setLocalReferenceRuns([]);
+        }
+      });
+    return () => {
+      canceled = true;
+    };
+  }, []);
 
   if (!scenario || !contract) {
     return (
@@ -1831,8 +1856,14 @@ function LowerAtmosphereV2VisualizationStage({
   const referenceComparison = buildLowerAtmosphereV2ReferenceComparisonViewModel({
     contract,
     state,
-    referenceRuns: [referenceRunPreview],
+    referenceRuns: preferredReferenceRuns(localReferenceRuns, [referenceRunPreview]),
   });
+  const displayedReferenceRun =
+    (referenceComparison.mapping
+      ? referenceRunForCase(referenceComparison.mapping.referenceCaseId, localReferenceRuns, [
+          referenceRunPreview,
+        ])
+      : null) ?? referenceRunPreview;
 
   return (
     <section
@@ -1913,7 +1944,7 @@ function LowerAtmosphereV2VisualizationStage({
         </section>
       </div>
 
-      <ReferenceReplayView referenceRun={referenceRunPreview} />
+      <ReferenceReplayView referenceRun={displayedReferenceRun} />
 
       <LowerAtmosphereV2ReferenceComparisonPanel viewModel={referenceComparison} />
 

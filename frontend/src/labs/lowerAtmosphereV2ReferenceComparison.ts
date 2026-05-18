@@ -1,4 +1,9 @@
 import type { ReferenceRun } from "../reference/referenceTypes";
+import {
+  isSyntheticReferenceRun,
+  missingRealReferenceOutputMessage,
+  referenceRunSourceLabels,
+} from "../reference/localReferenceRuns";
 import type { BoundaryLayer1DFrame } from "./evolvingBoundaryLayer";
 import {
   lowerAtmosphereV2ReferenceCaseMappings,
@@ -53,7 +58,7 @@ export function buildLowerAtmosphereV2ReferenceComparisonViewModel({
 
   const referenceRun = referenceRuns.find((run) => run.source_case_id === mapping.referenceCaseId) ?? null;
   if (!referenceRun) {
-    return emptyComparison(mapping, NO_REFERENCE_CASE_MESSAGE);
+    return emptyComparison(mapping, missingRealReferenceOutputMessage(mapping.referenceCaseId));
   }
 
   return {
@@ -63,10 +68,9 @@ export function buildLowerAtmosphereV2ReferenceComparisonViewModel({
     rows: comparisonRows(state, referenceRun),
     sourceLabels: [
       "Reduced model output",
-      "CM1 reference output",
-      "Offline reference case",
-      "Derived diagnostic",
+      ...referenceRunSourceLabels(referenceRun),
       "Not a live interactive CM1 simulation",
+      "Derived diagnostic",
       "Qualitative diagnostic comparison",
     ],
     morphologyNote:
@@ -157,8 +161,8 @@ function comparisonRows(
       reducedValue: profileFrame
         ? `${formatMeters(profileFrame.mixed_layer_depth_m)} mixed layer / ${formatMeters(profileFrame.lcl_m)} LCL`
         : "Profile not run",
-      referenceValue: referenceRun.source_case_id,
-      interpretation: "Reference cases anchor interpretation; they are offline datasets.",
+      referenceValue: `${referenceRun.source_case_id}${isSyntheticReferenceRun(referenceRun) ? " (synthetic fixture)" : " (real local ingested)"}`,
+      interpretation: "Reference cases anchor interpretation; fixtures are not scientific truth.",
     },
   ];
 }

@@ -1,0 +1,38 @@
+{
+  "schema_version": "cloud-lab-cm1-local-reference-index-v1",
+  "created_at": null,
+  "runs": [
+    {
+      "case_id": "cm1-dry-failed-cumulus-v1",
+      "case_name": "Dry Failed Cumulus",
+      "source_model": "CM1",
+      "artifact_url": "/reference/cm1/local/cm1-dry-failed-cumulus-v1/reference-run.json",
+      "manifest_url": "/reference/cm1/local/cm1-dry-failed-cumulus-v1/ingested-manifest.json",
+      "source_is_synthetic_fixture": false,
+      "frame_count": 0,
+      "time_range_seconds": [0, 0],
+      "grid_shape": {
+        "rows": 0,
+        "columns": 0
+      }
+    },
+    {
+      "case_id": "cm1-shallow-cumulus-baseline-v1",
+      "case_name": "Shallow Cumulus Baseline",
+      "source_model": "CM1",
+      "artifact_url": "/reference/cm1/local/cm1-shallow-cumulus-baseline-v1/reference-run.json",
+      "manifest_url": "/reference/cm1/local/cm1-shallow-cumulus-baseline-v1/ingested-manifest.json",
+      "source_is_synthetic_fixture": false,
+      "frame_count": 0,
+      "time_range_seconds": [0, 0],
+      "grid_shape": {
+        "rows": 0,
+        "columns": 0
+      }
+    }
+  ],
+  "notes": [
+    "Template only. Generated local indexes live under frontend/public/reference/cm1/local/ and are ignored by git.",
+    "Do not commit generated reference artifacts or raw CM1 model output."
+  ]
+}

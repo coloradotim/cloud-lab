@@ -75,7 +75,8 @@ describe("Lower Atmosphere v2 CM1 reference comparison", () => {
 
     expect(viewModel.mapping?.referenceCaseId).toBe("cm1-dry-failed-cumulus-v1");
     expect(viewModel.referenceRun).toBeNull();
-    expect(viewModel.fallbackMessage).toBe("No CM1 reference case is available for this scenario yet.");
+    expect(viewModel.fallbackMessage).toContain("No real local CM1 reference output is available");
+    expect(viewModel.fallbackMessage).toContain("cm1-dry-failed-cumulus-v1");
   });
 
   it("does not present exact morphology as pass/fail", () => {
@@ -92,5 +93,7 @@ describe("Lower Atmosphere v2 CM1 reference comparison", () => {
     expect(viewModel.morphologyNote).toContain("Exact cloud morphology is not presented as pass/fail");
     expect(JSON.stringify(viewModel)).not.toMatch(/morphology pass/i);
     expect(viewModel.sourceLabels).toContain("Not a live interactive CM1 simulation");
+    expect(viewModel.sourceLabels).toContain("Synthetic fixture data");
+    expect(viewModel.sourceLabels).toContain("Not scientific truth");
   });
 });

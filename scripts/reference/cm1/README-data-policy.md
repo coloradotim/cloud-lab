@@ -6,6 +6,7 @@ Use the ignored local path:
 
 ```text
 data/reference/cm1/
+frontend/public/reference/cm1/local/
 ```
 
 Several GB of local data is acceptable for user-generated reference datasets,
@@ -38,3 +39,7 @@ reference/cm1/cases/
 
 Generated output from those cases should still stay under the ignored local
 `data/reference/cm1/` tree.
+
+Generated `reference-run-v1` artifacts and local frontend indexes are also
+ignored. They are local developer/user artifacts used to view real CM1 output
+in Cloud Lab, not committed source data.

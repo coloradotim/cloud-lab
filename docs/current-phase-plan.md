@@ -51,6 +51,17 @@ run exists, and shows a clear missing-reference fallback for mapped scenarios
 without loaded reference data. It does not score exact CM1 morphology, run CM1,
 or make Boussinesq part of the credibility path.
 
+The current CM1 priority is now:
+
+```text
+real local CM1 output → adapter ingestion → 2-D replay → appearance view → comparison
+```
+
+Generated local reference artifacts and frontend local indexes remain ignored
+by git. The app should prefer real local ingested artifacts when
+`frontend/public/reference/cm1/local/index.json` exists, and should otherwise
+label the tiny fixture/demo path as synthetic and not scientific truth.
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:
