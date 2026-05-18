@@ -22,7 +22,7 @@ boundary_layer_1d → controlled_cloud_column → Lower Atmosphere v2 design →
 The current visual credibility path is:
 
 ```text
-CM1 adapter → CM1 visual case library → local CM1 setup → first real CM1 reference pair → 2-D scientific reference replay → appearance view
+CM1 adapter → CM1 visual case library → local CM1 setup → first real CM1 reference pair assets → 2-D scientific reference replay → appearance view
 ```
 
 The reduced-model path remains useful for explanation and fast interaction, but

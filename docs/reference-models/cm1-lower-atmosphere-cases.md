@@ -375,4 +375,6 @@ The case-library sequence should remain:
 
 This issue defines the library only. The next step is to document and script the
 local CM1 setup path, then generate or enable the user to generate the first
-real dry-failed and shallow-cumulus reference pair.
+real dry-failed and shallow-cumulus reference pair. The first committed case
+assets for that pair are documented in
+`docs/reference-models/cm1-first-reference-pair.md`.

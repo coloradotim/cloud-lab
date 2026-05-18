@@ -1,0 +1,97 @@
+{
+  "schema_version": "cloud-lab-cm1-reference-case-v1",
+  "case_id": "cm1-dry-failed-cumulus-v1",
+  "case_name": "Dry Failed Cumulus",
+  "lab_served": "Lower Atmosphere Cloud Basics",
+  "source_model": "CM1",
+  "cm1_version": "cm1r21.1 expected",
+  "created_at": null,
+  "status": "case_assets_committed_output_not_committed",
+  "description": "First-pass local CM1 dry-failed-cumulus reference case: heating and vertical motion without meaningful cloud liquid water.",
+  "physical_question": "How can lower-atmosphere heating and thermal motion occur without enough moisture to form shallow cloud?",
+  "expected_outcome": "Rising motion / thermal activity but no meaningful cloud liquid water.",
+  "namelist_input_concept": {
+    "namelist_path": "reference/cm1/cases/dry-failed-cumulus/namelist.input",
+    "sounding_path": "reference/cm1/cases/dry-failed-cumulus/input_sounding",
+    "grid_target": {
+      "nx": 60,
+      "ny": 60,
+      "nz": 40,
+      "dx_m": 2000.0,
+      "dy_m": 2000.0,
+      "dz_m": 500.0,
+      "runtime_seconds": 7200.0,
+      "output_interval_seconds": 300.0
+    },
+    "forcing_concept": "Surface sensible heating with weak moisture supply over a dry external sounding.",
+    "moisture_contrast": "Lower near-surface qv and lower latent moisture flux than shallow-cumulus baseline."
+  },
+  "sounding_profile_concept": {
+    "format_reference": "CM1 input_sounding format: first line surface pressure, theta, qv; following lines z, theta, qv, u, v.",
+    "near_surface_qv_g_per_kg": 5.0,
+    "free_atmosphere": "Drying quickly with height to keep LCL high and saturation unfavorable.",
+    "final_level_note": "Final sounding level is above ztop."
+  },
+  "local_output_path": "data/reference/cm1/runs/dry-failed-cumulus-<timestamp>/",
+  "expected_output_files": [
+    "cm1out_*.nc",
+    "cm1out_stats.nc or cm1out_stats.dat/ctl depending on CM1 output settings",
+    "cm1.stdout.log",
+    "cm1.stderr.log",
+    "namelist.input",
+    "input_sounding",
+    "CASE_README.md",
+    "case_manifest.json"
+  ],
+  "required_fields": [
+    "time",
+    "x coordinate",
+    "z coordinate",
+    "temperature or potential temperature",
+    "water vapor / mixing ratio",
+    "cloud liquid water",
+    "vertical velocity",
+    "horizontal velocity if available",
+    "pressure or pressure-derived metadata if available"
+  ],
+  "diagnostics_to_compute": [
+    "max updraft",
+    "max cloud liquid water near zero",
+    "integrated cloud liquid water near zero",
+    "no first cloud time",
+    "high LCL or unfavorable saturation state",
+    "missing-field warnings",
+    "source provenance"
+  ],
+  "storage_policy": {
+    "commit_outputs": false,
+    "ignored_output_root": "data/reference/cm1/",
+    "commit_allowed": [
+      "case configs",
+      "scripts",
+      "manifests",
+      "docs",
+      "tiny fixtures"
+    ],
+    "do_not_commit": [
+      "large NetCDF outputs",
+      "compiled CM1 binaries",
+      "CM1 source code",
+      "local machine build products"
+    ]
+  },
+  "how_to_run": [
+    "scripts/reference/cm1/run_cm1_case.sh --case-dir reference/cm1/cases/dry-failed-cumulus --cm1-run-dir ~/src/cm1/CM1/run",
+    "Add --execute to run locally."
+  ],
+  "how_to_ingest": "After local output exists, use the #179 CM1 reference adapter path to map selected output into reference-run-v1/reference-frame-v1 data. Do not point the frontend directly at raw CM1 output.",
+  "known_limitations": [
+    "First-pass configuration may need tuning after output inspection.",
+    "Tiny transient condensate should be evaluated against an explicit meaningful-cloud threshold.",
+    "The case is a reference contrast, not universal atmospheric truth."
+  ],
+  "notes": [
+    "CM1 is offline reference-model output; Cloud Lab does not run CM1 in normal app sessions.",
+    "No generated CM1 output is committed with this manifest."
+  ]
+}

@@ -154,6 +154,10 @@ if [[ -f "$CASE_DIR/README.md" ]]; then
   cp "$CASE_DIR/README.md" "$OUTPUT_DIR/CASE_README.md"
 fi
 
+if [[ -f "$CASE_DIR/manifest.json" ]]; then
+  cp "$CASE_DIR/manifest.json" "$OUTPUT_DIR/case_manifest.json"
+fi
+
 echo
 echo "Running CM1 in $OUTPUT_DIR..."
 (

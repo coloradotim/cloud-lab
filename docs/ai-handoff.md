@@ -283,6 +283,13 @@ Local macOS CM1 setup guidance now lives in
 local cases only when explicitly requested; they do not install CM1, download
 large files, commit output, or make CM1 a Cloud Lab runtime dependency.
 
+The first CM1 dry-failed-cumulus and shallow-cumulus-baseline case assets now
+live under `reference/cm1/cases/`, with pair-run guidance in
+`docs/reference-models/cm1-first-reference-pair.md` and
+`scripts/reference/cm1/run_reference_pair.sh`. Generated CM1 output still
+belongs under ignored local paths such as `data/reference/cm1/`; no large model
+output should be committed.
+
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
 - atmosphere evolution only calls `boundary_layer_1d`
