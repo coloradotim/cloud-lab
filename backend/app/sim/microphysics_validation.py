@@ -3,9 +3,18 @@ from __future__ import annotations
 import argparse
 import json
 from dataclasses import dataclass
-from math import isfinite
 from typing import Any
 
+from app.sim.microphysics_diagnostics import (
+    CLOUD_PRESENCE_THRESHOLD_KG_PER_KG,
+    CONSTANT_TEMPERATURE_TOLERANCE_K,
+    CONSTANT_VAPOR_TOLERANCE_KG_PER_KG,
+    RAIN_AUTOCONVERSION_THRESHOLD_KG_PER_KG,
+    RAIN_PRESENCE_THRESHOLD_KG_PER_KG,
+    TOTAL_WATER_DRIFT_TOLERANCE_KG_PER_KG,
+    MicrophysicsDiagnostics,
+    compute_microphysics_diagnostics,
+)
 from app.sim.schemas import (
     BackgroundWindConfig,
     GridConfig,
@@ -17,13 +26,6 @@ from app.sim.schemas import (
 )
 from app.sim.solver import run_simulation
 
-CLOUD_PRESENCE_THRESHOLD_KG_PER_KG = 1e-8
-RAIN_PRESENCE_THRESHOLD_KG_PER_KG = 1e-10
-TOTAL_WATER_DRIFT_TOLERANCE_KG_PER_KG = 1e-8
-CONSTANT_TEMPERATURE_TOLERANCE_K = 1e-6
-CONSTANT_VAPOR_TOLERANCE_KG_PER_KG = 1e-10
-RAIN_AUTOCONVERSION_THRESHOLD_KG_PER_KG = 8e-4
-
 
 @dataclass(frozen=True)
 class MicrophysicsValidationCase:
@@ -31,32 +33,6 @@ class MicrophysicsValidationCase:
     name: str
     description: str
     config: SimulationConfig
-
-
-@dataclass(frozen=True)
-class MicrophysicsDiagnostics:
-    initial_temperature_k: float
-    final_temperature_k: float
-    initial_water_vapor_kg_per_kg: float
-    final_water_vapor_kg_per_kg: float
-    initial_cloud_liquid_water_kg_per_kg: float
-    final_cloud_liquid_water_kg_per_kg: float
-    initial_rain_water_kg_per_kg: float
-    final_rain_water_kg_per_kg: float
-    final_parcel_height_m: float
-    first_cloud_time_seconds: float | None
-    first_rain_time_seconds: float | None
-    max_cloud_liquid_water_kg_per_kg: float
-    max_cloud_liquid_water_time_seconds: float | None
-    max_rain_water_kg_per_kg: float
-    max_rain_water_time_seconds: float | None
-    initial_total_water_kg_per_kg: float
-    final_total_water_kg_per_kg: float
-    max_absolute_total_water_drift_kg_per_kg: float
-    cooling_rate_before_condensation_k_per_s: float | None
-    cooling_rate_after_condensation_k_per_s: float | None
-    min_moisture_kg_per_kg: float
-    non_finite_value_count: int
 
 
 @dataclass(frozen=True)
@@ -212,56 +188,6 @@ def validate_microphysics_case(
     )
 
 
-def compute_microphysics_diagnostics(frames: list[SimulationFrame]) -> MicrophysicsDiagnostics:
-    if not frames:
-        raise ValueError("at least one frame is required")
-
-    initial = frames[0]
-    final = frames[-1]
-    totals = [_total_water(frame) for frame in frames]
-    initial_total = totals[0]
-    cloud_extreme = _max_field_with_time(frames, "cloud_liquid_water_kg_per_kg")
-    rain_extreme = _max_field_with_time(frames, "rain_water_kg_per_kg")
-
-    return MicrophysicsDiagnostics(
-        initial_temperature_k=_field_value(initial, "temperature_k"),
-        final_temperature_k=_field_value(final, "temperature_k"),
-        initial_water_vapor_kg_per_kg=_field_value(initial, "water_vapor_kg_per_kg"),
-        final_water_vapor_kg_per_kg=_field_value(final, "water_vapor_kg_per_kg"),
-        initial_cloud_liquid_water_kg_per_kg=_field_value(
-            initial,
-            "cloud_liquid_water_kg_per_kg",
-        ),
-        final_cloud_liquid_water_kg_per_kg=_field_value(final, "cloud_liquid_water_kg_per_kg"),
-        initial_rain_water_kg_per_kg=_field_value(initial, "rain_water_kg_per_kg"),
-        final_rain_water_kg_per_kg=_field_value(final, "rain_water_kg_per_kg"),
-        final_parcel_height_m=final.time_seconds * final.config.background_wind.w_m_per_s,
-        first_cloud_time_seconds=_first_time_above(
-            frames,
-            "cloud_liquid_water_kg_per_kg",
-            CLOUD_PRESENCE_THRESHOLD_KG_PER_KG,
-        ),
-        first_rain_time_seconds=_first_time_above(
-            frames,
-            "rain_water_kg_per_kg",
-            RAIN_PRESENCE_THRESHOLD_KG_PER_KG,
-        ),
-        max_cloud_liquid_water_kg_per_kg=cloud_extreme[0],
-        max_cloud_liquid_water_time_seconds=cloud_extreme[1],
-        max_rain_water_kg_per_kg=rain_extreme[0],
-        max_rain_water_time_seconds=rain_extreme[1],
-        initial_total_water_kg_per_kg=initial_total,
-        final_total_water_kg_per_kg=totals[-1],
-        max_absolute_total_water_drift_kg_per_kg=max(
-            abs(total - initial_total) for total in totals
-        ),
-        cooling_rate_before_condensation_k_per_s=_cooling_rate_before_condensation(frames),
-        cooling_rate_after_condensation_k_per_s=_cooling_rate_after_condensation(frames),
-        min_moisture_kg_per_kg=_min_moisture(frames),
-        non_finite_value_count=_non_finite_value_count(frames),
-    )
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Validate microphysics_lab sanity cases.")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON output.")
@@ -290,7 +216,7 @@ def main() -> None:
 def _check_common_sanity(diagnostics: MicrophysicsDiagnostics, failures: list[str]) -> None:
     if diagnostics.non_finite_value_count:
         failures.append(f"{diagnostics.non_finite_value_count} non-finite emitted values")
-    if diagnostics.min_moisture_kg_per_kg < 0.0:
+    if diagnostics.min_moisture_kg_per_kg is not None and diagnostics.min_moisture_kg_per_kg < 0.0:
         failures.append("one or more moisture fields are negative")
     if diagnostics.max_absolute_total_water_drift_kg_per_kg > TOTAL_WATER_DRIFT_TOLERANCE_KG_PER_KG:
         failures.append("total water drift exceeds tolerance")
@@ -366,107 +292,13 @@ def _result_to_dict(result: MicrophysicsValidationResult) -> dict[str, Any]:
         "passed": result.passed,
         "failures": list(result.failures),
         "notes": list(result.notes),
-        "diagnostics": result.diagnostics.__dict__,
+        "diagnostics": result.diagnostics.to_dict(),
     }
 
 
 def _field_value(frame: SimulationFrame, field_key: str) -> float:
     values = getattr(frame.fields, field_key).values
     return float(values[0][0])
-
-
-def _total_water(frame: SimulationFrame) -> float:
-    return (
-        _field_value(frame, "water_vapor_kg_per_kg")
-        + _field_value(frame, "cloud_liquid_water_kg_per_kg")
-        + _field_value(frame, "rain_water_kg_per_kg")
-    )
-
-
-def _first_time_above(
-    frames: list[SimulationFrame],
-    field_key: str,
-    threshold: float,
-) -> float | None:
-    for frame in frames:
-        if _field_value(frame, field_key) > threshold:
-            return frame.time_seconds
-    return None
-
-
-def _max_field_with_time(
-    frames: list[SimulationFrame], field_key: str
-) -> tuple[float, float | None]:
-    max_value = max(_field_value(frame, field_key) for frame in frames)
-    max_time = next(
-        (
-            frame.time_seconds
-            for frame in frames
-            if abs(_field_value(frame, field_key) - max_value) < 1e-15
-        ),
-        None,
-    )
-    return max_value, max_time
-
-
-def _cooling_rate_before_condensation(frames: list[SimulationFrame]) -> float | None:
-    first_cloud_time = _first_time_above(
-        frames,
-        "cloud_liquid_water_kg_per_kg",
-        CLOUD_PRESENCE_THRESHOLD_KG_PER_KG,
-    )
-    if first_cloud_time is None:
-        return _temperature_rate(frames[0], frames[-1])
-
-    pre_cloud_frames = [frame for frame in frames if frame.time_seconds <= first_cloud_time]
-    if len(pre_cloud_frames) < 2:
-        return None
-    return _temperature_rate(pre_cloud_frames[0], pre_cloud_frames[-1])
-
-
-def _cooling_rate_after_condensation(frames: list[SimulationFrame]) -> float | None:
-    first_cloud_time = _first_time_above(
-        frames,
-        "cloud_liquid_water_kg_per_kg",
-        CLOUD_PRESENCE_THRESHOLD_KG_PER_KG,
-    )
-    if first_cloud_time is None:
-        return None
-
-    post_cloud_frames = [frame for frame in frames if frame.time_seconds >= first_cloud_time]
-    if len(post_cloud_frames) < 2:
-        return None
-    return _temperature_rate(post_cloud_frames[0], post_cloud_frames[-1])
-
-
-def _temperature_rate(start: SimulationFrame, end: SimulationFrame) -> float | None:
-    elapsed = end.time_seconds - start.time_seconds
-    if elapsed <= 0.0:
-        return None
-    return (_field_value(end, "temperature_k") - _field_value(start, "temperature_k")) / elapsed
-
-
-def _min_moisture(frames: list[SimulationFrame]) -> float:
-    return min(
-        _field_value(frame, field_key)
-        for frame in frames
-        for field_key in (
-            "water_vapor_kg_per_kg",
-            "cloud_liquid_water_kg_per_kg",
-            "rain_water_kg_per_kg",
-        )
-    )
-
-
-def _non_finite_value_count(frames: list[SimulationFrame]) -> int:
-    return sum(
-        1
-        for frame in frames
-        for _field_name, field in frame.fields
-        for row in field.values
-        for value in row
-        if not isfinite(value)
-    )
 
 
 def _parcel_height_is_monotonic(frames: list[SimulationFrame]) -> bool:

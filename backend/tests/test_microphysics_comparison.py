@@ -30,6 +30,15 @@ def test_microphysics_comparison_produces_expected_structure() -> None:
         "water_vapor_depletion_kg_per_kg",
         "first_rain_time_seconds",
         "max_rain_water_kg_per_kg",
+        "rain_water_integral",
+        "vapor_depletion",
+        "total_water_budget_initial",
+        "total_water_budget_final",
+        "total_water_budget_drift",
+        "subcloud_evaporation_proxy",
+        "bulk_autoconversion_threshold",
+        "precipitation_status",
+        "precipitation_reason",
         "final_temperature_c",
         "final_height_m",
     } <= set(first_case["models"]["microphysics_lab"])
@@ -63,3 +72,15 @@ def test_rain_stress_case_produces_more_rain_than_gentle_case() -> None:
     ]
 
     assert stress_rain >= gentle_rain
+
+
+def test_rain_stress_case_reports_precipitation_diagnostics() -> None:
+    result = run_microphysics_comparison()
+    cases = {case["slug"]: case for case in result["cases"]}
+
+    stress = cases["rain-initiation-stress"]["models"]["microphysics_lab"]
+
+    assert stress["precipitation_status"] == "rain_formed"
+    assert stress["precipitation_reason"]
+    assert stress["rain_water_integral"] > 0.0
+    assert stress["bulk_autoconversion_threshold"] == 8e-4

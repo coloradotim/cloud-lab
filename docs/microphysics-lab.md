@@ -90,7 +90,13 @@ microphysics diagnostics panel for the meaningful result:
 - prescribed vertical velocity and implied parcel height
 - first cloud-water time
 - peak cloud-water amount and timing
+- time-integrated cloud water
 - first rain-water time and peak rain amount
+- time-integrated rain water
+- vapor depletion
+- precipitation status and reason
+- bulk autoconversion threshold used by the placeholder rain path
+- subcloud evaporation proxy when rain water later decreases
 - maximum relative-humidity proxy
 - total-water budget drift
 
@@ -163,17 +169,37 @@ Each case reports:
 - final parcel height
 - first cloud and rain times
 - maximum cloud and rain amounts and their times
-- total-water initial/final values and maximum drift
+- cloud-water and rain-water time integrals
+- vapor depletion
+- total-water initial/final values, final drift, and maximum drift
+- subcloud evaporation proxy
+- bulk autoconversion threshold
+- precipitation status and reason
+- droplet payload status
 - cooling rates before and after condensation
 - minimum moisture value and non-finite value count
 
-The budget and cooling-rate diagnostics use:
+The diagnostics use:
 
 ```text
 total water = water vapor + cloud liquid water + rain water
+budget drift = final total water - initial total water
 maximum drift = max(abs(total_water(t) - total_water(0)))
 cooling rate = delta temperature / delta time
+cloud/rain integrals = trapezoidal integral of emitted frame-mean mixing ratio over time
+vapor depletion = initial water vapor - final water vapor
 ```
+
+Precipitation status is deterministic:
+
+| Status | Meaning |
+| --- | --- |
+| `not_evaluated` | No emitted microphysics frames were available. |
+| `no_cloud` | Cloud water never exceeded the diagnostic cloud threshold. |
+| `cloud_no_rain` | Cloud formed, but stayed below the bulk autoconversion threshold. |
+| `rain_threshold_reached` | Cloud water reached the bulk threshold, but sampled rain water did not persist above the rain threshold. |
+| `rain_formed` | Rain water exceeded the diagnostic rain threshold. |
+| `evaporation_limited` | Rain formed but was removed by the evaporation proxy before the final sampled frame. |
 
 The current pass/fail thresholds are intentionally tight for this deterministic
 parcel/box solver:

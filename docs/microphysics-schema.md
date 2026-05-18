@@ -148,6 +148,57 @@ PySDM
 reference
 ```
 
+## Controlled Warm-Rain Diagnostics v1
+
+The current `microphysics_lab` does not emit a droplet distribution payload. It now
+has a run-level diagnostics contract for the controlled bulk warm-rain path:
+
+```text
+schema_version = "microphysics-diagnostics-v1"
+```
+
+Required diagnostic fields:
+
+```text
+first_cloud_time_seconds
+first_rain_time_seconds
+max_cloud_liquid_water_kg_per_kg
+max_rain_water_kg_per_kg
+cloud_water_integral
+rain_water_integral
+vapor_depletion
+total_water_budget_initial
+total_water_budget_final
+total_water_budget_drift
+subcloud_evaporation_proxy
+bulk_autoconversion_threshold
+precipitation_status
+precipitation_reason
+droplet_payload_status
+```
+
+`cloud_water_integral` and `rain_water_integral` are trapezoidal integrals of the
+emitted frame-mean mixing ratios over time, in `kg kg-1 s`. The budget fields are
+computed from vapor + cloud liquid + rain water. The subcloud evaporation proxy is
+a diagnostic sum of sampled rain-water decreases; it is not a resolved subcloud
+evaporation model.
+
+The allowed controlled warm-rain precipitation statuses are:
+
+```text
+not_evaluated
+no_cloud
+cloud_no_rain
+rain_threshold_reached
+rain_formed
+evaporation_limited
+```
+
+The current droplet payload status is `not_available`. Future PySDM or other
+droplet-aware work should add optional payloads without removing the bulk scalar
+diagnostics, because diagnostics, comparison, and saved-run summaries need stable
+cloud/rain timing and water-budget fields even when no distribution data exists.
+
 ## Proposed Frame Shape
 
 ```json

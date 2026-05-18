@@ -15,6 +15,10 @@ from app.sim import (
     run_simulation,
     stream_run,
 )
+from app.sim.microphysics_diagnostics import (
+    RAIN_AUTOCONVERSION_THRESHOLD_KG_PER_KG,
+    compute_microphysics_diagnostics,
+)
 
 pytestmark = [pytest.mark.lab, pytest.mark.microphysics]
 
@@ -125,6 +129,93 @@ def test_microphysics_lab_streams_through_run_manager() -> None:
     config = cast(dict[str, Any], frame["config"])
     assert config["solver_type"] == "microphysics_lab"
     assert messages[-1]["type"] == "complete"
+
+
+def test_microphysics_diagnostics_expose_warm_rain_contract() -> None:
+    frames = run_simulation(
+        _lab_config(
+            duration_seconds=2_400.0,
+            frame_interval_seconds=5.0,
+            vertical_velocity_m_per_s=1.4,
+        ).model_copy(
+            update={
+                "initial_atmosphere": InitialAtmosphereConfig(
+                    surface_temperature_k=298.15,
+                    relative_humidity=1.0,
+                )
+            }
+        )
+    )
+
+    diagnostics = compute_microphysics_diagnostics(frames)
+    payload = diagnostics.to_dict()
+
+    assert diagnostics.schema_version == "microphysics-diagnostics-v1"
+    assert diagnostics.first_cloud_time_seconds is not None
+    assert diagnostics.first_rain_time_seconds is not None
+    assert diagnostics.first_cloud_time_seconds < diagnostics.first_rain_time_seconds
+    assert diagnostics.max_cloud_liquid_water_kg_per_kg > RAIN_AUTOCONVERSION_THRESHOLD_KG_PER_KG
+    assert diagnostics.max_rain_water_kg_per_kg > 0.0
+    assert diagnostics.cloud_water_integral > 0.0
+    assert diagnostics.rain_water_integral > 0.0
+    assert diagnostics.vapor_depletion > 0.0
+    assert diagnostics.total_water_budget_initial > 0.0
+    assert diagnostics.total_water_budget_final > 0.0
+    assert diagnostics.total_water_budget_drift == pytest.approx(
+        diagnostics.total_water_budget_final - diagnostics.total_water_budget_initial
+    )
+    assert diagnostics.bulk_autoconversion_threshold == RAIN_AUTOCONVERSION_THRESHOLD_KG_PER_KG
+    assert diagnostics.precipitation_status == "rain_formed"
+    assert diagnostics.precipitation_reason
+    assert diagnostics.droplet_payload_status == "not_available"
+    assert {
+        "first_cloud_time_seconds",
+        "first_rain_time_seconds",
+        "max_cloud_liquid_water_kg_per_kg",
+        "max_rain_water_kg_per_kg",
+        "cloud_water_integral",
+        "rain_water_integral",
+        "vapor_depletion",
+        "total_water_budget_initial",
+        "total_water_budget_final",
+        "total_water_budget_drift",
+        "subcloud_evaporation_proxy",
+        "bulk_autoconversion_threshold",
+        "precipitation_status",
+        "precipitation_reason",
+    } <= set(payload)
+
+
+def test_microphysics_diagnostics_report_no_cloud_status_for_dry_control() -> None:
+    config = _lab_config(duration_seconds=300.0, vertical_velocity_m_per_s=0.0).model_copy(
+        update={
+            "initial_atmosphere": InitialAtmosphereConfig(
+                surface_temperature_k=298.15,
+                relative_humidity=0.4,
+            )
+        }
+    )
+
+    diagnostics = compute_microphysics_diagnostics(run_simulation(config))
+
+    assert diagnostics.first_cloud_time_seconds is None
+    assert diagnostics.first_rain_time_seconds is None
+    assert diagnostics.max_cloud_liquid_water_kg_per_kg == 0.0
+    assert diagnostics.max_rain_water_kg_per_kg == 0.0
+    assert diagnostics.cloud_water_integral == 0.0
+    assert diagnostics.rain_water_integral == 0.0
+    assert diagnostics.vapor_depletion == 0.0
+    assert diagnostics.precipitation_status == "no_cloud"
+    assert "Cloud water never exceeded" in diagnostics.precipitation_reason
+
+
+def test_microphysics_diagnostics_empty_frame_sequence_is_not_evaluated() -> None:
+    diagnostics = compute_microphysics_diagnostics([])
+
+    assert diagnostics.precipitation_status == "not_evaluated"
+    assert diagnostics.precipitation_reason
+    assert diagnostics.first_cloud_time_seconds is None
+    assert diagnostics.first_rain_time_seconds is None
 
 
 def _lab_config(
