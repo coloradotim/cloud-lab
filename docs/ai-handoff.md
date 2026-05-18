@@ -256,12 +256,13 @@ scenario contracts, reduced-model defaults, expected profile/cloud-column and
 precipitation statuses, honesty labels, and comparison pairs without
 implementing profile-to-cloud orchestration.
 
-Lower Atmosphere Cloud Basics now opens the v2 reduced-model shell by default.
-The shell uses the legacy internal route id `fair-weather-cumulus`, but the
-default user-facing path is no longer the Boussinesq 2-D run screen. It exposes
-the three v2 flows, setup groups for profile and prescribed-lift controls,
-science views, inspector sections, precipitation placeholder status, and labels
-including `No Boussinesq default`.
+Lower Atmosphere Cloud Basics now opens as a guided cloud experiment by
+default. The app still uses the legacy internal route id `fair-weather-cumulus`,
+but the user-facing path is no longer the Boussinesq 2-D run screen or a
+setup/stage/inspector dashboard. It exposes experiment cards, a primary cloud
+replay/appearance view, atmospheric explanation, scenario-specific try-next
+guidance, and collapsed Model details / Why trust this for provenance and
+validation.
 
 As of #197, the old Boussinesq-centered Lower Atmosphere v1 scenarios are
 quarantined as developer/prototype metadata in the frontend scenario catalog.
@@ -443,11 +444,11 @@ Use the current open issue state to decide, but as of this handoff:
   the issue explicitly asks for it.
 - If lower-atmosphere science architecture is active, work from
   `docs/lower-atmosphere-modeling-strategy.md`.
-- Lower Atmosphere Cloud Basics v2 now has default reduced-model shell routing,
-  profile-to-cloud-column orchestration, and deterministic inspector diagnostics.
-  The inspector covers result, why, try-next guidance, key numbers,
-  expected-vs-observed scenario status, and a precipitation placeholder without
-  freeform AI explanation.
+- Lower Atmosphere Cloud Basics now has guided-experiment routing on top of the
+  existing profile-to-cloud-column orchestration and deterministic diagnostics.
+  The main page covers result, why, try-next guidance, and 4-5 key numbers;
+  detailed expected-vs-observed status, provenance, and validation live under
+  collapsed Model details / Why trust this.
 - The active lower-atmosphere visual credibility path is:
 
   ```text
@@ -472,9 +473,10 @@ Use the current open issue state to decide, but as of this handoff:
   is offline/precomputed, and softer temperature/theta field notes when
   potential temperature is available.
 
-  #230 should continue as product-level UX restructuring only. The desired
-  Lower Atmosphere CM1/reference hierarchy is deterministic story/result card,
-  primary CM1 replay/appearance view, responsive comparison cards, compact
-  reduced-model support diagnostics, and grouped provenance/assumptions. Keep
-  "shell" language out of the user-facing Lower Atmosphere path. Do not add
-  CM1 cases, tune science, change Boussinesq, or start #231 / warm-rain work.
+  #233 is the greenfield user-facing Lower Atmosphere rebuild on top of the
+  accepted CM1/reduced-model plumbing. The desired experience is: choose an
+  experiment, watch credible cloud evolution, understand why it happened, try a
+  scenario-specific atmospheric contrast, and open Model details / Why trust
+  this only when validation or provenance is needed. Keep the main page out of
+  reduced-model-versus-CM1 comparison language. Do not add CM1 cases, tune
+  science, change Boussinesq, or start warm-rain work.

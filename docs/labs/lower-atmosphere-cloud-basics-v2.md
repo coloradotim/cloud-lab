@@ -77,23 +77,27 @@ comparison panel should remain readable in narrow/export-like layouts and should
 explain that the offline CM1 reference is visible before Run v2 computes the
 reduced-model side.
 
-#230 keeps that same accepted CM1 science and restructures the Lower Atmosphere
-experience around the user story. The main stage should use a product title
-such as `Cloud Formation Experiment`, then show:
+#233 keeps that same accepted CM1 science and rebuilds the user-facing Lower
+Atmosphere experience around a guided cloud experiment rather than a
+setup/stage/inspector or model-comparison layout. The main experience should
+show:
 
 ```text
-story/result card
-→ primary CM1 scientific replay / cloud appearance view
-→ responsive comparison cards
-→ reduced-model support diagnostics
-→ grouped source/view/assumption details
+choose an experiment
+→ watch cloud evolution
+→ understand why cloud formed or failed
+→ try the next atmospheric contrast
+→ open Model details / Why trust this for validation/provenance
 ```
 
-The story card should deterministically explain pre-run, cloud-formed, and
-dry-failed outcomes without AI generation. Comparison cards should show
-Reduced, CM1, and Interpretation, and should stay readable in narrow/export-like
-layouts. Setup controls remain available, but after a result exists they should
-be visually secondary to the story, replay, and comparison.
+Experiment cards should use plain atmospheric questions, expected visual
+outcomes, primary controls to try, and reference/trust status. Cloud Appearance
+should be the default visual after a run, with Scientific Fields one clear
+toggle away and paired with variable explanations. The CM1/reduced-model
+diagnostic comparison remains available, but it belongs under collapsed Model
+details / Why trust this rather than in the main user flow. The main story
+should say "cloud formed" or "cloud did not form" in atmospheric language, not
+"both models formed cloud."
 
 The v2 user should be able to ask:
 

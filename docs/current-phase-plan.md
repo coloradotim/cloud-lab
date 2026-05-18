@@ -51,10 +51,10 @@ run exists, and shows a clear missing-reference fallback for mapped scenarios
 without loaded reference data. It does not score exact CM1 morphology, run CM1,
 or make Boussinesq part of the credibility path.
 
-The current CM1 priority is now:
+The current Lower Atmosphere product priority is now:
 
 ```text
-real-output acceptance → #222 visual/replay/appearance polish
+real-output acceptance → #222 visual/replay/appearance polish → #230 structure polish → #233 guided experiment rebuild
 ```
 
 Generated local reference artifacts and frontend local indexes remain ignored
@@ -87,24 +87,27 @@ around the accepted real-output path:
   preserving `Real local ingested output`, `Synthetic fixture data`, `Not
   scientific truth`, `Not direct radiative transfer`, and `Not live CM1
   simulation`
-- the pre-run comparison state explains that offline CM1 reference output is
-  already available and the Run v2 flow computes the reduced-model side
+- the pre-run Model details state explains that offline CM1 reference output is
+  already available and the experiment run computes the simplified explanatory
+  side
 
-Issue #230 is the next UX structure step for the same accepted science path.
-It should not add cases, tune CM1, change Boussinesq, or start warm-rain work.
-The Lower Atmosphere CM1/reference experience should be organized as:
+Issue #233 is the guided user-facing rebuild for the same accepted science
+path. It should not add cases, tune CM1, change Boussinesq, or start warm-rain
+work. Lower Atmosphere Cloud Basics should now be organized as:
 
 ```text
-story/result summary
-→ primary CM1 scientific replay / cloud appearance view
-→ responsive reduced-model vs CM1 comparison cards
-→ reduced-model support diagnostics
-→ details/provenance/assumptions
+choose an experiment
+→ watch cloud evolution
+→ understand why it happened
+→ try the next atmospheric contrast
+→ open Model details / Why trust this when validation is needed
 ```
 
-The main stage should use user-facing cloud-formation language, not
-developer-facing "reduced-model shell" language. Setup remains available, but
-after a run the result/replay hierarchy should become visually primary.
+The main Lower Atmosphere page should not feel like a reduced-model versus CM1
+comparison dashboard. CM1 remains the reference/validation backbone and source
+of credible replay fields, but the default user mental model is a guided cloud
+experiment. Detailed source/provenance, reference checks, and exact-morphology
+limitations belong under collapsed Model details / Why trust this.
 
 ## Current Phase Goal
 
@@ -115,12 +118,12 @@ Lab Picker → Lower Atmosphere Cloud Basics / Evolving Boundary Layer → Run /
 ```
 
 The phase is successful when Cloud Lab opens into a clear lab-driven experience,
-Lower Atmosphere Cloud Basics opens into the v2 reduced-model shell by default,
+Lower Atmosphere Cloud Basics opens into a guided experiment flow by default,
 Evolving Boundary Layer exposes the standalone `boundary_layer_1d` profile path,
 and the old dashboard/Boussinesq-centered Lower Atmosphere screen is no longer
 the default product model. As of #197, Boussinesq-centered Lower Atmosphere v1
 frontend scenarios are quarantined as developer/prototype metadata and are not
-presented by the normal Lab Picker or Lower Atmosphere v2 scenario selector.
+presented by the normal Lab Picker or Lower Atmosphere scenario chooser.
 
 ## Authoritative Product Docs
 

@@ -5,6 +5,7 @@ import {
   EVOLVING_BOUNDARY_LAYER_LAB_ID,
   FAIR_WEATHER_CUMULUS_LAB_ID,
 } from "../labs/labCatalog";
+import { LowerAtmosphereGuidedExperience } from "../labs/LowerAtmosphereGuidedExperience";
 import {
   buildCloudOpticsDiagnostics,
   CLOUD_OPTICS_HONESTY_LABELS,
@@ -342,7 +343,7 @@ export function LabWorkbench({
         canRun={canRun}
         supportsRun={capabilities.supportsRun}
         isProfileLab={isBoundaryLayerLab || isLowerAtmosphereV2Lab}
-        runLabel={isLowerAtmosphereV2Lab ? "Run v2 flow" : undefined}
+        runLabel={isLowerAtmosphereV2Lab ? "Run experiment" : undefined}
         onBackToLabs={onBackToLabs}
         onStartRun={handleStartRun}
         onStopRun={handleStopRun}
@@ -362,54 +363,69 @@ export function LabWorkbench({
         }}
       />
 
-      <section
-        className={`workbench-grid${inspectorOpen ? "" : " inspector-collapsed"}${isLowerAtmosphereV2Lab && runStatus === "complete" ? " lower-atmosphere-has-result" : ""}`}
-        aria-label="Workbench regions"
-      >
-        <LabSetupPanel
+      {isLowerAtmosphereV2Lab ? (
+        <LowerAtmosphereGuidedExperience
           lab={lab}
           workbench={workbench}
           setWorkbench={setWorkbench}
-          cloudOpticsControls={cloudOpticsControls}
-          setCloudOpticsControls={setCloudOpticsControls}
-          boundaryLayerState={boundaryLayerState}
-          setBoundaryLayerState={setBoundaryLayerState}
-          lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
-          setLowerAtmosphereV2FlowMode={setLowerAtmosphereV2FlowMode}
-          lowerAtmosphereV2State={lowerAtmosphereV2State}
-          setLowerAtmosphereV2State={setLowerAtmosphereV2State}
+          flowMode={lowerAtmosphereV2FlowMode}
+          setFlowMode={setLowerAtmosphereV2FlowMode}
+          state={lowerAtmosphereV2State}
+          setState={setLowerAtmosphereV2State}
+          isRunning={isRunning}
+          onRun={handleStartRun}
+          onReset={handleResetRun}
         />
-        <VisualizationStage
-          lab={lab}
-          frame={currentFrame}
-          boundaryLayerFrame={boundaryLayerFrame}
-          boundaryLayerState={boundaryLayerState}
-          setBoundaryLayerState={setBoundaryLayerState}
-          workbench={workbench}
-          cloudOpticsControls={cloudOpticsControls}
-          cloudOpticsViewMode={cloudOpticsViewMode}
-          onCloudOpticsViewModeChange={setCloudOpticsViewMode}
-          selectedFieldKey={selectedFieldKey}
-          onSelectedFieldKeyChange={setSelectedFieldKey}
-          lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
-          lowerAtmosphereV2State={lowerAtmosphereV2State}
-          setLowerAtmosphereV2State={setLowerAtmosphereV2State}
-        />
-        {inspectorOpen ? (
-          <InspectorPanel
+      ) : (
+        <section
+          className={`workbench-grid${inspectorOpen ? "" : " inspector-collapsed"}`}
+          aria-label="Workbench regions"
+        >
+          <LabSetupPanel
             lab={lab}
-            summary={inspector}
+            workbench={workbench}
+            setWorkbench={setWorkbench}
+            cloudOpticsControls={cloudOpticsControls}
+            setCloudOpticsControls={setCloudOpticsControls}
+            boundaryLayerState={boundaryLayerState}
+            setBoundaryLayerState={setBoundaryLayerState}
+            lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
+            setLowerAtmosphereV2FlowMode={setLowerAtmosphereV2FlowMode}
+            lowerAtmosphereV2State={lowerAtmosphereV2State}
+            setLowerAtmosphereV2State={setLowerAtmosphereV2State}
+          />
+          <VisualizationStage
+            lab={lab}
+            frame={currentFrame}
+            boundaryLayerFrame={boundaryLayerFrame}
+            boundaryLayerState={boundaryLayerState}
+            setBoundaryLayerState={setBoundaryLayerState}
             workbench={workbench}
             cloudOpticsControls={cloudOpticsControls}
             cloudOpticsViewMode={cloudOpticsViewMode}
-            boundaryLayerState={boundaryLayerState}
-            boundaryLayerFrame={boundaryLayerFrame}
+            onCloudOpticsViewModeChange={setCloudOpticsViewMode}
+            selectedFieldKey={selectedFieldKey}
+            onSelectedFieldKeyChange={setSelectedFieldKey}
             lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
             lowerAtmosphereV2State={lowerAtmosphereV2State}
-            saveMessage={workbench.saveMessage}
+            setLowerAtmosphereV2State={setLowerAtmosphereV2State}
           />
-        ) : null}
-      </section>
+          {inspectorOpen ? (
+            <InspectorPanel
+              lab={lab}
+              summary={inspector}
+              workbench={workbench}
+              cloudOpticsControls={cloudOpticsControls}
+              cloudOpticsViewMode={cloudOpticsViewMode}
+              boundaryLayerState={boundaryLayerState}
+              boundaryLayerFrame={boundaryLayerFrame}
+              lowerAtmosphereV2FlowMode={lowerAtmosphereV2FlowMode}
+              lowerAtmosphereV2State={lowerAtmosphereV2State}
+              saveMessage={workbench.saveMessage}
+            />
+          ) : null}
+        </section>
+      )}
 
       {capabilities.supportsTimeline || capabilities.supportsReplay ? (
         isBoundaryLayerLab || isLowerAtmosphereV2Lab ? null : (
@@ -562,9 +578,11 @@ function WorkbenchTopBar({
         <button type="button" onClick={onSaveRun}>
           {supportsRun ? "Save" : "Save setup"}
         </button>
-        <button type="button" disabled title="Comparison mode is intentionally deferred.">
-          Compare
-        </button>
+        {!isProfileLab ? (
+          <button type="button" disabled title="Comparison mode is intentionally deferred.">
+            Compare
+          </button>
+        ) : null}
         {!isProfileLab ? (
           <button type="button" disabled title="System drawer is deferred from the default flow.">
             System
