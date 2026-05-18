@@ -138,6 +138,38 @@ cd ~/src/cm1/CM1/src
 make USE_OPENMP=true USE_NETCDF=true
 ```
 
+The committed Cloud Lab reference-pair namelists request:
+
+```text
+output_format = 2
+```
+
+That means the local `cm1.exe` must be compiled with NetCDF support. On a
+Homebrew/gfortran macOS setup, verify `nf-config` is available and points at the
+NetCDF Fortran install:
+
+```bash
+nf-config --version
+nf-config --flibs
+```
+
+If CM1 exits with `You have requested netcdf output, but you have not compiled
+the code with netcdf capability`, enable the NetCDF section in the CM1
+`src/Makefile`, clean, and rebuild. For CM1 r21.1 with Homebrew gfortran, this
+local shape is a useful starting point:
+
+```bash
+cd ~/src/cm1/CM1/src
+make clean
+make USE_OPENMP=true USE_NETCDF=true \
+  FC=gfortran \
+  CPP="gfortran -E -x f95-cpp-input" \
+  NETCDFBASE="$(nf-config --prefix)"
+```
+
+Do not let Cloud Lab scripts edit the external CM1 Makefile automatically; keep
+that build decision local to the CM1 checkout.
+
 For MPI:
 
 ```bash
@@ -189,6 +221,21 @@ scripts/reference/cm1/run_cm1_case.sh \
   --execute
 ```
 
+When `--execute` is used, the script copies `cm1.exe`, the case namelist,
+`input_sounding`, case docs/manifests, and required CM1 runtime support files
+from `--cm1-run-dir` into the generated ignored run directory. The first
+reference pair uses surface-flux settings that require `LANDUSE.TBL`, so the
+script copies `$CM1_RUN_DIR/LANDUSE.TBL` when available and fails early with a
+clear message if it is missing.
+
+The script also performs preflight and post-run checks:
+
+- validates that `input_sounding` extends above the configured grid top
+- warns when `output_format = 2` but `nf-config` is unavailable
+- expects at least one `.nc` file for NetCDF-output cases
+- reports known CM1 failures such as missing NetCDF support, missing
+  `LANDUSE.TBL`, or a sounding top below the grid top
+
 For MPI:
 
 ```bash
@@ -211,6 +258,15 @@ scripts/reference/cm1/run_reference_pair.sh \
 
 Add `--execute` only when you want to copy the case assets into ignored local
 output directories and run CM1.
+
+Expected local workflow for the reference pair:
+
+1. Run `scripts/reference/cm1/check_cm1_environment.sh`.
+2. Build/rebuild CM1 with NetCDF support.
+3. Run `scripts/reference/cm1/run_reference_pair.sh --cm1-run-dir <CM1 run dir> --execute`.
+4. Confirm each generated run directory contains `.nc` output.
+5. Ingest the pair with `scripts/reference/cm1/ingest_reference_pair.sh`.
+6. Open Cloud Lab for the #221 acceptance path.
 
 ## Output Storage
 
@@ -298,6 +354,10 @@ available only as a clearly labeled synthetic/demo view.
 | `gfortran: command not found` | Fortran compiler is missing or not on `PATH`. | Install a compiler, for example through Homebrew `gcc`, then rerun the environment check. |
 | `mpifort: command not found` | MPI compiler wrappers are missing. | Install/configure MPI or build without `USE_MPI=true`. |
 | NetCDF symbols or modules are missing | NetCDF C/Fortran libraries are missing or not discoverable by the CM1 Makefile. | Install `netcdf` and `netcdf-fortran`; inspect `nf-config` / `nc-config` paths. |
+| `You have requested netcdf output, but you have not compiled the code with netcdf capability` | The case requests `output_format = 2`, but `cm1.exe` was not built with NetCDF. | Enable the NetCDF section in CM1 `src/Makefile`, run `make clean`, rebuild with `USE_NETCDF=true`, and rerun. |
+| `There was an error opening the LANDUSE.TBL file` | `LANDUSE.TBL` is not beside `cm1.exe` in the run directory. | Point `--cm1-run-dir` at a CM1 `run` directory containing `LANDUSE.TBL`; the script copies it into generated run directories. |
+| `zmax of sounding < zmax of grid` | The case `input_sounding` does not extend high enough for the configured grid. | Add a final sounding level at or above the grid top; the committed reference pair now validates this. |
+| CM1 exits but no `.nc` files are produced | NetCDF output was requested but CM1 failed early or wrote a different output type. | Inspect `cm1.stdout.log` and `cm1.stderr.log`; rerun after fixing NetCDF build/runtime support. |
 | CM1 runs but output is hard to find | Output remained in the CM1 `run` directory or local case run directory. | Use `scripts/reference/cm1/run_cm1_case.sh --execute` with an explicit ignored `--output-dir`. |
 | A later run overwrites output | The same run directory was reused. | Use timestamped output directories or pass a new `--output-dir`. |
 | Output files are too large | Domain, output fields, or output cadence are too large for a local reference attempt. | Reduce domain/resolution/output frequency before generating committed manifests. |

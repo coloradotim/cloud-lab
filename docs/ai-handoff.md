@@ -298,6 +298,15 @@ live under `reference/cm1/cases/`, with pair-run guidance in
 belongs under ignored local paths such as `data/reference/cm1/`; no large model
 output should be committed.
 
+The local reference-pair runner now handles the repeatability issues found
+during the first real run attempt. The committed namelists request NetCDF output
+(`output_format = 2`), so local CM1 must be rebuilt with NetCDF support. The run
+script validates that `input_sounding` extends above the grid top, copies
+`LANDUSE.TBL` from the provided CM1 run directory into each generated run
+directory, and returns nonzero if CM1 exits without the expected `.nc` output.
+Use the workflow: check environment, run reference pair, inspect `.nc` output,
+ingest reference pair, then open the app for the #221 acceptance path.
+
 The first CM1/reference scientific replay view now lives under
 `frontend/src/reference/` and is mounted in the Lower Atmosphere v2 stage as an
 offline reference panel. It uses a tiny synthetic CM1-like fixture for UI/test

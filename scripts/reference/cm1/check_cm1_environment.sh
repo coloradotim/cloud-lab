@@ -110,6 +110,21 @@ check_optional_any "MPI compiler/runtime" mpifort mpirun mpiexec
 check_optional_any "NetCDF config tools" nf-config nc-config
 check_optional_any "Homebrew" brew
 
+if command -v nf-config >/dev/null 2>&1; then
+  echo "ok: NetCDF Fortran version ($(nf-config --version 2>/dev/null || true))"
+  if nf-config --flibs >/dev/null 2>&1; then
+    echo "ok: NetCDF Fortran linker flags available"
+  else
+    echo "warning: nf-config exists but did not report Fortran linker flags"
+  fi
+else
+  cat <<'NETCDF_WARNING'
+warning: nf-config was not found.
+  The committed CM1 reference-pair namelists request output_format = 2
+  (NetCDF). Build CM1 with NetCDF Fortran support before executing the pair.
+NETCDF_WARNING
+fi
+
 echo
 echo "Disk space for local reference data path:"
 check_disk_space "data/reference/cm1"

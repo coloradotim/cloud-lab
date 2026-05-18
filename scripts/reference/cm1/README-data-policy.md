@@ -25,6 +25,7 @@ Do not commit:
 
 - large NetCDF outputs
 - compiled CM1 binaries
+- CM1 runtime support files such as `LANDUSE.TBL`
 - CM1 source code unless licensing/repo policy explicitly allows it
 - local machine build products
 
@@ -39,6 +40,10 @@ reference/cm1/cases/
 
 Generated output from those cases should still stay under the ignored local
 `data/reference/cm1/` tree.
+
+The run scripts may copy `cm1.exe`, `LANDUSE.TBL`, namelists, and soundings into
+ignored local run directories so CM1 can execute repeatably. Those copied files
+are runtime artifacts only; do not move them into committed case directories.
 
 Generated `reference-run-v1` artifacts and local frontend indexes are also
 ignored. They are local developer/user artifacts used to view real CM1 output
