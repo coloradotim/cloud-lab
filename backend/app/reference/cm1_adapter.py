@@ -132,7 +132,7 @@ def adapt_cm1_reference_output(source: Mapping[str, object]) -> ReferenceRun:
         source_is_synthetic_fixture=source_is_synthetic_fixture,
     )
 
-    warnings: list[str] = []
+    warnings = _string_list(source.get("warnings", []), "warnings")
     mapped_variables: dict[str, tuple[CM1FieldSpec, str, list[list[list[float]]]]] = {}
     for spec in CM1_FIELD_SPECS:
         source_name = _first_available_alias(variables, spec.aliases)
@@ -302,6 +302,16 @@ def _string_mapping(value: object, name: str) -> dict[str, str]:
         if not isinstance(key, str) or not isinstance(item, str):
             raise ValueError(f"{name} must map strings to strings")
         parsed[key] = item
+    return parsed
+
+
+def _string_list(value: object, name: str) -> list[str]:
+    sequence = _sequence_value(value, name)
+    parsed: list[str] = []
+    for item in sequence:
+        if not isinstance(item, str):
+            raise ValueError(f"{name} must contain only strings")
+        parsed.append(item)
     return parsed
 
 
