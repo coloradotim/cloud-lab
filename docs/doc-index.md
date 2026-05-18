@@ -31,6 +31,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/workbench-v2-product-spec.md` — source of truth for the future product shell.
 - `docs/workbench-v2-architecture.md` — source of truth for future frontend structure.
 - `docs/visualization-and-workbench-views.md` — visualization and workbench view guidance; includes current prototype context and future view model.
+- `docs/optics-field-contract.md` — physical-field, provenance, labeling, and validation contract for cloud optics and appearance views.
 - `docs/scenarios.md` — scenario contracts and current scenario catalog; scenarios are lab-specific experiments.
 - `docs/labs/lower-atmosphere-cloud-basics-v2.md` — design for the reduced-model replacement of the current Boussinesq-based Lower Atmosphere lab, using `boundary_layer_1d`, `controlled_cloud_column`, diagnostics, precipitation-ready architecture, and future reference/optics handoffs.
 - `docs/simulation-controls.md` — current/prototype control system and control meanings; Workbench V2 should reorganize controls around labs.
@@ -55,6 +56,7 @@ Older implementation docs remain useful as technical references, but they should
 - `docs/microphysics-lab.md` — controlled warm-cloud microphysics lab mode.
 - `docs/microphysics-comparison.md` — comparison of simple saturation adjustment and current bulk microphysics lab behavior.
 - `docs/microphysics-schema.md` — proposed optional droplet-size distribution and microphysics payload schema.
+- `docs/optics-field-contract.md` — shared contract for optics inputs, assumed versus modeled droplet properties, reference/reduced/microphysics provenance, and appearance-view validation.
 - `docs/pysdm-evaluation.md` — optional PySDM evaluation for Warm Rain / Droplet Growth and droplet-aware optics.
 
 ## Data, API, And Engineering

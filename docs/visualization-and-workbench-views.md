@@ -8,6 +8,7 @@ See:
 
 - `docs/product-vision.md`
 - `docs/lab-roadmap.md`
+- `docs/optics-field-contract.md`
 - `docs/workbench-v2-product-spec.md`
 - `docs/workbench-v2-architecture.md`
 - `docs/architecture-decisions/ADR-001-lab-driven-product.md`
@@ -92,6 +93,12 @@ Cloud Lab labels displayed values and views by what they represent:
   case data, with source/provenance metadata.
 - `Reduced model output`: future interactive simplified-model output, such as
   `boundary_layer_1d` or `controlled_cloud_column`, with approximation labels.
+- `Generated preset field`: deterministic source field created for a lab, such
+  as `cloud_density` in `cloud-optics-scene-v1`.
+- `Assumed parameter`: renderer or diagnostic parameter used because a modeled
+  field is absent, such as assumed effective radius.
+- `Droplet-aware input`: modeled or reference-provided droplet property used by
+  optics, such as effective radius or droplet distribution.
 
 Labels should be short in the UI and paired with tooltips or helper text that explain limitations.
 
@@ -152,6 +159,11 @@ It should not run CM1, commit large model output, or implement cloud appearance
 
 The cloud appearance view uses cloud liquid water and documented assumptions to produce a more cloud-like image.
 
+The physical-field contract for cloud appearance and optical-depth views lives
+in `docs/optics-field-contract.md`. Appearance renderers should consume source
+fields plus renderer controls, preserve source provenance, show scientific field
+views where practical, and avoid mutating solver or reference payloads.
+
 It may use:
 
 - bulk optical-depth approximation
@@ -162,6 +174,10 @@ It may use:
 - sun/light direction
 
 This is a visual approximation. It should never be presented as true radiative transfer or droplet-resolved Mie scattering unless those capabilities are actually implemented.
+
+If effective radius or droplet-size fields are absent, appearance views may use
+an assumed effective radius only when they label `Assumed droplet radius`. They
+should use `Droplet-aware input` only when actual droplet fields are present.
 
 Clouds, Light, and Shadow now has a first lightweight rendered appearance view backed by deterministic preset source scenes. It derives opacity, attenuation, approximate single-scattering brightness, optical-depth, and light-path/shadow displays from the source `cloud_density` field and renderer controls. Sun angle, view angle, density, depth, optical strength, and light color change the renderer state only; they must not mutate the source scene field.
 

@@ -12,6 +12,11 @@ Why do clouds look soft, dark, glowing, layered, silver-lined, or dramatic under
 
 This lab teaches that cloud appearance is shaped by cloud water, density structure, optical depth, sunlight direction, scattering, and viewing geometry.
 
+The physical-field boundary for this lab and future imported-field appearance
+views is defined in `docs/optics-field-contract.md`. In short, optics consumes
+physical source fields and renderer controls; it does not create weather, mutate
+solver/reference fields, or hide scientific warnings.
+
 ## User Promise
 
 Users can choose a preset 2.5-D cloud scene, adjust meaningful light and optical controls, and see how the same cloud field changes appearance as sunlight, view angle, cloud thickness, density, and optical depth change.
@@ -96,6 +101,11 @@ The first source-scene implementation uses `cloud-optics-scene-v1` records with 
 `x`/`z` coordinates, a normalized non-negative `cloud_density` field, deterministic 2.5-D
 depth metadata, and default renderer-control values. These records are generated source
 fields for this lab, not backend solver output or weather forecasts.
+
+Under the optics field contract, the preset `cloud_density` field should be
+labeled as `Generated preset field`. Rendered appearance, optical-depth, and
+light-path products are `Visual approximation` or `Derived diagnostic` outputs,
+not new physical fields.
 
 The first rendered view consumes those records in the browser and derives rendered cloud
 appearance, cloud-water/source-field, optical-depth, and light-path/shadow views without
@@ -195,6 +205,11 @@ If this lab later imports fields from another lab, scientific 2-D source views m
 
 Future versions may show how droplet effective radius, droplet-size distribution, or phase affect appearance. This is out of scope for v1.
 
+When droplet fields are absent, this lab may use an assumed effective radius
+only if the UI labels it as `Assumed droplet radius`. It should show
+`Droplet-aware input` only when effective radius, number concentration, or
+droplet-size distribution fields are actually provided.
+
 ## Physics Core Requirements
 
 V1 does not require a new dynamics solver.
@@ -250,6 +265,12 @@ Renderer state should be separate from source fields and may include sun elevati
 
 Derived diagnostics may include optical-depth estimate, light-path proxy, bright-edge likelihood, base-darkening likelihood, edge-softness state, and lighting classification.
 
+Imported fields from CM1/reference frames, live solver frames, reduced models,
+or future microphysics payloads must preserve their source provenance. A cloud
+appearance view may interpret those fields visually, but the scientific source
+field view should remain available and the renderer must not mutate the source
+payload.
+
 ## Approximation And Honesty Labels
 
 The UI and docs should disclose:
@@ -297,6 +318,7 @@ Future comparisons:
 - small cumulus vs towering cumulus
 - preset field vs imported Lower Atmosphere Cloud Basics field
 - assumed-droplet optics vs future droplet-aware optics
+- provenance categories and labels from `docs/optics-field-contract.md`
 
 ## Validation Expectations
 
@@ -349,6 +371,8 @@ Future comparisons:
 - precipitation shaft visibility
 - water vs ice phase controls
 - imported cloud fields from Lower Atmosphere Cloud Basics
+- imported CM1/reference cloud fields after the scientific reference replay path
+  and optics field contract are in place
 - side-by-side comparison mode
 - animation through a daily sun path
 - true 3-D scene mode when justified

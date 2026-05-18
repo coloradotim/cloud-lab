@@ -34,6 +34,11 @@ Atmosphere v2 stage by a CM1/reference panel backed by a tiny synthetic
 reference-frame fixture. Real CM1 output should replace that fixture only
 through a separately scoped ingestion path.
 
+The optics field contract now lives in `docs/optics-field-contract.md`. It
+defines how appearance and optical-depth views consume physical fields,
+provenance, renderer controls, assumed versus modeled droplet properties, and
+validation labels without changing solver or reference output.
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:

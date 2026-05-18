@@ -186,6 +186,14 @@ The scene field is the physical/source field for that lab. Renderer controls suc
 
 Cloud-optics diagnostics are deterministic explanations derived from the source scene, renderer controls, and rendered model summary. They include optical-depth estimate, cloud-water/density summary, light geometry state, light-path proxy, edge-softness state, base/interior darkness state, bright-edge likelihood, layered-depth explanation, approximation-label availability, and source-field immutability metadata. They do not claim full radiative transfer or droplet-resolved optics.
 
+The physical-field contract for optics lives in `docs/optics-field-contract.md`.
+For scene records, `cloud_density` is a `generated_preset_field`; rendered
+appearance is a `visual_approximation`; optical-depth and light-path products
+are `derived_diagnostic` or `visual_approximation` outputs. Future imports from
+`SimulationFrame`, `reference-frame-v1`, reduced-model output, or microphysics
+payloads should preserve their source provenance and should not be coerced into
+the preset scene schema unless the conversion is explicit and documented.
+
 ## Saved Run Artifact Schema
 
 Saved run artifacts are frontend-local records stored separately from saved scenario configs. A saved scenario is a reusable setup recipe; a saved run artifact is an observation record for one completed or buffered run.
@@ -258,6 +266,12 @@ exist, and source provenance.
 Reference frames are offline reference data. They are not `SimulationFrame`
 outputs from a normal app run, and Cloud Lab does not run CM1 during normal app
 sessions. See `docs/reference-models/cm1.md`.
+
+When reference frames feed future cloud appearance or optical-depth views, they
+remain `reference_model_output` source fields. The optics layer may derive
+visual approximations from them, but it must preserve reference provenance,
+missing-field warnings, and scientific field access. See
+`docs/optics-field-contract.md`.
 
 ## Future Compatibility
 

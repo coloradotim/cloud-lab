@@ -47,6 +47,14 @@ The recommended first implementation is an optional top-level `microphysics` fie
 because it allows existing solvers and frontend consumers to keep working. Absence of
 the field, or `microphysics: null`, means no droplet distribution is available.
 
+Optics consumes microphysics products through the physical-field contract in
+`docs/optics-field-contract.md`. Microphysics fields such as
+`effective_radius_um`, `number_concentration_m3`, and droplet distributions are
+optional `microphysics_output` inputs. If they are absent, appearance views may
+use an assumed effective radius only when labeled as `Assumed droplet radius`;
+they should show `Droplet-aware input` only when real droplet fields are
+available.
+
 ## Lower Atmosphere v2 Handoff Contract
 
 Lower Atmosphere Cloud Basics v2 uses a separate handoff before any optional
@@ -324,6 +332,11 @@ These summaries are renderer-friendly and keep payloads small. A future renderer
 use `effective_radius_um` and liquid water content for opacity/scattering hints
 without reading full spectra.
 
+When used by optics, cell summaries remain physical or microphysics outputs.
+Renderer-derived opacity, brightness, shadow, rain-shaft, or optical-depth
+products should be labeled as `Derived diagnostic` or `Visual approximation`
+rather than written back into the microphysics payload.
+
 ## Optional Per-Cell Spectra
 
 Full per-cell distributions are expensive. If needed, they should be explicit and
@@ -421,6 +434,11 @@ Frontend consumers should:
 
 The renderer should not mutate solver state or infer physical meaning from display
 colors. It should consume declared physical outputs.
+
+Frontend optics consumers should also preserve the provenance category for each
+input field. A droplet-aware optics view must not appear when the payload lacks
+effective radius, number concentration, or distribution products; an
+assumed-radius fallback is allowed only with explicit labeling.
 
 ## Migration Path
 
