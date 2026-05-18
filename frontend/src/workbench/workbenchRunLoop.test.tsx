@@ -144,6 +144,10 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(html).toContain("No Boussinesq default");
     expect(html).toContain("CM1 reference replay");
     expect(html).toContain("Scientific field view");
+    expect(html).toContain("Reduced model vs CM1 reference");
+    expect(html).toContain("Reduced model output");
+    expect(html).toContain("CM1 reference output");
+    expect(html).toContain("Exact cloud morphology is not presented as pass/fail");
     expect(html).toContain("Not live interactive simulation");
     expect(html).not.toContain("Experimental 2-D prototype");
   });

@@ -32,7 +32,7 @@ The v2 science stack is:
 The v2 workbench now also includes a first CM1/reference scientific replay
 panel. This panel is separate from the reduced-model flow: it displays offline
 `reference-frame-v1` fields with CM1 source/provenance labels and does not run
-CM1, compare reduced-model output, or present the reduced-model result as CM1.
+CM1 or present the reduced-model result as CM1.
 The initial mounted data is a tiny synthetic fixture for viewer coverage until
 real local CM1 output is ingested.
 
@@ -41,6 +41,22 @@ mode. The appearance mode interprets the reference cloud-water field visually,
 preserves replay/provenance labels, and lets the user switch back to the
 scientific field view. It is labeled as an assumed-radius visual interpretation,
 not direct radiative transfer or live CM1 simulation.
+
+Lower Atmosphere v2 now also has the first reduced-model versus CM1/reference
+diagnostic comparison panel. The initial available comparison maps the reduced
+`lower-atmosphere-v2-baseline-shallow-cloud` scenario to
+`cm1-shallow-cumulus-baseline-v1` and compares teaching-relevant diagnostics:
+cloud/no-cloud status, first cloud time, cloud base, cloud top, max cloud water,
+max updraft, rain onset, and profile context. Other scenario mappings are
+declared for the dry-failed, capped/suppressed, humid low-cloud, and later
+warm-rain reference cases, but those show the explicit fallback:
+
+```text
+No CM1 reference case is available for this scenario yet.
+```
+
+The comparison is qualitative and diagnostic. It must not score exact cloud
+morphology or imply CM1 runs live in the app.
 
 The v2 user should be able to ask:
 

@@ -297,6 +297,22 @@ Exact CM1 cloud shape, turbulent texture, and cell placement should not become
 pass/fail requirements for reduced models. The comparison should explain where a
 reduced model is intentionally simpler.
 
+The first comparison implementation maps these Lower Atmosphere v2 scenarios to
+reference case ids:
+
+| Lower Atmosphere v2 scenario | CM1 reference case id | First app status |
+| --- | --- | --- |
+| `lower-atmosphere-v2-baseline-shallow-cloud` | `cm1-shallow-cumulus-baseline-v1` | Available through the tiny reference-frame fixture until real output is ingested. |
+| `lower-atmosphere-v2-dry-failed-cumulus` | `cm1-dry-failed-cumulus-v1` | Mapped, but shows missing-reference fallback until a run is loaded. |
+| `lower-atmosphere-v2-capped-suppressed-cloud` | `cm1-capped-suppressed-cumulus-v1` | Mapped, but shows missing-reference fallback until a run is loaded. |
+| `lower-atmosphere-v2-humid-low-cloud-contrast` | `cm1-humid-low-cloud-contrast-v1` | Mapped, but shows missing-reference fallback until a run is loaded. |
+| `lower-atmosphere-v2-rain-capable-warm-cloud-later` | `cm1-warm-rain-shallow-cloud-v1` | Mapped for later warm-rain comparison; rain diagnostics remain deferred. |
+
+The first comparison diagnostics are cloud/no-cloud status, first cloud time,
+cloud base, cloud top, max cloud water, max updraft, rain onset, and reduced
+profile context. These are diagnostic teaching comparisons, not validation that
+the reduced model reproduces CM1 morphology.
+
 ## Storage And Data Policy
 
 Do not commit large CM1 output files to git.
@@ -373,8 +389,8 @@ The case-library sequence should remain:
 #198 reduced-model/reference comparison
 ```
 
-This issue defines the library only. The next step is to document and script the
-local CM1 setup path, then generate or enable the user to generate the first
-real dry-failed and shallow-cumulus reference pair. The first committed case
-assets for that pair are documented in
-`docs/reference-models/cm1-first-reference-pair.md`.
+After #198, the immediate CM1 reference path has adapter, case-library,
+setup/script, first-pair assets, scientific replay, optics contract, appearance
+view, and qualitative reduced/reference comparison coverage. Further work should
+replace tiny fixtures with real ingested local reference outputs or broaden case
+coverage through separately scoped issues.

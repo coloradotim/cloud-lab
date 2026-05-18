@@ -766,6 +766,68 @@ h2 {
   font-size: 1rem;
 }
 
+.reference-diagnostic-compare {
+  display: grid;
+  gap: 12px;
+  border: 1px solid #d3e0da;
+  border-radius: 8px;
+  padding: 12px;
+  background: #fbfcf8;
+}
+
+.reference-diagnostic-compare h3,
+.reference-compare-summary p {
+  margin: 0;
+}
+
+.reference-compare-summary {
+  display: grid;
+  gap: 6px;
+  color: #344541;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.reference-compare-diagnostics {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.reference-compare-diagnostics div {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #dbe5e0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #f8fbf8;
+}
+
+.reference-compare-diagnostics dt {
+  color: #4f6f68;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.reference-compare-diagnostics dd {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  color: #153137;
+  font-weight: 800;
+}
+
+.reference-compare-diagnostics em {
+  color: #5a6d68;
+  font-size: 0.82rem;
+  font-style: normal;
+  font-weight: 700;
+}
+
+.reference-compare-empty {
+  min-height: 180px;
+}
+
 .reference-replay-toolbar {
   align-items: end;
 }

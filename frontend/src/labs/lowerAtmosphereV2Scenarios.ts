@@ -55,6 +55,15 @@ export type LowerAtmosphereV2ComparisonPair = {
   diagnosticsToCompare: string[];
 };
 
+export type LowerAtmosphereV2ReferenceCaseMapping = {
+  scenarioId: string;
+  referenceCaseId: string;
+  referenceCaseName: string;
+  expectedReferenceOutcome: string;
+  diagnosticsToCompare: string[];
+  comparisonNote: string;
+};
+
 export const lowerAtmosphereV2HonestyLabels = [
   "Reduced model",
   "1-D profile evolution",
@@ -455,5 +464,85 @@ export const lowerAtmosphereV2ComparisonPairs: LowerAtmosphereV2ComparisonPair[]
     expectedDifference:
       "Both can form cloud, but rain-capable later stays precipitation_not_enabled in early v2.",
     diagnosticsToCompare: ["max cloud water", "cloud water duration", "precipitation status"],
+  },
+];
+
+export const lowerAtmosphereV2ReferenceCaseMappings: LowerAtmosphereV2ReferenceCaseMapping[] = [
+  {
+    scenarioId: "lower-atmosphere-v2-baseline-shallow-cloud",
+    referenceCaseId: "cm1-shallow-cumulus-baseline-v1",
+    referenceCaseName: "CM1 shallow cumulus baseline",
+    expectedReferenceOutcome: "Shallow cumulus forms with meaningful cloud liquid water.",
+    diagnosticsToCompare: [
+      "cloud/no-cloud status",
+      "first cloud time",
+      "cloud base",
+      "cloud top",
+      "max cloud water",
+      "max updraft",
+      "rain onset",
+    ],
+    comparisonNote:
+      "Compare teaching diagnostics against the CM1 shallow-cumulus baseline; do not score exact cloud morphology.",
+  },
+  {
+    scenarioId: "lower-atmosphere-v2-dry-failed-cumulus",
+    referenceCaseId: "cm1-dry-failed-cumulus-v1",
+    referenceCaseName: "CM1 dry failed cumulus",
+    expectedReferenceOutcome: "Thermal motion occurs without meaningful cloud liquid water.",
+    diagnosticsToCompare: [
+      "cloud/no-cloud status",
+      "first cloud time",
+      "max cloud water",
+      "max updraft",
+      "dry failed outcome",
+    ],
+    comparisonNote:
+      "Compare dry-failed outcome and moisture limitation once the CM1 dry-failed reference case is available.",
+  },
+  {
+    scenarioId: "lower-atmosphere-v2-capped-suppressed-cloud",
+    referenceCaseId: "cm1-capped-suppressed-cumulus-v1",
+    referenceCaseName: "CM1 capped / suppressed cumulus",
+    expectedReferenceOutcome: "Cloud is delayed, reduced, or capped below the stable layer.",
+    diagnosticsToCompare: [
+      "cloud/no-cloud status",
+      "cap suppression outcome",
+      "first cloud time",
+      "cloud top",
+      "max cloud water",
+      "max updraft",
+    ],
+    comparisonNote:
+      "Compare cap-suppression outcome and cloud-top/cap relationship after the capped CM1 case lands.",
+  },
+  {
+    scenarioId: "lower-atmosphere-v2-humid-low-cloud-contrast",
+    referenceCaseId: "cm1-humid-low-cloud-contrast-v1",
+    referenceCaseName: "CM1 humid low-cloud contrast",
+    expectedReferenceOutcome: "Low-LCL cloud forms more readily than the baseline.",
+    diagnosticsToCompare: [
+      "cloud/no-cloud status",
+      "first cloud time",
+      "cloud base",
+      "max cloud water",
+    ],
+    comparisonNote:
+      "Compare the low-cloud contrast once the CM1 humid low-cloud reference case is available.",
+  },
+  {
+    scenarioId: "lower-atmosphere-v2-rain-capable-warm-cloud-later",
+    referenceCaseId: "cm1-warm-rain-shallow-cloud-v1",
+    referenceCaseName: "CM1 warm-rain shallow cloud",
+    expectedReferenceOutcome: "Cloud water appears before any warm-rain signal.",
+    diagnosticsToCompare: [
+      "cloud/no-cloud status",
+      "first cloud time",
+      "max cloud water",
+      "rain onset",
+      "max rain water",
+    ],
+    comparisonNote:
+      "Compare rain onset only after the warm-rain reference case and reduced-model rain diagnostics exist.",
   },
 ];

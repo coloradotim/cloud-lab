@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   lowerAtmosphereV2ComparisonPairs,
   lowerAtmosphereV2HonestyLabels,
+  lowerAtmosphereV2ReferenceCaseMappings,
   lowerAtmosphereV2ScenarioContracts,
 } from "./lowerAtmosphereV2Scenarios";
 
@@ -86,6 +87,26 @@ describe("Lower Atmosphere v2 scenario contracts", () => {
       expect(pair.questionAnswered).toContain("?");
       expect(pair.expectedDifference).toBeTruthy();
       expect(pair.diagnosticsToCompare.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("maps selected v2 scenarios to CM1 reference cases for qualitative comparison", () => {
+    const scenarioIds = new Set(lowerAtmosphereV2ScenarioContracts.map((scenario) => scenario.id));
+
+    expect(lowerAtmosphereV2ReferenceCaseMappings.map((mapping) => mapping.referenceCaseId)).toEqual([
+      "cm1-shallow-cumulus-baseline-v1",
+      "cm1-dry-failed-cumulus-v1",
+      "cm1-capped-suppressed-cumulus-v1",
+      "cm1-humid-low-cloud-contrast-v1",
+      "cm1-warm-rain-shallow-cloud-v1",
+    ]);
+
+    for (const mapping of lowerAtmosphereV2ReferenceCaseMappings) {
+      expect(scenarioIds.has(mapping.scenarioId)).toBe(true);
+      expect(mapping.referenceCaseName).toContain("CM1");
+      expect(mapping.expectedReferenceOutcome).toBeTruthy();
+      expect(mapping.diagnosticsToCompare).toContain("cloud/no-cloud status");
+      expect(mapping.comparisonNote).toMatch(/do not score exact cloud morphology|once .* available|after .* exist|after .* lands/i);
     }
   });
 });
