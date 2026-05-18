@@ -36,6 +36,12 @@ CM1, compare reduced-model output, or present the reduced-model result as CM1.
 The initial mounted data is a tiny synthetic fixture for viewer coverage until
 real local CM1 output is ingested.
 
+That reference panel now also exposes the first CM1/reference cloud appearance
+mode. The appearance mode interprets the reference cloud-water field visually,
+preserves replay/provenance labels, and lets the user switch back to the
+scientific field view. It is labeled as an assumed-radius visual interpretation,
+not direct radiative transfer or live CM1 simulation.
+
 The v2 user should be able to ask:
 
 ```text

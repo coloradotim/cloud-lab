@@ -71,6 +71,14 @@ a tiny synthetic CM1-like fixture for UI/test coverage only; it is labeled as a
 synthetic fixture and not scientific truth. Real local CM1 outputs should be
 ingested through the reference adapter before they replace the fixture.
 
+The same replay panel now includes the first CM1/reference cloud appearance
+mode. It consumes the reference cloud liquid water field, maps it to opacity and
+brightness as a visual interpretation, preserves the replay timeline and source
+labels, and keeps the scientific field view available. It labels assumed droplet
+radius, lack of direct radiative transfer, and the fact that CM1 is not running
+live. It does not implement full radiative transfer, true volumetric 3-D,
+precipitation rendering, or reduced-model/reference comparison.
+
 When profile and column outcomes split, the inspector should make the split
 visible rather than collapsing it into a single vague result. For example,
 `profile moisture_limited + column cloud_formed` should be labeled as cloud
@@ -178,6 +186,11 @@ This is a visual approximation. It should never be presented as true radiative t
 If effective radius or droplet-size fields are absent, appearance views may use
 an assumed effective radius only when they label `Assumed droplet radius`. They
 should use `Droplet-aware input` only when actual droplet fields are present.
+
+The first CM1/reference appearance mode uses an assumed effective radius and a
+cloud-depth proxy from the reference grid to derive opacity/brightness from
+`cloud_liquid_water_kg_per_kg`. It is a visual interpretation of reference
+fields, not direct radiative transfer or a new cloud model.
 
 Clouds, Light, and Shadow now has a first lightweight rendered appearance view backed by deterministic preset source scenes. It derives opacity, attenuation, approximate single-scattering brightness, optical-depth, and light-path/shadow displays from the source `cloud_density` field and renderer controls. Sun angle, view angle, density, depth, optical strength, and light color change the renderer state only; they must not mutate the source scene field.
 

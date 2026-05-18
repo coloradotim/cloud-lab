@@ -221,6 +221,12 @@ Rules:
 Current Clouds, Light, and Shadow v1 is not droplet-aware. It uses deterministic
 preset cloud-density fields and lightweight bulk optical relationships.
 
+The first CM1/reference appearance mode also uses an assumed effective radius.
+It consumes `reference-frame-v1` cloud liquid water, derives a cloud-depth proxy
+from the reference grid, maps cloud water to opacity/brightness, and labels the
+result as a visual interpretation rather than direct radiative transfer. It does
+not mutate the reference frame or claim droplet-aware input.
+
 ## Relationship To Precipitation
 
 Rain water may support three different views, each with different honesty
@@ -260,6 +266,8 @@ Rules for reference fields:
   missing-field warnings.
 - Do not mutate `reference-frame-v1` fields.
 - Show scientific 2-D views before or alongside appearance views.
+- Keep a switch or navigation path back to the scientific field view when an
+  appearance view interprets the same reference field.
 - Keep synthetic CM1-like fixtures labeled as fixtures, not scientific truth.
 - Do not run CM1 in normal app sessions.
 

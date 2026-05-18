@@ -306,6 +306,13 @@ case / not live interactive simulation, and does not run CM1 or compare
 reduced-model output. Real local CM1 output should replace the fixture only
 through the reference adapter and a separately scoped ingestion path.
 
+That reference panel now includes the first CM1/reference cloud appearance mode.
+It consumes reference cloud liquid water, maps it to opacity/brightness as a
+visual interpretation, preserves the timeline and provenance labels, labels
+assumed droplet radius / not direct radiative transfer / not live CM1
+simulation, and keeps the scientific field view available. It still uses the
+tiny synthetic fixture until real local CM1 output is ingested.
+
 Lower Atmosphere Cloud Basics v2 now runs the three reduced-model flows:
 
 - atmosphere evolution only calls `boundary_layer_1d`
@@ -397,5 +404,5 @@ Use the current open issue state to decide, but as of this handoff:
   before reduced-model comparison or cloud-appearance work. Do not broaden any
   one issue into the full sequence unless explicitly scoped.
 
-  After #181, the next scoped issue in this path is #210, the first cloud
-  appearance view from CM1 reference fields.
+  After #210, the next scoped issue in this path is #198, reduced-model versus
+  reference-case comparison.

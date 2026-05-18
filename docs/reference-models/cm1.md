@@ -223,6 +223,13 @@ depth, opacity, or cloud appearance as `Derived diagnostic` or `Visual
 approximation` products, but it must not mutate reference frames or hide
 missing-field warnings.
 
+The first frontend CM1/reference appearance mode now sits beside the scientific
+reference replay view. It consumes `cloud_liquid_water_kg_per_kg`, uses the
+reference grid as a cloud-depth proxy, labels assumed droplet radius and lack of
+direct radiative transfer, preserves source provenance, and keeps the scientific
+field view available. It does not run CM1, ingest real local output, render
+precipitation, or compare against reduced models.
+
 ## Future Real CM1 Cases
 
 Real reference cases should be added through the case-library and local-run

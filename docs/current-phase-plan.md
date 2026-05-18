@@ -39,6 +39,12 @@ defines how appearance and optical-depth views consume physical fields,
 provenance, renderer controls, assumed versus modeled droplet properties, and
 validation labels without changing solver or reference output.
 
+The first CM1/reference cloud appearance mode is now represented in the Lower
+Atmosphere v2 reference panel. It consumes reference cloud liquid water,
+preserves replay/source labels, uses an assumed-radius visual interpretation,
+and keeps the scientific field view available. It does not run CM1 or replace
+the separate reduced-model/reference comparison issue.
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:
