@@ -50,11 +50,20 @@ export type ReferenceReplayViewModel = {
   summary: FieldSummary;
   range: FieldStats;
   scaling: ScalingMetadata;
+  signal: ReferenceFieldSignal;
   cells: ReferenceReplayCell[];
   rows: number;
   columns: number;
   fallbackMessage: string | null;
   overlay: ReferenceReplayOverlay;
+};
+
+export type ReferenceFieldSignal = {
+  minValue: number;
+  maxValue: number;
+  hasSignal: boolean;
+  statusLabel: string;
+  helper: string;
 };
 
 const REFERENCE_FIELD_LABELS: Record<ReferenceFieldKey, { label: string; unit: string; description: string }> = {
@@ -189,6 +198,7 @@ export function buildReferenceReplayViewModel(
     summary: referenceFieldSummary(fieldKey, scalarField),
     range: displayRangeForFieldKey(fieldKey, scalarField),
     scaling,
+    signal: referenceFieldSignal(fieldKey, scalarField),
     cells: finiteField.values.flatMap((row, rowIndex) =>
       row.map((value, columnIndex) => ({
         row: rowIndex,
@@ -196,7 +206,7 @@ export function buildReferenceReplayViewModel(
         value,
         displayValue: formatDisplayValue(scalarField, value),
         color: rgbColor(colorForNormalizedValue(
-          normalizedDisplayValueForFieldKey(fieldKey, scalarField, value),
+          referenceColorIntensity(fieldKey, normalizedDisplayValueForFieldKey(fieldKey, scalarField, value)),
           colorMap,
         )),
       })),
@@ -206,6 +216,29 @@ export function buildReferenceReplayViewModel(
     fallbackMessage: nonFiniteWarning(field),
     overlay: referenceReplayOverlay(frame, run),
   };
+}
+
+export function referenceMissingFieldNotes(run: ReferenceRun | null): string[] {
+  const warnings = run?.diagnostics?.missing_field_warnings ?? [];
+  if (!warnings.length) {
+    return [];
+  }
+
+  const availableFields = new Set(run?.diagnostics?.available_fields ?? []);
+  for (const frame of run?.frames ?? []) {
+    Object.keys(frame.fields).forEach((fieldKey) => availableFields.add(fieldKey));
+  }
+
+  return warnings.map((warning) => {
+    if (
+      /temperature_k/.test(warning) &&
+      availableFields.has("potential_temperature_k") &&
+      !availableFields.has("temperature_k")
+    ) {
+      return "Temperature field unavailable; potential temperature is available for the temperature/theta view.";
+    }
+    return warning;
+  });
 }
 
 export function referenceReplayFallback(
@@ -247,6 +280,38 @@ function referenceFieldSummary(fieldKey: string, field: ScalarField): FieldSumma
       label: "Reference model output",
       explanation: "Offline CM1 reference output mapped into Cloud Lab reference frames.",
     },
+  };
+}
+
+function referenceFieldSignal(fieldKey: string, field: ScalarField): ReferenceFieldSignal {
+  const values = field.values.flat().filter((value) => Number.isFinite(value));
+  const minValue = values.length ? Math.min(...values) : 0;
+  const maxValue = values.length ? Math.max(...values) : 0;
+  const scaling = scalingMetadataForField(fieldKey, field);
+  const threshold = scaling.noiseThreshold ?? (isCloudOrRainField(fieldKey) ? 1e-8 : 0);
+  const hasSignal = isCloudOrRainField(fieldKey)
+    ? maxValue > threshold
+    : maxValue > minValue || Math.abs(maxValue) > threshold || Math.abs(minValue) > threshold;
+
+  if (isCloudOrRainField(fieldKey) && !hasSignal) {
+    return {
+      minValue,
+      maxValue,
+      hasSignal,
+      statusLabel: fieldKey === "rain_water_kg_per_kg" ? "No rain signal" : "No cloud formed",
+      helper:
+        fieldKey === "rain_water_kg_per_kg"
+          ? "Rain water is zero or below the display threshold in this frame."
+          : "Cloud liquid water is zero or below the display threshold in this frame.",
+    };
+  }
+
+  return {
+    minValue,
+    maxValue,
+    hasSignal,
+    statusLabel: "Field signal",
+    helper: `${field.metadata.display_name} min/max are shown from the selected CM1 reference frame.`,
   };
 }
 
@@ -347,6 +412,17 @@ function maxFieldPoint(field: ReferenceScalarField2D | undefined): ReferenceRepl
 
 function fieldLabel(fieldKey: string): string {
   return REFERENCE_FIELD_LABELS[fieldKey as ReferenceFieldKey]?.label ?? fieldKey;
+}
+
+function isCloudOrRainField(fieldKey: string): boolean {
+  return fieldKey === "cloud_liquid_water_kg_per_kg" || fieldKey === "rain_water_kg_per_kg";
+}
+
+function referenceColorIntensity(fieldKey: string, normalizedValue: number): number {
+  if (!isCloudOrRainField(fieldKey) || normalizedValue <= 0) {
+    return normalizedValue;
+  }
+  return Math.min(1, 0.16 + Math.pow(normalizedValue, 0.62) * 0.84);
 }
 
 function rgbColor([red, green, blue]: [number, number, number]): string {

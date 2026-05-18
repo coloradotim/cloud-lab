@@ -13,6 +13,7 @@ import {
   buildReferenceReplayViewModel,
   defaultReferenceFieldKey,
   normalizeReferenceFieldSelection,
+  referenceMissingFieldNotes,
   referenceReplayFallback,
 } from "./referenceReplay";
 import type { ReferenceRun } from "./referenceTypes";
@@ -46,8 +47,11 @@ describe("CM1 reference replay view model", () => {
 
     expect(first?.frame.time_seconds).toBe(0);
     expect(first?.summary.value).toBe("0.00e+0");
+    expect(first?.signal.hasSignal).toBe(false);
+    expect(first?.signal.statusLabel).toBe("No cloud formed");
     expect(second?.frame.time_seconds).toBe(300);
     expect(second?.summary.value).toBe("5.00e-7");
+    expect(second?.signal.hasSignal).toBe(true);
   });
 
   it("shows missing field fallback instead of blanking the page", () => {
@@ -55,6 +59,16 @@ describe("CM1 reference replay view model", () => {
 
     expect(buildReferenceReplayViewModel(run, "rain_water_kg_per_kg", 0)).toBeNull();
     expect(referenceReplayFallback(run, "rain_water_kg_per_kg", 0)).toContain("Rain water is missing");
+  });
+
+  it("softens missing temperature warnings when potential temperature is available", () => {
+    const run = createTinyCm1ReferenceRunFixture();
+    run.diagnostics!.missing_field_warnings = ["Missing CM1 field for temperature_k."];
+    run.diagnostics!.available_fields = ["potential_temperature_k"];
+
+    expect(referenceMissingFieldNotes(run)).toEqual([
+      "Temperature field unavailable; potential temperature is available for the temperature/theta view.",
+    ]);
   });
 
   it("shows missing frames fallback", () => {
@@ -109,12 +123,24 @@ describe("CM1 reference replay component", () => {
     expect(html).toContain("CM1 reference output");
     expect(html).toContain("Offline reference case");
     expect(html).toContain("Scientific field view");
-    expect(html).toContain("Not live interactive simulation");
-    expect(html).toContain("Synthetic fixture, not scientific truth");
+    expect(html).toContain("Not live CM1 simulation");
     expect(html).toContain("Synthetic fixture data");
+    expect(html).toContain("Not scientific truth");
     expect(html).toContain("For UI/testing only");
     expect(html).toContain("No real local CM1 reference output is available");
     expect(html).toContain("Run the local CM1 reference-pair workflow and ingest the output");
+    expect(html).toContain("Field status");
+    expect(html).toContain("No cloud formed");
+  });
+
+  it("renders real local ingested labels separately from fixture labels", () => {
+    const run = createRealLocalReferenceRunFixture();
+    const html = renderToStaticMarkup(<ReferenceReplayView referenceRun={run} />);
+
+    expect(html).toContain("Real local ingested output");
+    expect(html).toContain("Offline local reference case");
+    expect(html).not.toContain("Synthetic fixture data");
+    expect(html).not.toContain("For UI/testing only");
   });
 
   it("does not run CM1 or mislabel reduced-model output as CM1", () => {
@@ -206,7 +232,33 @@ describe("CM1 reference appearance view", () => {
     expect(appearanceHtml).toContain("Not direct radiative transfer");
     expect(appearanceHtml).toContain("Not live CM1 simulation");
     expect(appearanceHtml).toContain("CM1 reference output");
+    expect(appearanceHtml).toContain("Zero cloud water renders no meaningful cloud");
     expect(scientificHtml).toContain("Scientific field view");
     expect(scientificHtml).toContain("Appearance");
   });
 });
+
+function createRealLocalReferenceRunFixture(): ReferenceRun {
+  const fixture = createTinyCm1ReferenceRunFixture();
+  if (!fixture.diagnostics) {
+    throw new Error("Expected fixture diagnostics");
+  }
+  return {
+    ...fixture,
+    frames: fixture.frames.map((frame) => ({
+      ...frame,
+      provenance: {
+        ...frame.provenance,
+        source_is_synthetic_fixture: false,
+      },
+      assumptions: frame.assumptions.filter((assumption) => !assumption.includes("Synthetic fixture")),
+    })),
+    diagnostics: {
+      ...fixture.diagnostics,
+      source_provenance: {
+        ...fixture.diagnostics.source_provenance,
+        source_is_synthetic_fixture: false,
+      },
+    },
+  };
+}

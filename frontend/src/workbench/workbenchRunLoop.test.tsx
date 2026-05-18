@@ -148,7 +148,9 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(html).toContain("Reduced model output");
     expect(html).toContain("CM1 reference output");
     expect(html).toContain("Exact cloud morphology is not presented as pass/fail");
-    expect(html).toContain("Not live interactive simulation");
+    expect(html).toContain("Not live CM1 simulation");
+    expect(html).toContain("Reference case is available before you run the reduced model");
+    expect(html).toContain("Field status");
     expect(html).not.toContain("Experimental 2-D prototype");
   });
 

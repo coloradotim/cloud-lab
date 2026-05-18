@@ -2051,6 +2051,10 @@ function LowerAtmosphereV2ReferenceComparisonPanel({
         </div>
       ) : null}
 
+      {viewModel.preRunExplanation ? (
+        <p className="reference-compare-prerun">{viewModel.preRunExplanation}</p>
+      ) : null}
+
       {viewModel.fallbackMessage ? (
         <div
           className="stage-empty-state reference-compare-empty"
@@ -2061,18 +2065,25 @@ function LowerAtmosphereV2ReferenceComparisonPanel({
           <p>Reduced-model diagnostics remain available, but no offline reference run is loaded for this scenario.</p>
         </div>
       ) : (
-        <dl className="reference-compare-diagnostics">
+        <div className="reference-compare-diagnostics" role="table" aria-label="Reduced model and CM1 diagnostic comparison">
+          <div className="reference-compare-header" role="row">
+            <span role="columnheader">Diagnostic</span>
+            <span role="columnheader">Reduced</span>
+            <span role="columnheader">CM1 reference</span>
+            <span role="columnheader">How to read it</span>
+          </div>
           {viewModel.rows.map((row) => (
-            <div key={row.diagnostic}>
-              <dt>{row.diagnostic}</dt>
-              <dd>
-                <span>Reduced model output: {row.reducedValue}</span>
-                <span>CM1 reference output: {row.referenceValue}</span>
-                <em>{row.interpretation}</em>
-              </dd>
+            <div key={row.diagnostic} className="reference-compare-row" role="row">
+              <span className="reference-compare-diagnostic" role="cell">
+                <small>{row.category}</small>
+                {row.diagnostic}
+              </span>
+              <span role="cell">{row.reducedValue}</span>
+              <span role="cell">{row.referenceValue}</span>
+              <em role="cell">{row.interpretation}</em>
             </div>
           ))}
-        </dl>
+        </div>
       )}
 
       <p className="stage-helper">{viewModel.morphologyNote}</p>

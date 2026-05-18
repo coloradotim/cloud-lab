@@ -209,7 +209,7 @@ Reference viewers should label source data as:
 CM1 reference output
 Offline reference case
 Scientific field view
-Not live interactive simulation
+Not live CM1 simulation
 ```
 
 Cloud appearance and 2.5-D views may consume these same fields later, but they
@@ -227,8 +227,16 @@ The first frontend CM1/reference appearance mode now sits beside the scientific
 reference replay view. It consumes `cloud_liquid_water_kg_per_kg`, uses the
 reference grid as a cloud-depth proxy, labels assumed droplet radius and lack of
 direct radiative transfer, preserves source provenance, and keeps the scientific
-field view available. It does not run CM1, ingest real local output, render
+field view available. It does not run CM1, perform ingestion itself, render
 precipitation, or compare against reduced models.
+
+The #222 display polish keeps this contract unchanged but improves how the
+accepted real-output path is presented. Scientific replay should show readable
+cloud-water contrast, selected-frame min/max readouts, no-cloud/no-signal states
+for dry frames, and a softer temperature/theta note when `temperature_k` is
+missing but `potential_temperature_k` is available. Appearance rendering should
+make shallow-cumulus cloud water more visible while keeping zero-cloud dry cases
+cloud-free and preserving source fields.
 
 The first reduced-model/reference comparison view now consumes the same
 `ReferenceRun` diagnostics without changing the adapter contract. It maps Lower
@@ -240,12 +248,13 @@ Reduced model output
 CM1 reference output
 Offline reference case
 Derived diagnostic
-Not a live interactive CM1 simulation
+Not live CM1 simulation
 ```
 
 The comparison intentionally avoids exact morphology matching. Missing reference
-runs show a fallback instead of blank charts, and the app still does not run CM1
-or require CM1 dependencies in normal sessions.
+runs show a fallback instead of blank charts, the pre-run state explains that
+the offline CM1 reference is available before the reduced-model run, and the app
+still does not run CM1 or require CM1 dependencies in normal sessions.
 
 ## Future Real CM1 Cases
 
