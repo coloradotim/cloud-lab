@@ -29,6 +29,13 @@ The v2 science stack is:
 5. Visualization that starts simple and scientific, then iterates toward richer cloud and optics views only after the science contract is stable.
 6. Future CM1 reference comparison to anchor reduced-model behavior against credible cloud-resolving cases.
 
+The v2 workbench now also includes a first CM1/reference scientific replay
+panel. This panel is separate from the reduced-model flow: it displays offline
+`reference-frame-v1` fields with CM1 source/provenance labels and does not run
+CM1, compare reduced-model output, or present the reduced-model result as CM1.
+The initial mounted data is a tiny synthetic fixture for viewer coverage until
+real local CM1 output is ingested.
+
 The v2 user should be able to ask:
 
 ```text

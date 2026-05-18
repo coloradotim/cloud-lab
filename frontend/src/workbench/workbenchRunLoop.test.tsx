@@ -132,7 +132,7 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(displayedFirst.isReplayPaused).toBe(true);
   });
 
-  it("Lower Atmosphere v2 shell renders reduced-model orchestration surfaces instead of the old 2-D view", () => {
+  it("Lower Atmosphere v2 shell renders reduced-model surfaces plus the CM1 reference replay", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
@@ -142,8 +142,10 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(html).toContain("controlled_cloud_column view");
     expect(html).toContain("Timeline / scrubber");
     expect(html).toContain("No Boussinesq default");
-    expect(html).not.toContain("Scientific field");
-    expect(html).not.toContain("Cloud liquid water - kg/kg");
+    expect(html).toContain("CM1 reference replay");
+    expect(html).toContain("Scientific field view");
+    expect(html).toContain("Not live interactive simulation");
+    expect(html).not.toContain("Experimental 2-D prototype");
   });
 
   it("scientific view model renders the selected field from a frame", () => {

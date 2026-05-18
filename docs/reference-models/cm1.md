@@ -196,7 +196,14 @@ cloud base / cloud top overlays
 time replay
 ```
 
-Future viewers should label source data as:
+The first frontend reference replay view consumes this contract in Lower
+Atmosphere Cloud Basics v2. It renders mapped reference frames as a scientific
+2-D x-z field with field selection, timeline scrubber, source labels, basic
+diagnostics, and simple cloud-base/cloud-top/max-updraft overlays. The initial
+mounted dataset is a tiny synthetic CM1-like fixture for UI/test coverage only;
+it is labeled as synthetic fixture data, not scientific truth.
+
+Reference viewers should label source data as:
 
 ```text
 CM1 reference output
