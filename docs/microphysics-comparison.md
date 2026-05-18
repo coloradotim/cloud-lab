@@ -60,8 +60,19 @@ Each model/case emits:
 - water vapor depletion
 - time of first rain water
 - maximum rain water
+- integrated rain water over time
+- total-water initial/final budget and final drift
+- subcloud evaporation proxy
+- bulk autoconversion threshold
+- precipitation status and reason for the `microphysics_lab` path
 - final temperature
 - final parcel height
+
+The `microphysics_lab` metrics use the shared `microphysics-diagnostics-v1`
+contract from `backend/app/sim/microphysics_diagnostics.py`. The simple
+saturation-adjustment baseline reports matching scalar budget fields where
+possible, but it does not assign a precipitation status because it has no rain
+conversion path.
 
 ## Current Results
 
@@ -79,6 +90,10 @@ Representative local results:
 | Rain-initiation stress | lab | `1080 s` | `3.890e-3` | `4.512e+0` | `1.315e-2` | `9.963e-3` | `7.85 deg C` |
 
 Mixing ratios are `kg kg-1`; integrated cloud is `kg kg-1 s`.
+
+The representative table remains a compact narrative summary. The machine-readable
+JSON includes the broader diagnostics contract, including rain integral, water
+budget, status/reason, and autoconversion threshold fields.
 
 ## What The Simple Model Gets Right
 

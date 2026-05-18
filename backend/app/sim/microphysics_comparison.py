@@ -6,12 +6,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.sim import microphysics_lab
+from app.sim.microphysics_diagnostics import (
+    MicrophysicsDiagnostics,
+    compute_microphysics_diagnostics,
+)
 from app.sim.schemas import (
     BackgroundWindConfig,
     GridConfig,
     InitialAtmosphereConfig,
     SimulationConfig,
-    SimulationFrame,
     SurfaceHeatingConfig,
     TimeConfig,
 )
@@ -144,7 +147,7 @@ def main() -> None:
 def _case_result(case: ComparisonCase) -> dict[str, Any]:
     simple_samples = _run_simple_saturation_adjustment(case.config)
     lab_frames = run_simulation(case.config)
-    lab_samples = [_sample_from_frame(frame) for frame in lab_frames]
+    lab_diagnostics = compute_microphysics_diagnostics(lab_frames)
 
     return {
         "slug": case.slug,
@@ -159,9 +162,9 @@ def _case_result(case: ComparisonCase) -> dict[str, Any]:
         },
         "models": {
             "simple_saturation_adjustment": _metrics_from_samples(simple_samples),
-            "microphysics_lab": _metrics_from_samples(lab_samples),
+            "microphysics_lab": _metrics_from_diagnostics(lab_diagnostics),
         },
-        "interpretation": _interpret_case(simple_samples, lab_samples),
+        "interpretation": _interpret_case(simple_samples, lab_diagnostics),
     }
 
 
@@ -219,17 +222,6 @@ def _run_simple_saturation_adjustment(config: SimulationConfig) -> list[dict[str
     return samples
 
 
-def _sample_from_frame(frame: SimulationFrame) -> dict[str, float]:
-    return {
-        "time_seconds": frame.time_seconds,
-        "temperature_k": _field_value(frame, "temperature_k"),
-        "height_m": frame.time_seconds * frame.config.background_wind.w_m_per_s,
-        "water_vapor_kg_per_kg": _field_value(frame, "water_vapor_kg_per_kg"),
-        "cloud_liquid_water_kg_per_kg": _field_value(frame, "cloud_liquid_water_kg_per_kg"),
-        "rain_water_kg_per_kg": _field_value(frame, "rain_water_kg_per_kg"),
-    }
-
-
 def _metrics_from_samples(samples: list[dict[str, float]]) -> dict[str, float | None]:
     first = samples[0]
     final = samples[-1]
@@ -241,36 +233,70 @@ def _metrics_from_samples(samples: list[dict[str, float]]) -> dict[str, float | 
     return {
         "first_cloud_time_seconds": first_cloud_time,
         "max_cloud_liquid_water_kg_per_kg": max_cloud,
+        "cloud_water_integral": _integrate_time_series(
+            samples,
+            "cloud_liquid_water_kg_per_kg",
+        ),
         "integrated_cloud_liquid_water_kg_per_kg_s": _integrate_time_series(
             samples,
             "cloud_liquid_water_kg_per_kg",
         ),
-        "water_vapor_depletion_kg_per_kg": (
-            first["water_vapor_kg_per_kg"] - final["water_vapor_kg_per_kg"]
-        ),
+        "water_vapor_depletion_kg_per_kg": first["water_vapor_kg_per_kg"]
+        - final["water_vapor_kg_per_kg"],
+        "vapor_depletion": first["water_vapor_kg_per_kg"] - final["water_vapor_kg_per_kg"],
         "first_rain_time_seconds": first_rain_time,
         "max_rain_water_kg_per_kg": max_rain,
+        "rain_water_integral": _integrate_time_series(samples, "rain_water_kg_per_kg"),
+        "total_water_budget_initial": _sample_total_water(first),
+        "total_water_budget_final": _sample_total_water(final),
+        "total_water_budget_drift": _sample_total_water(final) - _sample_total_water(first),
+        "subcloud_evaporation_proxy": _sample_subcloud_evaporation_proxy(samples),
+        "bulk_autoconversion_threshold": microphysics_lab.RAIN_AUTOCONVERSION_THRESHOLD_KG_PER_KG,
+        "precipitation_status": None,
+        "precipitation_reason": None,
         "final_temperature_c": final["temperature_k"] - 273.15,
         "final_height_m": final["height_m"],
     }
 
 
+def _metrics_from_diagnostics(diagnostics: MicrophysicsDiagnostics) -> dict[str, object]:
+    return {
+        "first_cloud_time_seconds": diagnostics.first_cloud_time_seconds,
+        "max_cloud_liquid_water_kg_per_kg": diagnostics.max_cloud_liquid_water_kg_per_kg,
+        "cloud_water_integral": diagnostics.cloud_water_integral,
+        "integrated_cloud_liquid_water_kg_per_kg_s": diagnostics.cloud_water_integral,
+        "water_vapor_depletion_kg_per_kg": diagnostics.vapor_depletion,
+        "vapor_depletion": diagnostics.vapor_depletion,
+        "first_rain_time_seconds": diagnostics.first_rain_time_seconds,
+        "max_rain_water_kg_per_kg": diagnostics.max_rain_water_kg_per_kg,
+        "rain_water_integral": diagnostics.rain_water_integral,
+        "total_water_budget_initial": diagnostics.total_water_budget_initial,
+        "total_water_budget_final": diagnostics.total_water_budget_final,
+        "total_water_budget_drift": diagnostics.total_water_budget_drift,
+        "subcloud_evaporation_proxy": diagnostics.subcloud_evaporation_proxy,
+        "bulk_autoconversion_threshold": diagnostics.bulk_autoconversion_threshold,
+        "precipitation_status": diagnostics.precipitation_status,
+        "precipitation_reason": diagnostics.precipitation_reason,
+        "final_temperature_c": diagnostics.final_temperature_k - 273.15,
+        "final_height_m": diagnostics.final_parcel_height_m,
+    }
+
+
 def _interpret_case(
     simple_samples: list[dict[str, float]],
-    lab_samples: list[dict[str, float]],
+    lab_diagnostics: MicrophysicsDiagnostics,
 ) -> list[str]:
     simple_metrics = _metrics_from_samples(simple_samples)
-    lab_metrics = _metrics_from_samples(lab_samples)
     notes = [
         "Both paths use bulk saturation adjustment, so neither represents droplet-resolved growth.",
     ]
 
-    if lab_metrics["max_rain_water_kg_per_kg"] and lab_metrics["max_rain_water_kg_per_kg"] > 0.0:
+    if lab_diagnostics.max_rain_water_kg_per_kg > 0.0:
         notes.append("microphysics_lab converts some cloud water to rain water in this case.")
     else:
         notes.append("microphysics_lab does not initiate rain water in this case.")
 
-    if simple_metrics["first_cloud_time_seconds"] != lab_metrics["first_cloud_time_seconds"]:
+    if simple_metrics["first_cloud_time_seconds"] != lab_diagnostics.first_cloud_time_seconds:
         notes.append(
             "Cloud timing differs because lab rain/evaporation feedback changes the budget."
         )
@@ -278,6 +304,23 @@ def _interpret_case(
         notes.append("Cloud timing matches because both paths use instant saturation adjustment.")
 
     return notes
+
+
+def _sample_total_water(sample: dict[str, float]) -> float:
+    return (
+        sample["water_vapor_kg_per_kg"]
+        + sample["cloud_liquid_water_kg_per_kg"]
+        + sample["rain_water_kg_per_kg"]
+    )
+
+
+def _sample_subcloud_evaporation_proxy(samples: list[dict[str, float]]) -> float:
+    removed = 0.0
+    for previous, current in zip(samples, samples[1:], strict=False):
+        rain_change = previous["rain_water_kg_per_kg"] - current["rain_water_kg_per_kg"]
+        if rain_change > 0.0:
+            removed += rain_change
+    return removed
 
 
 def _first_time_above(
@@ -297,11 +340,6 @@ def _integrate_time_series(samples: list[dict[str, float]], key: str) -> float:
         dt = current["time_seconds"] - previous["time_seconds"]
         total += 0.5 * (previous[key] + current[key]) * dt
     return total
-
-
-def _field_value(frame: SimulationFrame, field_key: str) -> float:
-    values = getattr(frame.fields, field_key).values
-    return float(values[0][0])
 
 
 def _base_config() -> SimulationConfig:

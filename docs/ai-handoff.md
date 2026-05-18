@@ -345,6 +345,14 @@ selected-profile provenance for future warm-rain diagnostics. It can report
 deferred, or `not_evaluated` when no cloud water formed. It does not implement
 rain, PySDM, droplet distributions, optics, or Boussinesq coupling.
 
+Controlled `microphysics_lab` warm-rain diagnostics are implemented as
+`microphysics-diagnostics-v1` in `backend/app/sim/microphysics_diagnostics.py`.
+They report first cloud/rain timing, cloud/rain maxima and integrals, vapor
+depletion, total-water budget initial/final/drift, subcloud evaporation proxy,
+bulk autoconversion threshold, precipitation status/reason, and current droplet
+payload availability. This remains a bulk parcel/box diagnostic path, not PySDM,
+CM1, or Boussinesq coupling.
+
 Lower Atmosphere Cloud Basics v2 scenario interpretation now treats `Dry failed
 cumulus` as a cloud-free default combined-flow contract. Split outcomes remain
 valid in other setups, but `profile moisture_limited + column cloud_formed`
