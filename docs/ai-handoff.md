@@ -235,6 +235,14 @@ lab contract.
 Continue from `docs/controlled-cloud-column.md` for the backend contract,
 prescribed-lift assumptions, scenarios, diagnostics, and validation expectations.
 
+Cloud optics now has a physical-field contract in
+`docs/optics-field-contract.md`. The contract states that optics consumes
+physical fields and renderer controls; it does not create weather, mutate
+solver/reference fields, or hide scientific warnings. It defines provenance
+categories, required/optional optics inputs, assumed-versus-modeled droplet
+labels, reference/microphysics relationships, and validation expectations for
+future appearance work.
+
 Lower Atmosphere Cloud Basics v2 design lives in
 `docs/labs/lower-atmosphere-cloud-basics-v2.md`. It defines v2 as the
 reduced-model replacement for the current Boussinesq-based Lower Atmosphere path,
@@ -389,5 +397,5 @@ Use the current open issue state to decide, but as of this handoff:
   before reduced-model comparison or cloud-appearance work. Do not broaden any
   one issue into the full sequence unless explicitly scoped.
 
-  After #209, the next scoped issue in this path is #181, the cloud optics
-  physical-field contract.
+  After #181, the next scoped issue in this path is #210, the first cloud
+  appearance view from CM1 reference fields.

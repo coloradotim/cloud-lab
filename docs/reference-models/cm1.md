@@ -216,6 +216,13 @@ Cloud appearance and 2.5-D views may consume these same fields later, but they
 must label visual assumptions such as assumed droplet radius, optical-depth
 approximation, and lack of full radiative transfer.
 
+The shared optics field contract is documented in
+`docs/optics-field-contract.md`. When CM1/reference fields feed appearance
+views, they remain `Reference model output`; the renderer may derive optical
+depth, opacity, or cloud appearance as `Derived diagnostic` or `Visual
+approximation` products, but it must not mutate reference frames or hide
+missing-field warnings.
+
 ## Future Real CM1 Cases
 
 Real reference cases should be added through the case-library and local-run

@@ -45,6 +45,11 @@ The recommended science stack is:
 6. **Optics and rendering layers** that consume physical fields, preserve source
    provenance, and disclose visual approximations.
 
+The shared optics boundary is documented in `docs/optics-field-contract.md`.
+That contract defines required optics inputs, provenance categories,
+assumed-versus-modeled droplet labels, and validation expectations for future
+appearance views.
+
 In plain terms:
 
 ```text
