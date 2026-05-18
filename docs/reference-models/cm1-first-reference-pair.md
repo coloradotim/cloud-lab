@@ -212,7 +212,31 @@ this pair.
 
 ## Ingestion Path
 
-The intended path remains:
+After local output exists, ingest the pair with:
+
+```bash
+scripts/reference/cm1/ingest_reference_pair.sh \
+  --dry-input data/reference/cm1/runs/<local-dry-run> \
+  --shallow-input data/reference/cm1/runs/<local-shallow-run> \
+  --output data/reference/cm1/ingested \
+  --public-output frontend/public/reference/cm1/local
+```
+
+For one case at a time:
+
+```bash
+scripts/reference/cm1/ingest_cm1_output.py \
+  --case-id cm1-shallow-cumulus-baseline-v1 \
+  --input-dir data/reference/cm1/runs/<local-shallow-run> \
+  --output-dir data/reference/cm1/ingested \
+  --public-output-dir frontend/public/reference/cm1/local
+```
+
+Each input directory should contain either a small
+`cloud_lab_cm1_adapter_input.json` mapping file or NetCDF CM1 output (`*.nc`)
+readable through optional local `xarray`.
+
+The implemented path is:
 
 ```text
 CM1 output
@@ -230,3 +254,15 @@ future appearance / comparison
 
 Do not point the frontend directly at raw CM1 output. Do not run CM1 in normal
 Cloud Lab app sessions.
+
+Generated artifacts and frontend local indexes are ignored by git:
+
+```text
+data/reference/cm1/ingested/
+frontend/public/reference/cm1/local/
+```
+
+When the frontend local index exists, Lower Atmosphere v2 prefers real local
+ingested output for matching case ids. Otherwise the tiny fixture remains
+available only as clearly labeled `Synthetic fixture data`, `Not scientific
+truth`, and `For UI/testing only`.

@@ -58,6 +58,14 @@ No CM1 reference case is available for this scenario yet.
 The comparison is qualitative and diagnostic. It must not score exact cloud
 morphology or imply CM1 runs live in the app.
 
+When local CM1 artifacts have been ingested, the v2 reference panel and
+comparison panel prefer the real local `reference-run-v1` artifact for the
+mapped case id. The generated local index lives under
+`frontend/public/reference/cm1/local/index.json` and is ignored by git. If no
+real local artifact is available, the shallow-cumulus fixture remains visible
+only as `Synthetic fixture data`, `Not scientific truth`, and `For UI/testing
+only`.
+
 The v2 user should be able to ask:
 
 ```text

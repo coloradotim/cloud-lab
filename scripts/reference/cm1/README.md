@@ -16,6 +16,8 @@ They are intentionally lightweight:
 check_cm1_environment.sh
 run_cm1_case.sh
 run_reference_pair.sh
+ingest_cm1_output.py
+ingest_reference_pair.sh
 ```
 
 ### Check Environment
@@ -51,3 +53,28 @@ and shallow-cumulus-baseline cases into ignored local output directories.
 
 See `docs/reference-models/cm1-first-reference-pair.md` for case details,
 required fields, diagnostics, and data policy.
+
+### Ingest Local CM1 Output
+
+```bash
+scripts/reference/cm1/ingest_reference_pair.sh \
+  --dry-input data/reference/cm1/runs/<local-dry-run> \
+  --shallow-input data/reference/cm1/runs/<local-shallow-run> \
+  --output data/reference/cm1/ingested \
+  --public-output frontend/public/reference/cm1/local
+```
+
+For one case:
+
+```bash
+scripts/reference/cm1/ingest_cm1_output.py \
+  --case-id cm1-shallow-cumulus-baseline-v1 \
+  --input-dir data/reference/cm1/runs/<local-shallow-run> \
+  --output-dir data/reference/cm1/ingested \
+  --public-output-dir frontend/public/reference/cm1/local
+```
+
+The ingester expects either `cloud_lab_cm1_adapter_input.json` in the input
+directory or NetCDF output readable through optional local `xarray`. It writes
+`reference-run-v1` artifacts and an ignored frontend local index. It does not
+run CM1 or commit generated output.

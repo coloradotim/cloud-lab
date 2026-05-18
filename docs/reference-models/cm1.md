@@ -284,3 +284,62 @@ live under `reference/cm1/cases/` and are documented in
 `docs/reference-models/cm1-first-reference-pair.md`. Generated CM1 output from
 those cases must remain under ignored local paths such as
 `data/reference/cm1/` until a separate artifact/storage policy exists.
+
+## Local Output Ingestion
+
+Issue #220 adds the first repo-side path for turning locally generated CM1
+output into Cloud Lab reference artifacts.
+
+The ingestion path is:
+
+```text
+local CM1 output
+  ->
+CM1 adapter input JSON or optional NetCDF reader
+  ->
+Cloud Lab CM1 reference adapter
+  ->
+reference-run-v1 / reference-frame-v1 / reference-diagnostics-v1
+  ->
+frontend local reference index
+  ->
+scientific replay / appearance / reduced-reference comparison
+```
+
+Primary commands:
+
+```bash
+scripts/reference/cm1/ingest_cm1_output.py \
+  --case-id cm1-shallow-cumulus-baseline-v1 \
+  --input-dir data/reference/cm1/runs/<local-shallow-run> \
+  --output-dir data/reference/cm1/ingested \
+  --public-output-dir frontend/public/reference/cm1/local
+
+scripts/reference/cm1/ingest_reference_pair.sh \
+  --dry-input data/reference/cm1/runs/<local-dry-run> \
+  --shallow-input data/reference/cm1/runs/<local-shallow-run> \
+  --output data/reference/cm1/ingested \
+  --public-output frontend/public/reference/cm1/local
+```
+
+Each input directory should contain either:
+
+- `cloud_lab_cm1_adapter_input.json`, a small Cloud Lab adapter-input mapping;
+  or
+- NetCDF CM1 output files (`*.nc`) readable through optional local `xarray`.
+
+The generated artifacts remain local and ignored:
+
+```text
+data/reference/cm1/ingested/
+frontend/public/reference/cm1/local/
+```
+
+The frontend looks for `/reference/cm1/local/index.json`. If it exists, real
+local ingested artifacts are preferred over the tiny synthetic fixture for the
+same case id. If it is missing, the app keeps showing the tiny fixture/demo
+view with explicit `Synthetic fixture data`, `Not scientific truth`, and
+`For UI/testing only` labels.
+
+Do not commit raw CM1 outputs, generated reference artifacts, generated public
+indexes, CM1 binaries, or local build products.

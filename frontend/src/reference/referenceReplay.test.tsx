@@ -111,6 +111,10 @@ describe("CM1 reference replay component", () => {
     expect(html).toContain("Scientific field view");
     expect(html).toContain("Not live interactive simulation");
     expect(html).toContain("Synthetic fixture, not scientific truth");
+    expect(html).toContain("Synthetic fixture data");
+    expect(html).toContain("For UI/testing only");
+    expect(html).toContain("No real local CM1 reference output is available");
+    expect(html).toContain("Run the local CM1 reference-pair workflow and ingest the output");
   });
 
   it("does not run CM1 or mislabel reduced-model output as CM1", () => {

@@ -243,22 +243,33 @@ Do not commit:
 
 ## How Output Should Be Ingested Later
 
-After a real case is generated, later work should create or update a manifest
-with:
+After a real case is generated, use the local ingestion commands to create
+Cloud Lab reference artifacts from the ignored output directory:
 
-```text
-case_id
-case_name
-cm1_version
-created_at
-local_output_path
-expected_output_files
-required_fields
-diagnostics_to_compute
-notes
+```bash
+scripts/reference/cm1/ingest_cm1_output.py \
+  --case-id cm1-shallow-cumulus-baseline-v1 \
+  --input-dir data/reference/cm1/runs/<local-shallow-run> \
+  --output-dir data/reference/cm1/ingested \
+  --public-output-dir frontend/public/reference/cm1/local
 ```
 
-Then the #179 adapter should map selected CM1-like output into:
+For the first pair:
+
+```bash
+scripts/reference/cm1/ingest_reference_pair.sh \
+  --dry-input data/reference/cm1/runs/<local-dry-run> \
+  --shallow-input data/reference/cm1/runs/<local-shallow-run> \
+  --output data/reference/cm1/ingested \
+  --public-output frontend/public/reference/cm1/local
+```
+
+Each input directory should contain either `cloud_lab_cm1_adapter_input.json`
+or NetCDF CM1 output files (`*.nc`) readable through an optional local `xarray`
+install. The default Cloud Lab backend/frontend installs still do not require
+CM1, xarray, or NetCDF libraries.
+
+The ingestion command maps selected CM1-like output into:
 
 ```text
 reference-run-v1
@@ -269,6 +280,16 @@ reference-diagnostics-v1
 Do not point the frontend directly at raw CM1 output. The Cloud Lab reference
 adapter should preserve units, field provenance, source case id, assumptions,
 and missing-field warnings first.
+
+The command also writes an ignored local frontend index under:
+
+```text
+frontend/public/reference/cm1/local/index.json
+```
+
+When that index exists, the Vite app prefers real local ingested CM1 artifacts
+over the tiny synthetic fixture. When it is absent, the app keeps the fixture
+available only as a clearly labeled synthetic/demo view.
 
 ## Troubleshooting
 

@@ -26,6 +26,7 @@ frontend/.vite/
 
 # Local generated reference model output
 data/reference/cm1/
+frontend/public/reference/cm1/local/
 
 # Editors
 .idea/

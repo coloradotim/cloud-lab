@@ -359,6 +359,20 @@ valid in other setups, but `profile moisture_limited + column cloud_formed`
 should be labeled as cloud formed under prescribed lift and explained as
 controlled forcing, not free convection.
 
+The current CM1 reference priority is:
+
+```text
+real local CM1 output → adapter ingestion → 2-D replay → appearance view → comparison
+```
+
+Issue #220 added the local ingestion path from ignored CM1 output directories
+to `reference-run-v1` artifacts and the ignored frontend local index at
+`frontend/public/reference/cm1/local/index.json`. Lower Atmosphere v2 prefers
+real local ingested artifacts when the index exists. If no real artifact is
+available, the tiny fixture remains a demo/test fallback only and must be
+labeled as `Synthetic fixture data`, `Not scientific truth`, and `For
+UI/testing only`.
+
 ## Do Not Do Without Explicit User Direction
 
 - Do not preserve or rebuild old dashboard patterns.
