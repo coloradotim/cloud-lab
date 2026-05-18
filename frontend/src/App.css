@@ -587,6 +587,14 @@ h2 {
   grid-template-columns: minmax(260px, 320px) minmax(480px, 1fr);
 }
 
+.workbench-grid.lower-atmosphere-has-result {
+  grid-template-columns: minmax(220px, 270px) minmax(560px, 1fr) minmax(270px, 330px);
+}
+
+.workbench-grid.lower-atmosphere-has-result.inspector-collapsed {
+  grid-template-columns: minmax(220px, 270px) minmax(560px, 1fr);
+}
+
 .workbench-region,
 .timeline-region {
   border: 1px solid #cbd8d1;
@@ -614,6 +622,21 @@ h2 {
   max-height: calc(100vh - 116px);
   overflow: auto;
   overscroll-behavior: contain;
+}
+
+.lower-atmosphere-has-result .lower-atmosphere-v2-setup .setup-control-section:nth-of-type(n + 3) {
+  display: none;
+}
+
+.lower-atmosphere-has-result .lower-atmosphere-v2-setup::after {
+  content: "Result is ready. Scenario and flow stay visible here; use Reset or edit setup to change the experiment.";
+  display: block;
+  border-top: 1px solid #dbe5e0;
+  padding-top: 12px;
+  color: #5a6d68;
+  font-size: 0.84rem;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .inspector-region {
@@ -751,6 +774,49 @@ h2 {
   margin: 0;
 }
 
+.lower-atmosphere-story-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #bfd8d0;
+  border-radius: 8px;
+  padding: 14px;
+  background: linear-gradient(180deg, #f3fbf8 0%, #ffffff 100%);
+}
+
+.lower-atmosphere-story-card h3 {
+  margin: 0;
+  color: #10282d;
+  font-size: 1.15rem;
+}
+
+.lower-atmosphere-story-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.lower-atmosphere-story-grid div {
+  min-width: 0;
+  border: 1px solid #dbe5e0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.lower-atmosphere-story-grid strong {
+  display: block;
+  color: #2f6f65;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
+.lower-atmosphere-story-grid p {
+  margin: 4px 0 0;
+  color: #153137;
+  font-weight: 720;
+  line-height: 1.45;
+}
+
 .reference-replay-panel {
   display: grid;
   gap: 12px;
@@ -800,68 +866,62 @@ h2 {
   line-height: 1.45;
 }
 
-.reference-compare-diagnostics {
+.reference-compare-cards {
   display: grid;
-  overflow-x: auto;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.reference-compare-card {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
   border: 1px solid #dbe5e0;
   border-radius: 8px;
-  margin: 0;
+  padding: 11px;
   background: #f8fbf8;
-}
-
-.reference-compare-header,
-.reference-compare-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 0.9fr) minmax(110px, 0.8fr) minmax(110px, 0.8fr) minmax(190px, 1.4fr);
-  min-width: 620px;
-}
-
-.reference-compare-header {
-  color: #4f6f68;
-  background: #edf6f2;
-  font-size: 0.72rem;
-  font-weight: 850;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-.reference-compare-row {
-  border-top: 1px solid #dbe5e0;
-}
-
-.reference-compare-header span,
-.reference-compare-row span,
-.reference-compare-row em {
-  min-width: 0;
-  padding: 9px 10px;
   overflow-wrap: anywhere;
 }
 
-.reference-compare-diagnostic {
+.reference-compare-card h4,
+.reference-compare-card p {
+  margin: 0;
+}
+
+.reference-compare-card h4 {
+  color: #153137;
+  font-size: 0.96rem;
+}
+
+.reference-compare-card dl {
   display: grid;
-  gap: 2px;
+  gap: 6px;
+  margin: 0;
+}
+
+.reference-compare-card dl div {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.reference-compare-card dt {
   color: #4f6f68;
-  font-weight: 800;
-}
-
-.reference-compare-diagnostic small {
-  color: #6b817b;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   font-weight: 850;
-  letter-spacing: 0;
-  text-transform: uppercase;
 }
 
-.reference-compare-row span {
+.reference-compare-card dd {
+  margin: 0;
   color: #153137;
   font-weight: 780;
 }
 
-.reference-compare-row em {
+.reference-compare-card p {
   color: #5a6d68;
   font-size: 0.82rem;
-  font-style: normal;
   font-weight: 700;
+  line-height: 1.4;
 }
 
 .reference-compare-empty {
@@ -872,19 +932,27 @@ h2 {
   align-items: end;
 }
 
+.reference-field-helper {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #344541;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
 .reference-field-shell {
-  min-height: 290px;
+  min-height: 370px;
 }
 
 .reference-field-shell .scientific-plot-frame {
   grid-template-columns: 22px minmax(0, 1fr);
-  grid-template-rows: minmax(250px, 1fr) auto;
-  min-height: 280px;
+  grid-template-rows: minmax(330px, 1fr) auto;
+  min-height: 360px;
 }
 
 .reference-field-shell .scientific-plot-area {
   grid-column: 2;
-  min-height: 250px;
+  min-height: 330px;
 }
 
 .reference-field-shell .axis-label-x {
@@ -927,6 +995,22 @@ h2 {
   width: 100%;
 }
 
+.reference-timeline-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reference-timeline-events span {
+  border: 1px solid #cddfd8;
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: #284b4d;
+  background: #f2faf7;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .reference-diagnostics-summary {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
@@ -954,7 +1038,7 @@ h2 {
 }
 
 .reference-appearance-canvas {
-  min-height: 280px;
+  min-height: 360px;
   overflow: hidden;
   border: 1px solid #bcd1cc;
   border-radius: 8px;
@@ -966,7 +1050,7 @@ h2 {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 280px;
+  min-height: 360px;
 }
 
 .reference-appearance-summary {
@@ -3258,6 +3342,18 @@ h2 {
     overflow: visible;
     padding-right: 0;
   }
+
+  .workbench-grid,
+  .workbench-grid.inspector-collapsed,
+  .workbench-grid.lower-atmosphere-has-result,
+  .workbench-grid.lower-atmosphere-has-result.inspector-collapsed {
+    grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  }
+
+  .workbench-grid .inspector-region {
+    grid-column: 1 / -1;
+    max-height: none;
+  }
 }
 
 @media (max-width: 1120px) {
@@ -3278,6 +3374,18 @@ h2 {
 
   .workbench-setup .controls-panel,
   .workbench-inspector .inspector-panel {
+    max-height: none;
+  }
+
+  .workbench-grid,
+  .workbench-grid.inspector-collapsed,
+  .workbench-grid.lower-atmosphere-has-result,
+  .workbench-grid.lower-atmosphere-has-result.inspector-collapsed {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .setup-region,
+  .inspector-region {
     max-height: none;
   }
 }

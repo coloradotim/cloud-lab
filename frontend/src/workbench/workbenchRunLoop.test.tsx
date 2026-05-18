@@ -132,19 +132,25 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(displayedFirst.isReplayPaused).toBe(true);
   });
 
-  it("Lower Atmosphere v2 shell renders reduced-model surfaces plus the CM1 reference replay", () => {
+  it("Lower Atmosphere v2 renders story, replay, and comparison before technical details", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(html).toContain("Lower Atmosphere v2 reduced-model shell");
-    expect(html).toContain("boundary_layer_1d profile view");
-    expect(html).toContain("controlled_cloud_column view");
+    expect(html).toContain("Cloud Formation Experiment");
+    expect(html).not.toContain("Lower Atmosphere v2 reduced-model shell");
+    expect(html).toContain("CM1 reference is ready");
+    expect(html).toContain("Run the v2 flow to generate the reduced-model side of the comparison");
+    expect(html).toContain("Atmosphere profile");
+    expect(html).toContain("Lifted column");
     expect(html).toContain("Timeline / scrubber");
     expect(html).toContain("No Boussinesq default");
     expect(html).toContain("CM1 reference replay");
-    expect(html).toContain("Scientific field view");
+    expect(html).toContain("Scientific Fields");
     expect(html).toContain("Reduced model vs CM1 reference");
+    expect(html).toContain("Reduced</dt>");
+    expect(html).toContain("CM1</dt>");
+    expect(html).toContain("Interpretation:");
     expect(html).toContain("Reduced model output");
     expect(html).toContain("CM1 reference output");
     expect(html).toContain("Exact cloud morphology is not presented as pass/fail");
@@ -253,7 +259,7 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
       />,
     );
 
-    expect(html).toContain("Lower Atmosphere v2 reduced-model shell");
+    expect(html).toContain("Cloud Formation Experiment");
     expect(html).not.toContain("inspector-region");
   });
 

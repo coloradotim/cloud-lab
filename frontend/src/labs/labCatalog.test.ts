@@ -36,7 +36,7 @@ describe("lab catalog", () => {
       "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
     expect(fairWeatherLab.status).toBe("prototype");
-    expect(fairWeatherLab.statusLabel).toBe("Reduced-model v2 shell");
+    expect(fairWeatherLab.statusLabel).toBe("Cloud formation experiment");
     expect(fairWeatherLab.supportedPhysicsCore).toBe("boundary_layer_1d");
     expect(fairWeatherLab.concepts).toEqual(
       expect.arrayContaining([

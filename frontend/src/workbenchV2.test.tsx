@@ -34,7 +34,7 @@ describe("Workbench V2 lab picker", () => {
     expect(html).toContain(
       "How do heating, moisture, and stability shape basic warm-cloud formation near the ground?",
     );
-    expect(html).toContain("Reduced-model v2 shell");
+    expect(html).toContain("Cloud formation experiment");
     expect(html).toContain("surface sensible heating");
     expect(html).toContain("1-D profile evolution");
     expect(html).toContain("prescribed lift");
@@ -60,7 +60,7 @@ describe("Workbench V2 lab picker", () => {
     expect(CLOUD_OPTICS_BEAUTY_LAB_ID).toBe("cloud-optics-beauty");
     expect(html).toContain("Clouds, Light, and Shadow");
     expect(html).toContain("Prototype optics renderer");
-    expect(html).toContain("Open Clouds, Light, and Shadow shell");
+    expect(html).toContain("Open Clouds, Light, and Shadow");
     expect(selectLabForWorkbench("cloud-optics-beauty")).toEqual({
       view: "workbench",
       selectedLabId: "cloud-optics-beauty",
@@ -264,7 +264,7 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Timeline / scrubber");
   });
 
-  it("opens the Lower Atmosphere v2 reduced-model shell by default", () => {
+  it("opens the Lower Atmosphere cloud-formation experiment by default", () => {
     const html = renderToStaticMarkup(
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
@@ -296,11 +296,11 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain(">Run v2 flow<");
     expect(html).not.toContain(">Stop<");
     expect(html).toContain(">Reset<");
-    expect(html).toContain("Lower Atmosphere v2 reduced-model shell");
-    expect(html).toContain("boundary_layer_1d profile view");
-    expect(html).toContain("controlled_cloud_column view");
-    expect(html).toContain("Atmosphere evolution produces no cloud water in v1");
-    expect(html).toContain("Lift is prescribed forcing, not predicted circulation.");
+    expect(html).toContain("Cloud Formation Experiment");
+    expect(html).toContain("Atmosphere profile");
+    expect(html).toContain("Lifted column");
+    expect(html).toContain("Reduced model detail: boundary_layer_1d diagnoses cloud formation potential.");
+    expect(html).toContain("Reduced model detail: controlled_cloud_column uses prescribed lift");
     expect(html).toContain("Expected vs observed");
     expect(html).toContain("Precipitation status placeholder");
     expect(html).toContain("Reduced model");

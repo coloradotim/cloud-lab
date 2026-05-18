@@ -23,7 +23,7 @@ const fairWeatherControls: LabControlDefinition[] = [
     label: "Flow mode",
     tier: "primary",
     meaning: "Chooses atmosphere evolution, lifted cloud formation, or the combined v2 flow.",
-    expectedEffect: "Changes which reduced-model steps the shell prepares.",
+    expectedEffect: "Changes which reduced-model steps the experiment prepares.",
     unitsOrType: "Evolve atmosphere / Lift cloud column / Evolve + lift",
     configPaths: ["lower_atmosphere_v2.flow_mode"],
   },
@@ -315,7 +315,7 @@ const fairWeatherLab: LabDefinition = {
   description:
     "Explore how profile evolution and prescribed lift shape basic warm-cloud formation near the ground.",
   status: "prototype",
-  statusLabel: "Reduced-model v2 shell",
+  statusLabel: "Cloud formation experiment",
   supportedPhysicsCore: "boundary_layer_1d",
   concepts: [
     "surface sensible heating",
@@ -340,7 +340,7 @@ const fairWeatherLab: LabDefinition = {
     "No Boussinesq default",
     "Not weather prediction",
     ...lowerAtmosphereV2HonestyLabels.filter((label) => label === "Not LES/CFD"),
-    "Precipitation is architecturally reserved but not implemented in this shell.",
+    "Precipitation is architecturally reserved but not implemented in this experiment.",
   ],
   scenarios: fairWeatherScenarios,
   controls: fairWeatherControls,

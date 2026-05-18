@@ -363,7 +363,7 @@ export function LabWorkbench({
       />
 
       <section
-        className={`workbench-grid${inspectorOpen ? "" : " inspector-collapsed"}`}
+        className={`workbench-grid${inspectorOpen ? "" : " inspector-collapsed"}${isLowerAtmosphereV2Lab && runStatus === "complete" ? " lower-atmosphere-has-result" : ""}`}
         aria-label="Workbench regions"
       >
         <LabSetupPanel
@@ -828,7 +828,7 @@ function LowerAtmosphereV2SetupPanel({
           Scenario metadata is missing. Reset the lab or return to the Lab Picker.
         </p>
         <button type="button" onClick={() => setWorkbench(createInitialWorkbenchState(lab))}>
-          Reset Lower Atmosphere v2 shell
+          Reset Lower Atmosphere v2 experiment
         </button>
       </aside>
     );
@@ -1845,7 +1845,7 @@ function LowerAtmosphereV2VisualizationStage({
     return (
       <section className="workbench-region visualization-stage" aria-labelledby="visualization-stage-title">
         <p className="region-label">Visualization stage</p>
-        <h2 id="visualization-stage-title">Lower Atmosphere v2 shell</h2>
+        <h2 id="visualization-stage-title">Lower Atmosphere Cloud Formation</h2>
         <div className="stage-empty-state" role="status">
           <strong>Scenario metadata is unavailable.</strong>
           <p>Reset the lab or return to the Lab Picker.</p>
@@ -1873,8 +1873,8 @@ function LowerAtmosphereV2VisualizationStage({
       <div className="stage-heading">
         <p className="region-label">Visualization stage</p>
         <div className="stage-title-row">
-          <h2 id="visualization-stage-title">Lower Atmosphere v2 reduced-model shell</h2>
-          <div className="frame-readout" aria-label="Lower Atmosphere v2 shell state">
+          <h2 id="visualization-stage-title">Cloud Formation Experiment</h2>
+          <div className="frame-readout" aria-label="Lower Atmosphere cloud formation state">
             <span>{lowerAtmosphereV2FlowLabel(flowMode)}</span>
             <strong>{lowerAtmosphereV2RunStatus(state) === "ready" ? "No run data yet" : runStatusLabel(lowerAtmosphereV2RunStatus(state))}</strong>
           </div>
@@ -1888,13 +1888,19 @@ function LowerAtmosphereV2VisualizationStage({
         </span>
       </div>
 
-      <div className="v2-shell-view-grid" aria-label="Lower Atmosphere v2 science views">
+      <LowerAtmosphereV2StoryPanel viewModel={referenceComparison} />
+
+      <ReferenceReplayView referenceRun={displayedReferenceRun} />
+
+      <LowerAtmosphereV2ReferenceComparisonPanel viewModel={referenceComparison} />
+
+      <div className="v2-shell-view-grid" aria-label="Reduced-model support diagnostics">
         <section className="v2-shell-view-card" aria-labelledby="v2-profile-view-title">
           <p className="region-label">Profile evolution</p>
-          <h3 id="v2-profile-view-title">boundary_layer_1d profile view</h3>
+          <h3 id="v2-profile-view-title">Atmosphere profile</h3>
           <p>{profileFrames.length > 0 ? `Profile run produced ${profileFrames.length} profile samples.` : "Ready for temperature/RH profile evolution, mixed-layer depth, LCL, and cap markers."}</p>
           <p className="control-helper">
-            Atmosphere evolution produces no cloud water in v1. It diagnoses cloud formation potential.
+            Reduced model detail: boundary_layer_1d diagnoses cloud formation potential.
           </p>
           <dl className="diagnostic-list">
             <div>
@@ -1915,9 +1921,9 @@ function LowerAtmosphereV2VisualizationStage({
         </section>
         <section className="v2-shell-view-card" aria-labelledby="v2-column-view-title">
           <p className="region-label">Cloud-column result</p>
-          <h3 id="v2-column-view-title">controlled_cloud_column view</h3>
+          <h3 id="v2-column-view-title">Lifted column</h3>
           <p>{cloudRun ? `Cloud-column run produced ${cloudRun.frames.length} controlled-column samples.` : "Ready for prescribed-lift height, RH, cloud liquid water, first cloud time, and cloud base."}</p>
-          <p className="control-helper">Lift is prescribed forcing, not predicted circulation.</p>
+          <p className="control-helper">Reduced model detail: controlled_cloud_column uses prescribed lift, not predicted circulation.</p>
           <dl className="diagnostic-list">
             <div>
               <dt>Cloud-column status</dt>
@@ -1935,7 +1941,7 @@ function LowerAtmosphereV2VisualizationStage({
         </section>
         <section className="v2-shell-view-card" aria-labelledby="v2-combined-view-title">
           <p className="region-label">Combined result</p>
-          <h3 id="v2-combined-view-title">Evolution + lifted cloud summary</h3>
+          <h3 id="v2-combined-view-title">Reduced-model summary</h3>
           <p>Selected profile time: {profileTimeLabel}</p>
           <p>Profile status: {statusLabel(profileStatus)}. Cloud-column status: {cloudStatusLabel}.</p>
           <p className="control-helper">
@@ -1943,10 +1949,6 @@ function LowerAtmosphereV2VisualizationStage({
           </p>
         </section>
       </div>
-
-      <ReferenceReplayView referenceRun={displayedReferenceRun} />
-
-      <LowerAtmosphereV2ReferenceComparisonPanel viewModel={referenceComparison} />
 
       <section className="boundary-layer-replay-panel" aria-label="Lower Atmosphere v2 timeline scrubber">
         <div className="boundary-layer-replay-heading">
@@ -2020,6 +2022,33 @@ function LowerAtmosphereV2VisualizationStage({
   );
 }
 
+function LowerAtmosphereV2StoryPanel({
+  viewModel,
+}: {
+  viewModel: LowerAtmosphereV2ReferenceComparisonViewModel;
+}) {
+  return (
+    <section className="lower-atmosphere-story-card" aria-label="Lower Atmosphere experiment story">
+      <p className="region-label">{viewModel.story.eyebrow}</p>
+      <h3>{viewModel.story.title}</h3>
+      <div className="lower-atmosphere-story-grid">
+        <div>
+          <strong>Outcome</strong>
+          <p>{viewModel.story.outcome}</p>
+        </div>
+        <div>
+          <strong>{viewModel.story.keyPointLabel}</strong>
+          <p>{viewModel.story.keyPoint}</p>
+        </div>
+        <div>
+          <strong>What to look at</strong>
+          <p>{viewModel.story.lookAt}</p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function LowerAtmosphereV2ReferenceComparisonPanel({
   viewModel,
 }: {
@@ -2065,33 +2094,44 @@ function LowerAtmosphereV2ReferenceComparisonPanel({
           <p>Reduced-model diagnostics remain available, but no offline reference run is loaded for this scenario.</p>
         </div>
       ) : (
-        <div className="reference-compare-diagnostics" role="table" aria-label="Reduced model and CM1 diagnostic comparison">
-          <div className="reference-compare-header" role="row">
-            <span role="columnheader">Diagnostic</span>
-            <span role="columnheader">Reduced</span>
-            <span role="columnheader">CM1 reference</span>
-            <span role="columnheader">How to read it</span>
-          </div>
+        <div className="reference-compare-cards" aria-label="Reduced model and CM1 diagnostic comparison">
           {viewModel.rows.map((row) => (
-            <div key={row.diagnostic} className="reference-compare-row" role="row">
-              <span className="reference-compare-diagnostic" role="cell">
-                <small>{row.category}</small>
-                {row.diagnostic}
-              </span>
-              <span role="cell">{row.reducedValue}</span>
-              <span role="cell">{row.referenceValue}</span>
-              <em role="cell">{row.interpretation}</em>
-            </div>
+            <article key={row.diagnostic} className="reference-compare-card">
+              <p className="region-label">{row.category}</p>
+              <h4>{row.diagnostic}</h4>
+              <dl>
+                <div>
+                  <dt>Reduced</dt>
+                  <dd>{row.reducedValue}</dd>
+                </div>
+                <div>
+                  <dt>CM1</dt>
+                  <dd>{row.referenceValue}</dd>
+                </div>
+              </dl>
+              <p><strong>Interpretation:</strong> {row.interpretation}</p>
+            </article>
           ))}
         </div>
       )}
 
       <p className="stage-helper">{viewModel.morphologyNote}</p>
       <div className="assumption-labels" aria-label="CM1 reference comparison source labels">
-        <span>Comparison labels</span>
-        <p>{viewModel.sourceLabels.join(" · ")}</p>
+        <span>Source</span>
+        <p>{comparisonSourceLabels(viewModel.sourceLabels).join(" · ")}</p>
+        <span>View</span>
+        <p>Diagnostic comparison · Qualitative teaching diagnostics</p>
+        <span>Assumptions</span>
+        <p>Not live CM1 simulation · Exact morphology is not pass/fail</p>
       </div>
     </section>
+  );
+}
+
+function comparisonSourceLabels(labels: string[]): string[] {
+  return labels.filter(
+    (label) =>
+      !["Derived diagnostic", "Qualitative diagnostic comparison", "Not live CM1 simulation"].includes(label),
   );
 }
 
@@ -2490,7 +2530,7 @@ function InspectorPanel({
       <WorkbenchErrorBoundary
         boundaryKey={`${lab.id}-${workbench.selectedScenarioId}-${lowerAtmosphereV2FlowMode}-inspector`}
         fallbackTitle="Lower Atmosphere v2 diagnostics failed to render."
-        fallbackBody="The reduced-model shell data may be incomplete or inconsistent."
+        fallbackBody="The reduced-model diagnostics may be incomplete or inconsistent."
       >
         <LowerAtmosphereV2InspectorPanel
           lab={lab}

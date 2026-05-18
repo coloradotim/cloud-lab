@@ -100,6 +100,45 @@ export function createTinyCm1ReferenceRunFixture(): ReferenceRun {
   };
 }
 
+export function createTinyCm1DryFailedReferenceRunFixture(): ReferenceRun {
+  const run = createTinyCm1ReferenceRunFixture();
+  const sourceCaseId = "cm1-dry-failed-cumulus-v1";
+  return {
+    ...run,
+    source_case_id: sourceCaseId,
+    frames: run.frames.map((frame) => ({
+      ...frame,
+      source_case_id: sourceCaseId,
+      provenance: {
+        ...frame.provenance,
+        source_case_id: sourceCaseId,
+      },
+      fields: frameFields({
+        cloud: frame.fields.cloud_liquid_water_kg_per_kg.values.map((row) => row.map(() => 0)),
+        w: frame.fields.vertical_velocity_m_per_s.values,
+      }),
+    })),
+    diagnostics: run.diagnostics
+      ? {
+          ...run.diagnostics,
+          source_case_id: sourceCaseId,
+          max_cloud_liquid_water_kg_per_kg: 0,
+          integrated_cloud_liquid_water_kg_per_kg: 0,
+          cloud_base_m: null,
+          cloud_top_m: null,
+          first_cloud_time_seconds: null,
+          max_updraft_m_per_s: 0.28,
+          first_rain_time_seconds: null,
+          max_rain_water_kg_per_kg: null,
+          source_provenance: {
+            ...run.diagnostics.source_provenance,
+            source_case_id: sourceCaseId,
+          },
+        }
+      : null,
+  };
+}
+
 function frameFields({ cloud, w }: { cloud: number[][]; w: number[][] }): Record<string, ReferenceScalarField2D> {
   return {
     cloud_liquid_water_kg_per_kg: field("Cloud liquid water", "kg kg-1", "qc", cloud),
