@@ -328,6 +328,23 @@ Each input directory should contain either:
   or
 - NetCDF CM1 output files (`*.nc`) readable through optional local `xarray`.
 
+The NetCDF reader inspects CM1 dimensions instead of assuming every variable has
+the same x/z axes. For the first 2-D vertical-slice reference view, it uses a
+deterministic centerline y slice and maps fields onto the scalar x/z display
+grid:
+
+| CM1 field type | Common CM1 dims | Cloud Lab mapping |
+| --- | --- | --- |
+| Scalars such as `th`, `qv`, `qc`, `qr`, `prs` | `time, zh, yh, xh` | center `yh`, scalar `xh/zh` grid |
+| Vertical velocity `w` | `time, zf, yh, xh` | center `yh`, interpolate staggered `zf` onto `zh` |
+| Horizontal velocity `u` | `time, zh, yh, xf` | center `yh`, interpolate staggered `xf` onto `xh` |
+| Horizontal velocity `v` | `time, zh, yf, xh` | center `yf`, scalar `xh/zh` grid |
+
+Files or variables that cannot be mapped onto x/z are skipped with warnings
+rather than crashing ingestion. For example, `cm1out_stats.nc` may be present in
+the run directory but does not provide a replayable x-z field; it should remain
+local and can be ignored by the reference-frame ingester.
+
 The generated artifacts remain local and ignored:
 
 ```text

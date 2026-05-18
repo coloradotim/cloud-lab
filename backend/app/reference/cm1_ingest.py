@@ -278,44 +278,87 @@ def _source_from_netcdf_files(
             f"Use {DEFAULT_ADAPTER_INPUT_NAME} or install optional reference dependencies."
         ) from exc
 
-    dataset = xr.open_mfdataset([str(path) for path in paths], combine="by_coords")
+    datasets = [xr.open_dataset(path, decode_times=False) for path in paths]
     try:
-        time = _dataset_coord_values(dataset, ("time", "time_seconds"))
-        x = _dataset_coord_values(dataset, ("xh", "x", "x_coordinates_m"))
-        z = _dataset_coord_values(dataset, ("zh", "z", "z_coordinates_m"))
-        if max(abs(value) for value in x) < 1_000:
-            x = [value * 1_000.0 for value in x]
-        if max(abs(value) for value in z) < 100:
-            z = [value * 1_000.0 for value in z]
+        first_dataset = datasets[0]
+        x = _scaled_coordinate_values(
+            _dataset_coord_values(first_dataset, ("xh", "x", "x_coordinates_m", "xf")),
+            small_threshold=1_000,
+        )
+        z = _scaled_coordinate_values(
+            _dataset_coord_values(first_dataset, ("zh", "z", "z_coordinates_m", "zf")),
+            small_threshold=100,
+        )
 
+        time: list[float] = []
         variables: dict[str, object] = {}
         variable_units: dict[str, str] = {}
-        for spec in CM1_FIELD_SPECS:
-            for alias in spec.aliases:
-                if alias in dataset:
-                    variables[alias] = _xz_time_values(
-                        dataset[alias], x_count=len(x), z_count=len(z)
+        warnings: list[str] = []
+
+        for dataset in datasets:
+            dataset_time = _dataset_time_values(dataset)
+            dataset_variables: dict[str, list[list[list[float]]]] = {}
+            dataset_variable_units: dict[str, str] = {}
+            dataset_warnings: list[str] = []
+            for spec in CM1_FIELD_SPECS:
+                source_name = _first_available_dataset_alias(dataset, spec.aliases)
+                if source_name is None:
+                    continue
+                try:
+                    values = _xz_time_values(
+                        dataset[source_name],
+                        x_coordinates_m=x,
+                        z_coordinates_m=z,
+                        time_values=dataset_time,
                     )
-                    unit = dataset[alias].attrs.get("units")
-                    variable_units[alias] = str(unit) if unit else spec.default_unit
-                    break
+                except ValueError as exc:
+                    dataset_warnings.append(f"Skipped CM1 field {source_name}: {exc}")
+                    continue
+                dataset_variables[source_name] = values
+                unit = dataset[source_name].attrs.get("units")
+                dataset_variable_units[source_name] = str(unit) if unit else spec.default_unit
+
+            if not dataset_variables:
+                warnings.append(
+                    "Skipped NetCDF file without mappable x-z reference fields: "
+                    f"{dataset.encoding.get('source', '<unknown>')}"
+                )
+                warnings.extend(dataset_warnings)
+                continue
+
+            time.extend(dataset_time)
+            warnings.extend(dataset_warnings)
+            for source_name, values in dataset_variables.items():
+                existing_values = variables.setdefault(source_name, [])
+                if not isinstance(existing_values, list):
+                    raise ValueError(f"Internal ingest error for {source_name}")
+                existing_values.extend(values)
+                variable_units[source_name] = dataset_variable_units[source_name]
 
         return {
             "source_case_id": case_id,
             "source_is_synthetic_fixture": False,
             "source_file_metadata": {
-                "source_paths": [str(path) for path in paths],
+                "source_path_count": len(paths),
+                "source_paths_json": json.dumps([str(path) for path in paths]),
                 "cm1_version": cm1_version,
                 "ingest_format": "netcdf_xarray_optional",
+                "netcdf_dimension_policy": (
+                    "CM1 fields are sliced at the center y index and interpolated "
+                    "from staggered x/z coordinates onto the scalar xh/zh grid "
+                    "when needed."
+                ),
             },
             "time_seconds": time,
             "x_coordinates_m": x,
             "z_coordinates_m": z,
             "variable_units": variable_units,
             "variables": variables,
+            "warnings": warnings,
         }
     finally:
-        dataset.close()
+        for dataset in datasets:
+            dataset.close()
 
 
 def _dataset_coord_values(dataset: Any, names: tuple[str, ...]) -> list[float]:
@@ -325,25 +368,98 @@ def _dataset_coord_values(dataset: Any, names: tuple[str, ...]) -> list[float]:
     raise ValueError(f"NetCDF dataset is missing coordinate aliases: {', '.join(names)}")
 
 
-def _xz_time_values(variable: Any, *, x_count: int, z_count: int) -> list[list[list[float]]]:
+def _dataset_time_values(dataset: Any) -> list[float]:
+    for name in ("time", "time_seconds"):
+        if name in dataset.coords:
+            values = dataset.coords[name].values.tolist()
+            if isinstance(values, list):
+                return [float(value) for value in values]
+            return [float(values)]
+    for name in ("time", "time_seconds"):
+        if name in dataset.dims:
+            return [float(index) for index in range(int(dataset.sizes[name]))]
+    return [0.0]
+
+
+def _scaled_coordinate_values(values: list[float], *, small_threshold: float) -> list[float]:
+    if max(abs(value) for value in values) < small_threshold:
+        return [value * 1_000.0 for value in values]
+    return values
+
+
+def _first_available_dataset_alias(dataset: Any, aliases: tuple[str, ...]) -> str | None:
+    lowered_names = {str(name).lower(): str(name) for name in dataset.data_vars}
+    for alias in aliases:
+        source_name = lowered_names.get(alias.lower())
+        if source_name is not None:
+            return source_name
+    return None
+
+
+def _xz_time_values(
+    variable: Any,
+    *,
+    x_coordinates_m: list[float],
+    z_coordinates_m: list[float],
+    time_values: list[float],
+) -> list[list[list[float]]]:
     data = variable
     dims = list(data.dims)
     if "time" not in dims and "time_seconds" not in dims:
-        data = data.expand_dims(time=[0.0])
+        data = data.expand_dims(time=time_values)
         dims = list(data.dims)
     time_dim = "time" if "time" in dims else "time_seconds"
-    z_dim = next((dim for dim in ("z", "zh", "z_coordinates_m") if dim in dims), None)
-    x_dim = next((dim for dim in ("x", "xh", "x_coordinates_m") if dim in dims), None)
-    y_dim = next((dim for dim in ("y", "yh", "y_coordinates_m") if dim in dims), None)
+    z_dim = next((dim for dim in ("z", "zh", "zf", "z_coordinates_m") if dim in dims), None)
+    x_dim = next((dim for dim in ("x", "xh", "xf", "x_coordinates_m") if dim in dims), None)
+    y_dim = next((dim for dim in ("y", "yh", "yf", "y_coordinates_m") if dim in dims), None)
     if z_dim is None or x_dim is None:
         raise ValueError(f"Variable {variable.name} is missing x/z dimensions")
     if y_dim is not None:
         data = data.isel({y_dim: data.sizes[y_dim] // 2})
+    data = _drop_or_reject_extra_dimensions(data, allowed_dims={time_dim, z_dim, x_dim})
+    data = _interpolate_dim_to_coordinates(data, dim=x_dim, coordinates=x_coordinates_m)
+    data = _interpolate_dim_to_coordinates(data, dim=z_dim, coordinates=z_coordinates_m)
     data = data.transpose(time_dim, z_dim, x_dim)
     values = cast(list[list[list[float]]], data.values.tolist())
-    if len(values[0]) != z_count or len(values[0][0]) != x_count:
+    if len(values) != len(time_values):
+        raise ValueError(
+            f"Variable {variable.name} time count {len(values)} does not match "
+            f"dataset time count {len(time_values)}"
+        )
+    if len(values[0]) != len(z_coordinates_m) or len(values[0][0]) != len(x_coordinates_m):
         raise ValueError(f"Variable {variable.name} produced an unexpected x-z shape")
     return values
+
+
+def _drop_or_reject_extra_dimensions(data: Any, *, allowed_dims: set[str]) -> Any:
+    for dim in list(data.dims):
+        if dim in allowed_dims:
+            continue
+        if data.sizes[dim] == 1:
+            data = data.isel({dim: 0})
+            continue
+        raise ValueError(
+            f"Variable {data.name} has unsupported extra dimension {dim} "
+            f"with size {data.sizes[dim]}"
+        )
+    return data
+
+
+def _interpolate_dim_to_coordinates(data: Any, *, dim: str, coordinates: list[float]) -> Any:
+    if data.sizes[dim] == len(coordinates):
+        return data
+    if dim not in data.coords:
+        raise ValueError(
+            f"Variable {data.name} has staggered dimension {dim} without coordinate values"
+        )
+
+    source_values = [float(value) for value in data.coords[dim].values.tolist()]
+    target_values = coordinates
+    source_max = max(abs(value) for value in source_values)
+    target_max = max(abs(value) for value in target_values)
+    if source_max < 1_000 and target_max > source_max * 10:
+        target_values = [value / 1_000.0 for value in target_values]
+    return data.interp({dim: target_values})
 
 
 def _case_expectation_warnings(run: ReferenceRun) -> list[str]:
