@@ -115,6 +115,12 @@ accepted dry-failed and shallow-cumulus reference outputs. It should not add
 cases, tune CM1, change reduced-model science, change Boussinesq, or start
 warm-rain work.
 
+Issue #234 defines the CM1 lower-atmosphere validation matrix before more cases
+are added ad hoc. The matrix should guide Phase B validation anchors
+(capped/suppressed, humid low-cloud, and fog/low-stratus), later one-factor
+sweeps, threshold cases, and warm-rain cases. It should keep #223 untouched
+unless the user explicitly asks to retitle/rescope that issue.
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:

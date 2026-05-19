@@ -246,6 +246,18 @@ policies only. They should make real CM1 cloud and rain structure easier to
 read without altering the ingested reference fields or making dry-failed cases
 look cloudy.
 
+The lower-atmosphere validation matrix lives in:
+
+```text
+docs/reference-models/cm1-lower-atmosphere-validation-matrix.md
+```
+
+Use it before adding new CM1 cases. It defines the staged validation path for
+user-facing controls, including existing Phase A anchors, immediate Phase B
+capped/humid/low-cloud anchors, one-factor sensitivity sweeps, threshold cases,
+and later rain cases. It prioritizes cloud timing, cloud base/top, and regime
+agreement over exact morphology.
+
 The #233 guided UX rebuild keeps the same science and data contracts but
 changes the Lower Atmosphere presentation order. CM1 should be the
 reference/validation backbone and source of credible replay fields, while the

@@ -487,3 +487,10 @@ Use the current open issue state to decide, but as of this handoff:
   cloud-free, keep display scaling labeled as display-only, preserve source
   fields/provenance, and avoid new CM1 cases, case tuning, Boussinesq changes,
   or warm-rain work.
+
+  #234 defines the CM1 lower-atmosphere validation matrix before adding more
+  cases ad hoc. It should document Phase A accepted anchors, Phase B
+  capped/suppressed + humid low-cloud + fog/low-stratus anchors, Phase C
+  one-factor sweeps, Phase D thresholds, Phase E rain later, agreement policy,
+  and validated/exploratory/out-of-range labels. Evaluate #223 in the matrix
+  and PR summary, but do not mutate #223 unless the user explicitly asks.
