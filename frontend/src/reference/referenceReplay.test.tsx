@@ -16,6 +16,7 @@ import {
   buildReferenceReplayViewModel,
   defaultReferenceFieldKey,
   normalizeReferenceFieldSelection,
+  referenceFieldDisplayPolicy,
   referenceMissingFieldNotes,
   referenceReplayFallback,
 } from "./referenceReplay";
@@ -39,8 +40,20 @@ describe("CM1 reference replay view model", () => {
 
     expect(cloud?.field.metadata.display_name).toBe("Cloud liquid water");
     expect(cloud?.cells.some((cell) => cell.value === 5e-7)).toBe(true);
+    expect(cloud?.displayPolicy.paletteLabel).toBe("Cloud water log scale");
+    expect(cloud?.cells.find((cell) => cell.value === 0)?.color).toBe("rgb(248 252 251)");
+    expect(cloud?.cells.find((cell) => cell.value === 5e-7)?.color).not.toBe("rgb(248 252 251)");
     expect(velocity?.field.metadata.display_name).toBe("Vertical velocity");
     expect(velocity?.fieldKey).toBe("vertical_velocity_m_per_s");
+    expect(velocity?.displayPolicy.paletteLabel).toBe("Signed velocity scale");
+  });
+
+  it("defines field-specific rendering policies for key CM1 reference fields", () => {
+    expect(referenceFieldDisplayPolicy("cloud_liquid_water_kg_per_kg").displayNote).toContain("Display-only");
+    expect(referenceFieldDisplayPolicy("vertical_velocity_m_per_s").paletteLabel).toBe("Signed velocity scale");
+    expect(referenceFieldDisplayPolicy("water_vapor_kg_per_kg").highLabel).toBe("moister air");
+    expect(referenceFieldDisplayPolicy("potential_temperature_k").paletteLabel).toBe("Temperature/theta scale");
+    expect(referenceFieldDisplayPolicy("rain_water_kg_per_kg").zeroLabel).toBe("no rain");
   });
 
   it("timeline frame index changes the displayed frame", () => {
@@ -62,6 +75,31 @@ describe("CM1 reference replay view model", () => {
 
     expect(buildReferenceReplayViewModel(run, "rain_water_kg_per_kg", 0)).toBeNull();
     expect(referenceReplayFallback(run, "rain_water_kg_per_kg", 0)).toContain("Rain water is missing");
+  });
+
+  it("renders rain water with no-rain state and a dedicated display policy when available", () => {
+    const run = createTinyCm1ReferenceRunFixture();
+    for (const frame of run.frames) {
+      frame.fields.rain_water_kg_per_kg = {
+        metadata: {
+          ...frame.fields.cloud_liquid_water_kg_per_kg.metadata,
+          display_name: "Rain water",
+          source_variable: "qr",
+          standard_name: "qr",
+        },
+        values: frame.fields.cloud_liquid_water_kg_per_kg.values.map((row) => row.map(() => 0)),
+      };
+    }
+
+    const noRain = buildReferenceReplayViewModel(run, "rain_water_kg_per_kg", 1);
+    expect(noRain?.signal.statusLabel).toBe("No rain signal");
+    expect(noRain?.displayPolicy.paletteLabel).toBe("Rain water log scale");
+    expect(noRain?.cells.every((cell) => cell.color === "rgb(249 251 255)")).toBe(true);
+
+    run.frames[1].fields.rain_water_kg_per_kg.values[1][2] = 2e-5;
+    const rain = buildReferenceReplayViewModel(run, "rain_water_kg_per_kg", 1);
+    expect(rain?.signal.hasSignal).toBe(true);
+    expect(rain?.cells.find((cell) => cell.value === 2e-5)?.color).not.toBe("rgb(249 251 255)");
   });
 
   it("softens missing temperature warnings when potential temperature is available", () => {
@@ -137,6 +175,11 @@ describe("CM1 reference replay component", () => {
     expect(html).toContain("Scientific Fields");
     expect(html).toContain("Cloud Appearance");
     expect(html).toContain("Cloud liquid water shows where cloud exists");
+    expect(html).toContain("Cloud water log scale");
+    expect(html).toContain("zero cloud water");
+    expect(html).toContain("more cloud water");
+    expect(html).toContain("cloud base");
+    expect(html).toContain("cloud top");
     expect(html).toContain("Replay the cloud evolution to see when cloud water appears");
     expect(html).toContain("300 s - first cloud");
   });
@@ -233,9 +276,11 @@ describe("CM1 reference appearance view", () => {
   });
 
   it("renders provenance, assumption labels, and keeps scientific view available", () => {
+    const cloudyRun = createTinyCm1ReferenceRunFixture();
+    cloudyRun.frames = [cloudyRun.frames[1]];
     const appearanceHtml = renderToStaticMarkup(
       <ReferenceReplayView
-        referenceRun={createTinyCm1ReferenceRunFixture()}
+        referenceRun={cloudyRun}
         initialViewMode="cloud-appearance"
       />,
     );
@@ -249,7 +294,7 @@ describe("CM1 reference appearance view", () => {
     expect(appearanceHtml).toContain("Not direct radiative transfer");
     expect(appearanceHtml).toContain("Not live CM1 simulation");
     expect(appearanceHtml).toContain("CM1 reference output");
-    expect(appearanceHtml).toContain("Zero cloud water renders no meaningful cloud");
+    expect(appearanceHtml).toContain("soft edges, shadow, and brightness");
     expect(scientificHtml).toContain("Scientific field view");
     expect(scientificHtml).toContain("Cloud Appearance");
   });

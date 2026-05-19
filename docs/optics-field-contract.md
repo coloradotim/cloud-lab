@@ -151,6 +151,13 @@ Offline reference case
 Not live interactive simulation
 ```
 
+The first CM1/reference appearance renderer may improve visual payoff with
+display-only opacity response, soft display edges, highlights, and cloud-base
+shadowing derived from `cloud_liquid_water_kg_per_kg`. These are visual
+approximation products. They must not alter CM1/reference fields, hide
+missing-field warnings, imply direct radiative transfer, or create cloud where
+the source cloud-water field is zero.
+
 ### Light-Path / Shadow View
 
 Shows simplified light-path, attenuation, or shadow proxies. This is an

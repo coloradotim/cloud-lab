@@ -178,6 +178,15 @@ timeline/frame context while preserving the source reference fields. The
 reference replay view should not run CM1, commit large model output, or mutate
 reference data.
 
+#231 adds explicit field-specific display policies for CM1/reference replay.
+Cloud liquid water and rain water use display-only log/adaptive palettes that
+keep zero or below-threshold cells visually quiet while making nonzero
+structure readable. Vertical velocity uses a signed zero-centered palette.
+Water vapor uses a sequential moisture palette, and temperature/potential
+temperature use an adaptive temperature/theta palette. These policies are
+legend/display choices only; they do not modify `reference-frame-v1` values or
+make morphology claims.
+
 After #233, Lower Atmosphere Cloud Basics should no longer present the old
 setup/sidebar/stage/inspector structure as the main user experience. It should
 open as a guided experiment: choose an experiment card, watch cloud evolution,
@@ -224,6 +233,11 @@ The view must keep labeling assumed droplet radius, lack of direct radiative
 transfer, visual interpretation status, and the fact that CM1 is not running
 live in the app. The display mapping must not mutate source reference fields or
 hide scientific warnings.
+
+#231 further improves the CM1/reference appearance view by mapping the same
+cloud-water field to stronger display opacity, soft display edges, highlights,
+and cloud-base shadowing. This remains a visual approximation from
+CM1/reference cloud water. Zero-cloud dry cases must remain cloud-free.
 
 Clouds, Light, and Shadow now has a first lightweight rendered appearance view backed by deterministic preset source scenes. It derives opacity, attenuation, approximate single-scattering brightness, optical-depth, and light-path/shadow displays from the source `cloud_density` field and renderer controls. Sun angle, view angle, density, depth, optical strength, and light color change the renderer state only; they must not mutate the source scene field.
 

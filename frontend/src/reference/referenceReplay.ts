@@ -32,6 +32,15 @@ export type ReferenceReplayCell = {
   color: string;
 };
 
+export type ReferenceFieldDisplayPolicy = {
+  fieldKey: string;
+  paletteLabel: string;
+  legendGradient: string;
+  zeroLabel: string;
+  highLabel: string;
+  displayNote: string;
+};
+
 export type ReferenceReplayOverlay = {
   cloudBaseY: number | null;
   cloudTopY: number | null;
@@ -50,6 +59,7 @@ export type ReferenceReplayViewModel = {
   summary: FieldSummary;
   range: FieldStats;
   scaling: ScalingMetadata;
+  displayPolicy: ReferenceFieldDisplayPolicy;
   signal: ReferenceFieldSignal;
   cells: ReferenceReplayCell[];
   rows: number;
@@ -184,7 +194,7 @@ export function buildReferenceReplayViewModel(
   const finiteField = finiteReferenceField(field);
   const scalarField = toScalarField(finiteField);
   const scaling = scalingMetadataForField(fieldKey, scalarField);
-  const colorMap = REFERENCE_COLOR_MAPS[fieldKey] ?? "PuBu";
+  const displayPolicy = referenceFieldDisplayPolicy(fieldKey);
 
   return {
     run,
@@ -198,6 +208,7 @@ export function buildReferenceReplayViewModel(
     summary: referenceFieldSummary(fieldKey, scalarField),
     range: displayRangeForFieldKey(fieldKey, scalarField),
     scaling,
+    displayPolicy,
     signal: referenceFieldSignal(fieldKey, scalarField),
     cells: finiteField.values.flatMap((row, rowIndex) =>
       row.map((value, columnIndex) => ({
@@ -205,10 +216,7 @@ export function buildReferenceReplayViewModel(
         column: columnIndex,
         value,
         displayValue: formatDisplayValue(scalarField, value),
-        color: rgbColor(colorForNormalizedValue(
-          referenceColorIntensity(fieldKey, normalizedDisplayValueForFieldKey(fieldKey, scalarField, value)),
-          colorMap,
-        )),
+        color: referenceColorForField(fieldKey, scalarField, value),
       })),
     ),
     rows: frame.grid.rows,
@@ -216,6 +224,70 @@ export function buildReferenceReplayViewModel(
     fallbackMessage: nonFiniteWarning(field),
     overlay: referenceReplayOverlay(frame, run),
   };
+}
+
+export function referenceFieldDisplayPolicy(fieldKey: string): ReferenceFieldDisplayPolicy {
+  switch (fieldKey) {
+    case "cloud_liquid_water_kg_per_kg":
+      return {
+        fieldKey,
+        paletteLabel: "Cloud water log scale",
+        legendGradient: "linear-gradient(90deg, #f8fcfb 0%, #b9e1ec 38%, #4b9ed0 72%, #07588e 100%)",
+        zeroLabel: "zero cloud water",
+        highLabel: "more cloud water",
+        displayNote:
+          "Display-only log/adaptive scale keeps zero cloud water white and makes nonzero cloud structure readable.",
+      };
+    case "rain_water_kg_per_kg":
+      return {
+        fieldKey,
+        paletteLabel: "Rain water log scale",
+        legendGradient: "linear-gradient(90deg, #f9fbff 0%, #bdd7f1 42%, #6c8fd6 76%, #34439b 100%)",
+        zeroLabel: "no rain",
+        highLabel: "more rain water",
+        displayNote:
+          "Display-only log/adaptive scale keeps no-rain frames quiet and emphasizes real rain-water signal.",
+      };
+    case "vertical_velocity_m_per_s":
+      return {
+        fieldKey,
+        paletteLabel: "Signed velocity scale",
+        legendGradient: "linear-gradient(90deg, #4578bf 0%, #f7f5ef 50%, #cf5038 100%)",
+        zeroLabel: "sinking / weak motion",
+        highLabel: "strong rising motion",
+        displayNote:
+          "Signed zero-centered scale separates downward and upward motion without changing CM1 values.",
+      };
+    case "water_vapor_kg_per_kg":
+      return {
+        fieldKey,
+        paletteLabel: "Water vapor scale",
+        legendGradient: "linear-gradient(90deg, #f6fbf7 0%, #b8e0d7 44%, #4da995 72%, #1f6658 100%)",
+        zeroLabel: "drier air",
+        highLabel: "moister air",
+        displayNote: "Sequential moisture scale shows relative water-vapor supply in the selected frame.",
+      };
+    case "temperature_k":
+    case "potential_temperature_k":
+      return {
+        fieldKey,
+        paletteLabel: "Temperature/theta scale",
+        legendGradient: "linear-gradient(90deg, #4778bf 0%, #f7f4e8 50%, #cf513b 100%)",
+        zeroLabel: "cooler / lower theta",
+        highLabel: "warmer / higher theta",
+        displayNote:
+          "Adaptive temperature/theta scale shows spatial structure; values remain labeled in source units.",
+      };
+    default:
+      return {
+        fieldKey,
+        paletteLabel: "Adaptive field scale",
+        legendGradient: "linear-gradient(90deg, #f6fbf7 0%, #7fc7c8 55%, #24515a 100%)",
+        zeroLabel: "low",
+        highLabel: "high",
+        displayNote: "Adaptive display scale for this CM1 reference field.",
+      };
+  }
 }
 
 export function referenceMissingFieldNotes(run: ReferenceRun | null): string[] {
@@ -437,11 +509,71 @@ function isCloudOrRainField(fieldKey: string): boolean {
   return fieldKey === "cloud_liquid_water_kg_per_kg" || fieldKey === "rain_water_kg_per_kg";
 }
 
-function referenceColorIntensity(fieldKey: string, normalizedValue: number): number {
-  if (!isCloudOrRainField(fieldKey) || normalizedValue <= 0) {
-    return normalizedValue;
+function referenceColorForField(fieldKey: string, field: ScalarField, value: number): string {
+  const normalized = Math.min(1, Math.max(0, normalizedDisplayValueForFieldKey(fieldKey, field, value)));
+  if (fieldKey === "cloud_liquid_water_kg_per_kg") {
+    if (value <= (scalingMetadataForField(fieldKey, field).noiseThreshold ?? 0)) {
+      return "rgb(248 252 251)";
+    }
+    return rgbColor(multiStopColor(Math.pow(normalized, 0.58), [
+      [248, 252, 251],
+      [185, 225, 236],
+      [75, 158, 208],
+      [7, 88, 142],
+    ]));
   }
-  return Math.min(1, 0.16 + Math.pow(normalizedValue, 0.62) * 0.84);
+
+  if (fieldKey === "rain_water_kg_per_kg") {
+    if (value <= (scalingMetadataForField(fieldKey, field).noiseThreshold ?? 0)) {
+      return "rgb(249 251 255)";
+    }
+    return rgbColor(multiStopColor(Math.pow(normalized, 0.56), [
+      [249, 251, 255],
+      [189, 215, 241],
+      [108, 143, 214],
+      [52, 67, 155],
+    ]));
+  }
+
+  if (fieldKey === "water_vapor_kg_per_kg") {
+    return rgbColor(multiStopColor(normalized, [
+      [246, 251, 247],
+      [184, 224, 215],
+      [77, 169, 149],
+      [31, 102, 88],
+    ]));
+  }
+
+  if (fieldKey === "vertical_velocity_m_per_s") {
+    return rgbColor(colorForNormalizedValue(normalized, "coolwarm"));
+  }
+
+  if (fieldKey === "temperature_k" || fieldKey === "potential_temperature_k") {
+    return rgbColor(colorForNormalizedValue(normalized, "coolwarm"));
+  }
+
+  const colorMap = REFERENCE_COLOR_MAPS[fieldKey] ?? "PuBu";
+  return rgbColor(colorForNormalizedValue(normalized, colorMap));
+}
+
+function multiStopColor(value: number, stops: Array<[number, number, number]>): [number, number, number] {
+  const clamped = Math.min(1, Math.max(0, value));
+  const scaled = clamped * (stops.length - 1);
+  const index = Math.min(stops.length - 2, Math.floor(scaled));
+  const local = scaled - index;
+  return interpolateColor(stops[index], stops[index + 1], local);
+}
+
+function interpolateColor(
+  start: [number, number, number],
+  end: [number, number, number],
+  weight: number,
+): [number, number, number] {
+  return [
+    Math.round(start[0] + (end[0] - start[0]) * weight),
+    Math.round(start[1] + (end[1] - start[1]) * weight),
+    Math.round(start[2] + (end[2] - start[2]) * weight),
+  ];
 }
 
 function rgbColor([red, green, blue]: [number, number, number]): string {
