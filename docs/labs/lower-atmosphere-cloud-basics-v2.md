@@ -99,6 +99,15 @@ details / Why trust this rather than in the main user flow. The main story
 should say "cloud formed" or "cloud did not form" in atmospheric language, not
 "both models formed cloud."
 
+The experiment picker should not dominate the screen once the user has chosen a
+setup. Keep it compact and collapsible, summarize the selected atmospheric
+question, and place run mode, run/reset, Cloud Appearance, and Scientific
+Fields close to the replay. The cloud replay should show labeled x/z axes with
+major distance ticks. For the first vertical slice view, it is acceptable for
+the field to begin shorter and expand upward as clouds form so that near-surface
+cloud evolution remains visible without forcing the user to scroll past empty
+upper air.
+
 The v2 user should be able to ask:
 
 ```text

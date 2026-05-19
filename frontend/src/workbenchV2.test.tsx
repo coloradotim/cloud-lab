@@ -260,9 +260,11 @@ describe("Workbench V2 shell", () => {
 
     expect(html).toContain("Guided cloud experiment");
     expect(html).toContain("Choose an experiment");
+    expect(html).toContain('<details class="experiment-chooser"');
     expect(html).toContain("Watch the cloud evolve");
     expect(html).toContain("Understand why");
     expect(html).toContain("Try next");
+    expect(html).toContain("Move to a different experiment");
     expect(html).toContain("Model details / Why trust this?");
     expect(html).not.toContain("Visualization stage");
     expect(html).not.toContain("Lower Atmosphere v2 setup");
@@ -292,12 +294,13 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain(">Run experiment<");
     expect(html).not.toContain(">Stop<");
     expect(html).toContain(">Reset<");
-    expect(html).toContain("Pick a setup, then run the cloud experiment");
+    expect(html).toContain('<details class="experiment-chooser"');
     expect(html).toContain("The reference cloud evolution is already available because it is offline");
     expect(html).toContain("Cloud liquid water");
     expect(html).toContain("Vertical velocity");
     expect(html).toContain("Potential temperature");
-    expect(html).toContain("Make the same atmosphere drier");
+    expect(html).toContain("Dry the lower air");
+    expect(html).toContain("Move to a different experiment");
     expect(html).toContain("Model details / Why trust this?");
     expect(html).toContain('<details class="guided-model-details">');
     expect(html).toContain("Offline reference plus simplified explanation");
@@ -361,7 +364,7 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Why can air rise but fail to form cloud?");
     expect(html).toContain("Motion without meaningful cloud water.");
     expect(html).not.toContain('<h2 id="setup-region-title">Dry failed cumulus</h2>');
-    expect(html.match(/Dry failed cumulus/g)?.length ?? 0).toBeLessThanOrEqual(4);
+    expect(html.match(/Dry failed cumulus/g)?.length ?? 0).toBeLessThanOrEqual(5);
   });
 
   it("keeps saved runs and comparison out of large default panels", () => {

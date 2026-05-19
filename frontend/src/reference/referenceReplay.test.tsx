@@ -139,6 +139,9 @@ describe("CM1 reference replay component", () => {
     expect(html).toContain("Cloud liquid water shows where cloud exists");
     expect(html).toContain("Replay the cloud evolution to see when cloud water appears");
     expect(html).toContain("300 s - first cloud");
+    expect(html).toContain("Major x and z axis tickmarks");
+    expect(html).toContain("Horizontal distance, x (m)");
+    expect(html).toContain("Height, z (m)");
   });
 
   it("renders no-cloud timeline guidance for dry failed references", () => {
@@ -250,8 +253,10 @@ describe("CM1 reference appearance view", () => {
     expect(appearanceHtml).toContain("Not live CM1 simulation");
     expect(appearanceHtml).toContain("CM1 reference output");
     expect(appearanceHtml).toContain("Zero cloud water renders no meaningful cloud");
+    expect(appearanceHtml).not.toContain('aria-label="Reference field"');
     expect(scientificHtml).toContain("Scientific field view");
     expect(scientificHtml).toContain("Cloud Appearance");
+    expect(scientificHtml).toContain('aria-label="Reference field"');
   });
 
   it("can render as the guided post-run cloud appearance without main source details", () => {

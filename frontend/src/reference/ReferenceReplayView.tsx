@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import { formatSeconds } from "../workbench/workbenchRunLoop";
 import {
@@ -71,6 +71,7 @@ export function ReferenceReplayView({
     ? ["Assumed droplet radius", "Not direct radiative transfer", "Not live CM1 simulation"]
     : ["Not live CM1 simulation"];
   const timelineEvents = referenceTimelineEvents(referenceRun);
+  const visualHeight = referenceVisualHeight(referenceRun, frameIndex);
 
   useEffect(() => {
     if (preferredViewMode) {
@@ -106,7 +107,11 @@ export function ReferenceReplayView({
   }, [playing, frameCount]);
 
   return (
-    <section className="reference-replay-panel" aria-labelledby="cm1-reference-replay-title">
+    <section
+      className="reference-replay-panel"
+      aria-labelledby="cm1-reference-replay-title"
+      style={{ "--reference-visual-height": `${visualHeight}px` } as CSSProperties}
+    >
       <div className="stage-heading">
         <p className="region-label">{regionLabel}</p>
         <div className="stage-title-row">
@@ -140,21 +145,22 @@ export function ReferenceReplayView({
             </button>
           </div>
         </fieldset>
-        <label className="field-selector">
-          <span>{fieldSelectorLabel}</span>
-          <select
-            aria-label="Reference field"
-            value={selectedFieldKey}
-            disabled={viewMode === "cloud-appearance"}
-            onChange={(event) => setSelectedFieldKey(event.currentTarget.value)}
-          >
-            {fieldOptions.map((field) => (
-              <option key={field.key} value={field.key}>
-                {field.label} ({field.unit || "unit unavailable"})
-              </option>
-            ))}
-          </select>
-        </label>
+        {viewMode === "scientific-field" ? (
+          <label className="field-selector">
+            <span>{fieldSelectorLabel}</span>
+            <select
+              aria-label="Reference field"
+              value={selectedFieldKey}
+              onChange={(event) => setSelectedFieldKey(event.currentTarget.value)}
+            >
+              {fieldOptions.map((field) => (
+                <option key={field.key} value={field.key}>
+                  {field.label} ({field.unit || "unit unavailable"})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <p className="field-scale-title">
           {viewMode === "cloud-appearance"
             ? "Cloud appearance view - visual interpretation"
@@ -233,6 +239,7 @@ export function ReferenceReplayView({
                   />
                 ) : null}
               </svg>
+              <ReferenceAxisTicks frame={viewModel.frame} />
             </div>
             <span className="axis-label axis-label-x">Horizontal distance, x (m)</span>
           </div>
@@ -409,6 +416,7 @@ function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
             />
           ))}
         </svg>
+        <ReferenceAxisTicks frame={model.frame} />
       </div>
       <dl className="stage-stats reference-appearance-summary">
         <div>
@@ -438,6 +446,38 @@ function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
   );
 }
 
+function ReferenceAxisTicks({ frame }: { frame: ReferenceRun["frames"][number] }) {
+  const xTicks = majorTicks(frame.grid.x_coordinates_m);
+  const zTicks = majorTicks(frame.grid.z_coordinates_m);
+  const xMin = Math.min(...frame.grid.x_coordinates_m);
+  const xMax = Math.max(...frame.grid.x_coordinates_m);
+  const zMin = Math.min(...frame.grid.z_coordinates_m);
+  const zMax = Math.max(...frame.grid.z_coordinates_m);
+
+  return (
+    <div className="reference-axis-ticks" aria-label="Major x and z axis tickmarks">
+      {xTicks.map((tick) => (
+        <span
+          key={`x-${tick}`}
+          className="reference-axis-tick reference-axis-tick-x"
+          style={{ left: `${axisPercent(tick, xMin, xMax)}%` }}
+        >
+          {formatDistanceTick(tick)}
+        </span>
+      ))}
+      {zTicks.map((tick) => (
+        <span
+          key={`z-${tick}`}
+          className="reference-axis-tick reference-axis-tick-z"
+          style={{ bottom: `${axisPercent(tick, zMin, zMax)}%` }}
+        >
+          {formatDistanceTick(tick)}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function formatNullable(value: number | null, unit: string): string {
   if (value === null || !Number.isFinite(value)) {
     return "unavailable";
@@ -450,6 +490,53 @@ function formatLegendValue(value: number, unit: string): string {
     return "n/a";
   }
   return `${Math.abs(value) >= 1_000 ? value.toExponential(1) : value.toPrecision(3)} ${unit}`;
+}
+
+function referenceVisualHeight(run: ReferenceRun | null, frameIndex: number): number {
+  const frame = run?.frames[Math.max(0, Math.min(frameIndex, (run?.frames.length ?? 1) - 1))];
+  const field = frame?.fields.cloud_liquid_water_kg_per_kg;
+  if (!frame || !field) {
+    return 280;
+  }
+
+  let highestCloudRow = -1;
+  field.values.forEach((row, rowIndex) => {
+    if (row.some((value) => Number.isFinite(value) && value > 0)) {
+      highestCloudRow = Math.max(highestCloudRow, rowIndex);
+    }
+  });
+
+  if (highestCloudRow < 0) {
+    return 260;
+  }
+
+  const cloudTopFraction = (highestCloudRow + 1) / Math.max(1, frame.grid.rows);
+  return Math.round(280 + cloudTopFraction * 260);
+}
+
+function majorTicks(values: number[]): number[] {
+  if (!values.length) {
+    return [];
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const mid = min + (max - min) / 2;
+  return [min, mid, max];
+}
+
+function axisPercent(value: number, min: number, max: number): number {
+  if (max <= min) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+}
+
+function formatDistanceTick(value: number): string {
+  if (Math.abs(value) >= 1_000) {
+    return `${Number((value / 1_000).toFixed(1))} km`;
+  }
+  return `${Math.round(value)} m`;
 }
 
 function dedupe(labels: string[]): string[] {
