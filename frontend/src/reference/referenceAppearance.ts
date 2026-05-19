@@ -15,6 +15,8 @@ export type ReferenceAppearanceCell = {
   opacity: number;
   brightness: number;
   fill: string;
+  shadowFill: string;
+  highlightFill: string;
 };
 
 export type ReferenceAppearanceViewModel = {
@@ -73,10 +75,12 @@ export function buildReferenceAppearanceViewModel(
       const densityResponse = maxCloudWater > 0
         ? Math.pow(Math.max(0, value) / maxCloudWater, 0.38)
         : 0;
-      const opacity = maxCloudWater <= 0 ? 0 : Math.min(0.94, densityResponse * 0.76 + optical.opacity * 4.2);
+      const opacity = maxCloudWater <= 0 ? 0 : Math.min(0.96, densityResponse * 0.82 + optical.opacity * 4.6);
       const brightness = maxCloudWater <= 0
         ? 0
-        : Math.min(1, Math.max(0.18, optical.brightness * 0.9 + edgeLighting * 0.24));
+        : Math.min(1, Math.max(0.22, optical.brightness * 0.92 + edgeLighting * 0.3));
+      const baseShadow = maxCloudWater <= 0 ? 0 : Math.min(0.38, opacity * (0.16 + rowIndex / Math.max(1, finiteValues.length - 1) * 0.22));
+      const highlight = maxCloudWater <= 0 ? 0 : Math.min(0.5, opacity * (0.22 + edgeLighting * 0.34));
 
       maxOpticalDepth = Math.max(maxOpticalDepth, optical.opticalDepth);
       opacitySum += opacity;
@@ -89,6 +93,8 @@ export function buildReferenceAppearanceViewModel(
         opacity,
         brightness,
         fill: cloudAppearanceFill(opacity, brightness),
+        shadowFill: cloudAppearanceShadowFill(baseShadow),
+        highlightFill: cloudAppearanceHighlightFill(highlight),
       };
     }),
   );
@@ -199,6 +205,20 @@ function cloudAppearanceFill(opacity: number, brightness: number): string {
   const green = Math.round(224 + brightness * 30);
   const blue = Math.round(230 + brightness * 24);
   return `rgb(${red} ${green} ${blue} / ${Math.min(0.94, opacity).toFixed(3)})`;
+}
+
+function cloudAppearanceShadowFill(opacity: number): string {
+  if (opacity <= 0) {
+    return "rgb(62 84 91 / 0)";
+  }
+  return `rgb(72 89 96 / ${opacity.toFixed(3)})`;
+}
+
+function cloudAppearanceHighlightFill(opacity: number): string {
+  if (opacity <= 0) {
+    return "rgb(255 255 255 / 0)";
+  }
+  return `rgb(255 255 255 / ${opacity.toFixed(3)})`;
 }
 
 function clampFrameIndex(run: ReferenceRun, frameIndex: number): number {

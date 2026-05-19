@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import { formatSeconds } from "../workbench/workbenchRunLoop";
 import {
@@ -204,24 +204,42 @@ export function ReferenceReplayView({
                   />
                 ))}
                 {viewModel.overlay.cloudBaseY !== null ? (
-                  <line
-                    className="reference-overlay-line reference-cloud-base"
-                    x1="0"
-                    x2={viewModel.columns}
-                    y1={viewModel.overlay.cloudBaseY}
-                    y2={viewModel.overlay.cloudBaseY}
-                    vectorEffect="non-scaling-stroke"
-                  />
+                  <>
+                    <line
+                      className="reference-overlay-line reference-cloud-base"
+                      x1="0"
+                      x2={viewModel.columns}
+                      y1={viewModel.overlay.cloudBaseY}
+                      y2={viewModel.overlay.cloudBaseY}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <text
+                      className="reference-overlay-label reference-cloud-base-label"
+                      x="0.25"
+                      y={overlayLabelY(viewModel.overlay.cloudBaseY, viewModel.rows)}
+                    >
+                      cloud base
+                    </text>
+                  </>
                 ) : null}
                 {viewModel.overlay.cloudTopY !== null ? (
-                  <line
-                    className="reference-overlay-line reference-cloud-top"
-                    x1="0"
-                    x2={viewModel.columns}
-                    y1={viewModel.overlay.cloudTopY}
-                    y2={viewModel.overlay.cloudTopY}
-                    vectorEffect="non-scaling-stroke"
-                  />
+                  <>
+                    <line
+                      className="reference-overlay-line reference-cloud-top"
+                      x1="0"
+                      x2={viewModel.columns}
+                      y1={viewModel.overlay.cloudTopY}
+                      y2={viewModel.overlay.cloudTopY}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <text
+                      className="reference-overlay-label reference-cloud-top-label"
+                      x="0.25"
+                      y={overlayLabelY(viewModel.overlay.cloudTopY, viewModel.rows)}
+                    >
+                      cloud top
+                    </text>
+                  </>
                 ) : null}
                 {viewModel.overlay.maxUpdraftPoint ? (
                   <circle
@@ -238,9 +256,12 @@ export function ReferenceReplayView({
           </div>
           <div className="field-legend" aria-label="CM1 reference field legend">
             <strong>{activeFieldLabel}</strong>
-            <span>{formatLegendValue(viewModel.range.min, viewModel.summary.unit)}</span>
-            <span className="legend-ramp" />
-            <span>{formatLegendValue(viewModel.range.max, viewModel.summary.unit)}</span>
+            <span>{viewModel.displayPolicy.zeroLabel}</span>
+            <span
+              className="legend-ramp reference-legend-ramp"
+              style={{ "--reference-legend-gradient": viewModel.displayPolicy.legendGradient } as CSSProperties}
+            />
+            <span>{viewModel.displayPolicy.highLabel}</span>
           </div>
           <dl className="stage-stats reference-field-readout" aria-label="Selected CM1 reference field readout">
             <div>
@@ -256,7 +277,14 @@ export function ReferenceReplayView({
             </div>
             <div>
               <dt>Display scale</dt>
-              <dd>{viewModel.scaling.scale} / {viewModel.scaling.range}</dd>
+              <dd>{viewModel.displayPolicy.paletteLabel}</dd>
+            </div>
+            <div>
+              <dt>Displayed range</dt>
+              <dd>
+                {formatLegendValue(viewModel.range.min, viewModel.summary.unit)} /{" "}
+                {formatLegendValue(viewModel.range.max, viewModel.summary.unit)}
+              </dd>
             </div>
           </dl>
           {!viewModel.signal.hasSignal ? (
@@ -264,6 +292,7 @@ export function ReferenceReplayView({
           ) : (
             <p className="stage-helper">{viewModel.signal.helper}</p>
           )}
+          <p className="stage-helper">{viewModel.displayPolicy.displayNote}</p>
           {viewModel.fallbackMessage ? <p className="stage-helper">{viewModel.fallbackMessage}</p> : null}
         </div>
       ) : (
@@ -390,24 +419,53 @@ function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
           <title>Visual interpretation of CM1 reference field</title>
           <defs>
             <linearGradient id="reference-appearance-sky" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#cfe6f4" />
-              <stop offset="68%" stopColor="#eaf3f4" />
-              <stop offset="100%" stopColor="#f4efe3" />
+              <stop offset="0%" stopColor="#c9e4f5" />
+              <stop offset="58%" stopColor="#e9f4f5" />
+              <stop offset="100%" stopColor="#f6eedf" />
             </linearGradient>
+            <filter id="reference-cloud-soften" x="-8%" y="-8%" width="116%" height="116%">
+              <feGaussianBlur stdDeviation="0.32" />
+            </filter>
           </defs>
           <rect x="0" y="0" width={model.columns} height={model.rows} fill="url(#reference-appearance-sky)" />
-          {model.cells.map((cell) => (
-            <rect
-              key={`${cell.row}-${cell.column}`}
-              x={cell.column}
-              y={model.rows - cell.row - 1}
-              width="1"
-              height="1"
-              fill={cell.fill}
-              data-cloud-water={cell.sourceCloudWater}
-              data-opacity={cell.opacity.toFixed(4)}
-            />
-          ))}
+          <g className="reference-appearance-shadow" filter="url(#reference-cloud-soften)">
+            {model.cells.map((cell) => (
+              <rect
+                key={`shadow-${cell.row}-${cell.column}`}
+                x={cell.column - 0.04}
+                y={model.rows - cell.row - 0.68}
+                width="1.08"
+                height="1.08"
+                fill={cell.shadowFill}
+              />
+            ))}
+          </g>
+          <g className="reference-appearance-cloud-core" filter="url(#reference-cloud-soften)">
+            {model.cells.map((cell) => (
+              <rect
+                key={`${cell.row}-${cell.column}`}
+                x={cell.column - 0.08}
+                y={model.rows - cell.row - 1.08}
+                width="1.16"
+                height="1.16"
+                fill={cell.fill}
+                data-cloud-water={cell.sourceCloudWater}
+                data-opacity={cell.opacity.toFixed(4)}
+              />
+            ))}
+          </g>
+          <g className="reference-appearance-highlight" filter="url(#reference-cloud-soften)">
+            {model.cells.map((cell) => (
+              <rect
+                key={`highlight-${cell.row}-${cell.column}`}
+                x={cell.column + 0.06}
+                y={model.rows - cell.row - 1.12}
+                width="0.72"
+                height="0.48"
+                fill={cell.highlightFill}
+              />
+            ))}
+          </g>
         </svg>
       </div>
       <dl className="stage-stats reference-appearance-summary">
@@ -430,7 +488,7 @@ function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
       </dl>
       <p className="stage-helper">
         {hasCloud
-          ? "Cloud water is mapped to opacity and brightness for a visual interpretation; source fields are unchanged."
+          ? "Cloud water is mapped to opacity, soft edges, shadow, and brightness for a display-only visual interpretation; source fields are unchanged."
           : "Zero cloud water renders no meaningful cloud in the appearance view."}
       </p>
       {model.fallbackMessage ? <p className="stage-helper">{model.fallbackMessage}</p> : null}
@@ -450,6 +508,10 @@ function formatLegendValue(value: number, unit: string): string {
     return "n/a";
   }
   return `${Math.abs(value) >= 1_000 ? value.toExponential(1) : value.toPrecision(3)} ${unit}`;
+}
+
+function overlayLabelY(y: number, rows: number): number {
+  return Math.max(0.45, Math.min(rows - 0.2, y - 0.18));
 }
 
 function dedupe(labels: string[]): string[] {

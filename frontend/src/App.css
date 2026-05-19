@@ -1212,7 +1212,7 @@ h2 {
 
 .reference-overlay-line {
   stroke: #153137;
-  stroke-width: 0.08;
+  stroke-width: 0.1;
   stroke-dasharray: 0.4 0.25;
   opacity: 0.85;
 }
@@ -1229,6 +1229,25 @@ h2 {
   fill: none;
   stroke: #d45d3f;
   stroke-width: 0.1;
+}
+
+.reference-overlay-label {
+  paint-order: stroke;
+  stroke: rgb(255 255 255 / 0.88);
+  stroke-width: 0.18;
+  fill: #153137;
+  font-size: 0.42px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.reference-cloud-base-label {
+  fill: #1f6f58;
+}
+
+.reference-cloud-top-label {
+  fill: #5a4aa8;
 }
 
 .reference-replay-timeline {
@@ -1289,8 +1308,10 @@ h2 {
   overflow: hidden;
   border: 1px solid #bcd1cc;
   border-radius: 8px;
-  background: #bfdfee;
-  box-shadow: inset 0 -60px 90px rgb(236 229 204 / 0.65);
+  background: #c7e3f3;
+  box-shadow:
+    inset 0 -72px 100px rgb(236 229 204 / 0.72),
+    inset 0 32px 70px rgb(255 255 255 / 0.32);
 }
 
 .reference-appearance-view {
@@ -1573,6 +1594,10 @@ h2 {
   min-height: 10px;
   border-radius: 999px;
   background: linear-gradient(90deg, #edf6f2, #52a0d6, #d2503c);
+}
+
+.reference-legend-ramp {
+  background: var(--reference-legend-gradient, linear-gradient(90deg, #edf6f2, #52a0d6, #d2503c));
 }
 
 .stage-empty-state {

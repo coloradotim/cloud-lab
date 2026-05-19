@@ -238,6 +238,14 @@ missing but `potential_temperature_k` is available. Appearance rendering should
 make shallow-cumulus cloud water more visible while keeping zero-cloud dry cases
 cloud-free and preserving source fields.
 
+The #231 rendering-quality pass keeps the same `reference-run-v1` /
+`reference-frame-v1` schema and adds field-specific frontend display policies:
+log/adaptive palettes for cloud and rain water, a signed velocity palette,
+sequential moisture colors, and temperature/theta colors. These are display
+policies only. They should make real CM1 cloud and rain structure easier to
+read without altering the ingested reference fields or making dry-failed cases
+look cloudy.
+
 The #233 guided UX rebuild keeps the same science and data contracts but
 changes the Lower Atmosphere presentation order. CM1 should be the
 reference/validation backbone and source of credible replay fields, while the

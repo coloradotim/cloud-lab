@@ -77,6 +77,14 @@ comparison panel should remain readable in narrow/export-like layouts and should
 explain that the offline CM1 reference is visible before Run v2 computes the
 reduced-model side.
 
+#231 keeps the same science and improves the CM1/reference field rendering
+itself. Cloud and rain water should use display-only log/adaptive palettes that
+leave zero-signal dry frames quiet. Vertical velocity, water vapor, and
+temperature/theta should each use field-appropriate palettes. The appearance
+view may use stronger opacity, soft edges, highlights, and cloud-base shadowing
+from the same CM1 cloud-water field, but it remains a labeled visual
+interpretation and must not fake clouds in dry-failed cases.
+
 #233 keeps that same accepted CM1 science and rebuilds the user-facing Lower
 Atmosphere experience around a guided cloud experiment rather than a
 setup/stage/inspector or model-comparison layout. The main experience should

@@ -480,3 +480,10 @@ Use the current open issue state to decide, but as of this handoff:
   this only when validation or provenance is needed. Keep the main page out of
   reduced-model-versus-CM1 comparison language. Do not add CM1 cases, tune
   science, change Boussinesq, or start warm-rain work.
+
+  #231 is the focused rendering-quality pass for the same CM1/reference path.
+  It should improve scientific field palettes and cloud appearance payoff from
+  existing real local CM1 reference outputs only. Keep dry-failed cases visually
+  cloud-free, keep display scaling labeled as display-only, preserve source
+  fields/provenance, and avoid new CM1 cases, case tuning, Boussinesq changes,
+  or warm-rain work.

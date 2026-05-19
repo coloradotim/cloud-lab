@@ -109,6 +109,12 @@ of credible replay fields, but the default user mental model is a guided cloud
 experiment. Detailed source/provenance, reference checks, and exact-morphology
 limitations belong under collapsed Model details / Why trust this.
 
+Issue #231 is a focused rendering-quality pass on the CM1/reference views. It
+should improve scientific field palettes and cloud appearance payoff using the
+accepted dry-failed and shallow-cumulus reference outputs. It should not add
+cases, tune CM1, change reduced-model science, change Boussinesq, or start
+warm-rain work.
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:
