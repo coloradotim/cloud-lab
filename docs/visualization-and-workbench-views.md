@@ -189,6 +189,16 @@ final frame. CM1/reference provenance, diagnostic comparison, and validation
 details should remain available under collapsed Model details / Why trust this
 rather than dominating the first screen.
 
+The guided experiment surface should keep setup compact after an experiment is
+chosen. The experiment chooser may collapse into a short atmospheric question
+summary, while the replay/control area stays prominent. Run mode, run/reset,
+Cloud Appearance, and Scientific Fields should be grouped near the cloud view.
+Scientific field selection should only be visible when Scientific Fields is
+active. Replay views should include labeled x/z axes with major distance ticks,
+and the visual field may start short then expand upward as cloud depth grows,
+provided the source fields are not mutated and display interpolation is labeled
+if added.
+
 ### Cloud Appearance View
 
 The cloud appearance view uses cloud liquid water and documented assumptions to produce a more cloud-like image.

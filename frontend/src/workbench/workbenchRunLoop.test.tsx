@@ -139,11 +139,13 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
 
     expect(html).toContain("Guided cloud experiment");
     expect(html).toContain("Choose an experiment");
-    expect(html).toContain("Pick a setup, then run the cloud experiment");
+    expect(html).toContain('<details class="experiment-chooser"');
+    expect(html).toContain("Move to a different experiment");
     expect(html).toContain("The reference cloud evolution is already available because it is offline");
     expect(html).toContain("Watch the cloud evolve");
     expect(html).toContain("Replay the experiment");
     expect(html).toContain("Understand why");
+    expect(html).toContain("Atmospheric clues");
     expect(html).toContain("Try next");
     expect(html).toContain("Model details / Why trust this?");
     expect(html).toContain('<details class="guided-model-details">');
