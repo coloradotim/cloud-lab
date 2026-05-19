@@ -81,6 +81,21 @@ This pair should show why similar-looking lower-atmosphere setups can produce
 different outcomes: one produces thermal motion without cloud, while the other
 forms shallow cumulus.
 
+Use `docs/reference-models/cm1-lower-atmosphere-validation-matrix.md` before
+adding more CM1 cases. The matrix recasts early follow-on cases as validation
+anchors for user-facing controls:
+
+```text
+Phase A: accepted dry failed + shallow cumulus anchors
+Phase B: capped/suppressed + humid low-cloud + fog/low-stratus anchor
+Phase C: curated one-factor sensitivity sweeps
+Phase D: threshold/boundary cases
+Phase E: rain later
+```
+
+The validation matrix prioritizes cloud base, cloud top, and first cloud time,
+not just cloud/no-cloud outcome.
+
 ## Case Summary
 
 | Case id | User-facing name | Lab served | Priority | Expected visual behavior |
