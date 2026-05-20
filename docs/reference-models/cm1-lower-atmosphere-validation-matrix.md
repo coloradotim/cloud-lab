@@ -95,10 +95,12 @@ just more visuals.
 | --- | --- | --- | --- | --- | --- |
 | `cm1-capped-suppressed-cumulus-v1` | Capped / suppressed cloud | baseline moisture, baseline or moderate heating, stronger cap/stability | cloud delayed, shallow, capped, or suppressed | immediate | planned |
 | `cm1-humid-low-cloud-contrast-v1` | Humid low-cloud contrast | high low-level moisture, moderate heating, baseline/weak cap | lower cloud base, easier cloud formation | immediate | planned |
-| `cm1-low-stratus-develops-v1` or `cm1-fog-develops-v1` | Low-cloud / fog-like contrast | very high near-surface moisture, weak heating or cooling/near-saturation setup, shallow stable layer | low stratus or fog-like low cloud develops | immediate | planned |
+| `cm1-low-stratus-develops-v1` | Low-cloud / fog-like contrast | very high near-surface moisture, weak heating or cooling/near-saturation setup, shallow stable layer | low stratus-like low cloud develops | immediate | planned |
 
 The fog/low-stratus anchor is intentionally early. Cloud Lab needs to validate
-low-cloud behavior and not only fair-weather cumulus.
+low-cloud behavior and not only fair-weather cumulus. #223 chooses the low
+stratus name because the committed first-pass setup is weak-heating and shallow
+stable-layer driven, not a full radiative-cooling fog design.
 
 ### Phase C: One-Factor Sensitivity Sweeps Around Baseline
 
@@ -184,9 +186,9 @@ Every CM1 validation case should eventually be tracked with these fields:
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A | `cm1-dry-failed-cumulus-v1` | Dry failed cumulus | low moisture; baseline heating; baseline cap; dry aloft | motion without meaningful cloud | dry failed / no meaningful cloud | dry failed | no cloud | unavailable | unavailable | unavailable | 0.00 kg/kg observed in acceptance | 0.558 m/s observed in acceptance | unavailable | qualitative regime; diagnostics plausible | accepted | Existing real local output accepted in #221. |
 | A | `cm1-shallow-cumulus-baseline-v1` | Baseline shallow cloud | baseline moisture; baseline heating; baseline cap; dry aloft | shallow cumulus forms | cloud formed | cloud formed | cloud | 600 s observed in acceptance | 1250 m observed | 4250 m observed | 0.00191 kg/kg observed | 6.56 m/s observed | 1800 s observed | qualitative regime; timing/base/top approximate | accepted | Existing real local output accepted in #221. |
-| B | `cm1-capped-suppressed-cumulus-v1` | Capped / suppressed cloud | baseline moisture; baseline/moderate heating; strong cap | delayed/shallow/capped or suppressed cloud | TBD | capped/suppressed | delayed/capped/suppressed | TBD | TBD | below/near cap | TBD | TBD | unavailable unless produced | regime required; cap relationship approximate | planned | Should validate cap-control meaning. |
-| B | `cm1-humid-low-cloud-contrast-v1` | Humid low-cloud contrast | high low-level moisture; moderate heating; baseline/weak cap | low-base cloud forms more easily | TBD | low-base cloud favorable | cloud | TBD, likely earlier than baseline | lower than baseline | TBD | TBD | TBD | TBD | regime required; base/timing approximate | planned | Contrast case, not default fair-weather baseline. |
-| B | `cm1-low-stratus-develops-v1` or `cm1-fog-develops-v1` | Low-cloud / fog-like contrast | very high near-surface moisture; weak heating or near-saturation/cooling setup; shallow stable layer | fog/low stratus-like low cloud | TBD | low-cloud favorable | low cloud/fog/stratus | TBD | near surface / very low | shallow | TBD | weak to moderate | likely unavailable | regime required; low-cloud base/top approximate | planned | Choose fog versus low stratus during case-design issue. |
+| B | `cm1-capped-suppressed-cumulus-v1` | Capped / suppressed cloud | baseline moisture; baseline/moderate heating; strong cap | delayed/shallow/capped or suppressed cloud | TBD | capped/suppressed | delayed/capped/suppressed | TBD | TBD | below/near cap | TBD | TBD | unavailable unless produced | regime required; cap relationship approximate | planned | #223 commits case assets/manifests/run hooks; real output still must be generated, ingested, and inspected. |
+| B | `cm1-humid-low-cloud-contrast-v1` | Humid low-cloud contrast | high low-level moisture; moderate heating; baseline/weak cap | low-base cloud forms more easily | TBD | low-base cloud favorable | cloud | TBD, likely earlier than baseline | lower than baseline | TBD | TBD | TBD | TBD | regime required; base/timing approximate | planned | #223 commits case assets/manifests/run hooks; real output still must be generated, ingested, and inspected. |
+| B | `cm1-low-stratus-develops-v1` | Low-cloud / fog-like contrast | very high near-surface moisture; weak heating or near-saturation/cooling setup; shallow stable layer | low stratus-like low cloud | TBD | low-cloud favorable | low cloud/stratus | TBD | near surface / very low | shallow | TBD | weak to moderate | likely unavailable | regime required; low-cloud base/top approximate | planned | #223 chose low stratus because the committed setup is weak-heating/stable-layer, not a full radiative-cooling fog design. Real output still must be generated, ingested, and inspected. |
 | C | `cm1-baseline-low-moisture-v1` | Moisture sensitivity | low moisture, baseline other axes | delayed/weak cloud or near failure | TBD | weaker cloud tendency | TBD | later or unavailable | higher than baseline | lower/shallower | lower | TBD | unavailable | directional | planned | One-factor moisture sweep. |
 | C | `cm1-baseline-high-moisture-v1` | Moisture sensitivity | high moisture, baseline other axes | earlier/lower cloud | TBD | stronger cloud tendency | cloud | earlier than baseline | lower than baseline | TBD | higher or comparable | TBD | TBD | directional | planned | One-factor moisture sweep. |
 | C | `cm1-baseline-weak-heating-v1` | Heating sensitivity | weak heating, baseline other axes | delayed/weaker cloud | TBD | weaker/delayed cloud | TBD | later | TBD | lower/shallower | lower | lower | unavailable | directional | planned | One-factor heating sweep. |
@@ -271,37 +273,24 @@ Commit docs, scripts, manifests, and tiny fixtures only. Do not commit large
 NetCDF outputs, CM1 source, binaries, runtime support files, or local run
 directories.
 
-## Recommendation For Issue #223
+## Issue #223 Implementation Scope
 
-Issue #223 currently proposes adding:
+Issue #223 is the Phase B CM1 validation-anchor implementation issue. It should
+commit only the immediate Phase B runnable case assets/manifests/run hooks:
 
 ```text
 cm1-capped-suppressed-cumulus-v1
 cm1-humid-low-cloud-contrast-v1
+cm1-low-stratus-develops-v1
 ```
 
-Recommendation: keep #223 open, but retitle/rescope it as the Phase B CM1
-validation-anchor implementation issue rather than a two-case visual expansion
-issue.
+The low-cloud anchor is named low stratus rather than fog because the committed
+first-pass setup uses weak heating and shallow stability rather than a full
+radiative-cooling fog design. Real output must still be generated, ingested,
+and manually inspected before any Phase B case is marked accepted.
 
-Suggested direction if/when the user explicitly asks to edit #223:
-
-```text
-Retitle:
-Implement Phase B CM1 validation anchors for Lower Atmosphere controls
-
-Rescope:
-- capped/suppressed cumulus
-- humid low-cloud contrast
-- fog or low-stratus low-cloud anchor
-- manifests/run hooks/ingestion mappings for Phase B only
-- no Phase C sweeps yet
-```
-
-Do not close #223 as superseded. It is still the closest existing
-implementation issue for the immediate Phase B anchors, but it should be
-broadened from "add two visuals" to "implement the first missing validation
-anchors" so it aligns with this matrix.
+Do not use #223 to start Phase C sweeps, Phase D boundaries, Phase E rain,
+terrain/orographic cases, PySDM, or warm-rain work.
 
 ## Non-Goals
 

@@ -52,6 +52,9 @@ def _preflight_env(tmp_path: Path) -> dict[str, str]:
 def _fake_cm1_script(*, dry_succeeds: bool = True, shallow_succeeds: bool = True) -> str:
     dry_block = _adapter_source_json(cloud=False)
     shallow_block = _adapter_source_json(cloud=True)
+    capped_block = _adapter_source_json(cloud=False)
+    humid_block = _adapter_source_json(cloud=True)
+    low_stratus_block = _adapter_source_json(cloud=True, low_cloud=True)
     dry_exit = "exit 7" if not dry_succeeds else ""
     shallow_exit = "exit 8" if not shallow_succeeds else ""
     return f"""#!/usr/bin/env bash
@@ -71,6 +74,27 @@ JSON
     touch cm1out_000001.nc
     cat > cloud_lab_cm1_adapter_input.json <<'JSON'
 {shallow_block}
+JSON
+    ;;
+  *capped-suppressed-cumulus*)
+    echo "fake capped/suppressed CM1 run"
+    touch cm1out_000001.nc
+    cat > cloud_lab_cm1_adapter_input.json <<'JSON'
+{capped_block}
+JSON
+    ;;
+  *humid-low-cloud-contrast*)
+    echo "fake humid low-cloud CM1 run"
+    touch cm1out_000001.nc
+    cat > cloud_lab_cm1_adapter_input.json <<'JSON'
+{humid_block}
+JSON
+    ;;
+  *low-stratus-develops*)
+    echo "fake low-stratus CM1 run"
+    touch cm1out_000001.nc
+    cat > cloud_lab_cm1_adapter_input.json <<'JSON'
+{low_stratus_block}
 JSON
     ;;
   *)
@@ -104,7 +128,14 @@ def test_validation_batch_dry_run_reports_planned_cases(tmp_path: Path) -> None:
     report_path = _reported_path(result.stdout)
     report = json.loads(report_path.read_text(encoding="utf-8"))
     assert report["execute"] is False
-    assert report["case_count"] == 2
+    assert report["case_count"] == 5
+    assert {case["case_id"] for case in report["case_results"]} == {
+        "cm1-dry-failed-cumulus-v1",
+        "cm1-shallow-cumulus-baseline-v1",
+        "cm1-capped-suppressed-cumulus-v1",
+        "cm1-humid-low-cloud-contrast-v1",
+        "cm1-low-stratus-develops-v1",
+    }
     assert {case["status"] for case in report["case_results"]} == {"planned"}
     assert not (report_path.parent / "dry-failed-cumulus/cm1.stdout.log").exists()
 
@@ -171,7 +202,11 @@ def test_validation_batch_records_ingest_success_and_qc_statuses(tmp_path: Path)
     assert by_case["cm1-shallow-cumulus-baseline-v1"]["first_cloud_time"] == 60.0
     assert by_case["cm1-shallow-cumulus-baseline-v1"]["cloud_base"] == 750.0
     assert by_case["cm1-shallow-cumulus-baseline-v1"]["frontend_index_status"] == "updated"
-    assert report["summary"]["accepted_count"] == 2
+    assert by_case["cm1-capped-suppressed-cumulus-v1"]["status"] == "accepted"
+    assert by_case["cm1-humid-low-cloud-contrast-v1"]["status"] == "accepted"
+    assert by_case["cm1-low-stratus-develops-v1"]["status"] == "accepted"
+    assert by_case["cm1-low-stratus-develops-v1"]["cloud_base"] == 250.0
+    assert report["summary"]["accepted_count"] == 5
 
 
 def test_validation_batch_continues_after_cm1_case_failure(tmp_path: Path) -> None:
@@ -272,8 +307,13 @@ def _reported_path(stdout: str) -> Path:
     raise AssertionError(f"Report path not found in stdout: {stdout}")
 
 
-def _adapter_source_json(*, cloud: bool) -> str:
-    cloud_frame = [[0.0, 0.0], [2.0e-6, 0.0]] if cloud else [[0.0, 0.0], [0.0, 0.0]]
+def _adapter_source_json(*, cloud: bool, low_cloud: bool = False) -> str:
+    if not cloud:
+        cloud_frame = [[0.0, 0.0], [0.0, 0.0]]
+    elif low_cloud:
+        cloud_frame = [[2.0e-6, 0.0], [0.0, 0.0]]
+    else:
+        cloud_frame = [[0.0, 0.0], [2.0e-6, 0.0]]
     source: dict[str, Any] = {
         "source_case_id": "will-be-overridden",
         "source_is_synthetic_fixture": True,

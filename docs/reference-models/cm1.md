@@ -330,9 +330,21 @@ local cases without making CM1 a default app dependency.
 
 The first committed dry-failed-cumulus and shallow-cumulus-baseline case assets
 live under `reference/cm1/cases/` and are documented in
-`docs/reference-models/cm1-first-reference-pair.md`. Generated CM1 output from
-those cases must remain under ignored local paths such as
-`data/reference/cm1/` until a separate artifact/storage policy exists.
+`docs/reference-models/cm1-first-reference-pair.md`.
+
+Issue #223 adds the first Phase B validation-anchor case assets under the same
+case root:
+
+```text
+reference/cm1/cases/capped-suppressed-cumulus/
+reference/cm1/cases/humid-low-cloud-contrast/
+reference/cm1/cases/low-stratus-develops/
+```
+
+These assets are runnable local CM1 case definitions and manifests, not
+accepted reference outputs. Generated CM1 output from all cases must remain
+under ignored local paths such as `data/reference/cm1/` until a separate
+artifact/storage policy exists.
 
 ## Local Output Ingestion
 
@@ -426,11 +438,15 @@ scripts/reference/cm1/run_validation_batch.sh \
 ```
 
 Omit `--execute` for a dry run. Add `--execute` to run the committed runnable
-cases locally. The current runnable batch is the accepted Phase A pair:
+cases locally. The current runnable batch includes the accepted Phase A pair
+and the planned Phase B validation-anchor assets:
 
 ```text
 cm1-dry-failed-cumulus-v1
 cm1-shallow-cumulus-baseline-v1
+cm1-capped-suppressed-cumulus-v1
+cm1-humid-low-cloud-contrast-v1
+cm1-low-stratus-develops-v1
 ```
 
 The batch delegates CM1 execution to `run_cm1_case.sh`, delegates ingestion to
@@ -442,6 +458,7 @@ data/reference/cm1/validation-runs/<timestamp>/validation-report.json
 
 The report records per-case statuses, diagnostics, expected/observed regimes,
 agreement status, warnings, and next action. It does not score exact cloud
-morphology and does not add missing Phase B/C/D/E cases.
+morphology. Phase B cases remain `planned`/unaccepted until real local output
+is generated, ingested, and manually inspected against the validation matrix.
 
 See `docs/reference-models/cm1-validation-batch-workflow.md`.

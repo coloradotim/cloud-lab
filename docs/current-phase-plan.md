@@ -143,10 +143,11 @@ unless the user explicitly asks to retitle/rescope that issue.
 
 Issue #235 adds the local automation layer for that matrix. Use
 `scripts/reference/cm1/run_validation_batch.sh` to dry-run, execute, ingest, QC,
-and report on committed runnable CM1 validation cases. The current runnable
-batch is still the accepted Phase A dry-failed/shallow-cumulus pair; Phase B
-cases should be added only through their own scoped implementation issue. The
-batch report remains ignored local output under
+and report on committed runnable CM1 validation cases. Issue #223 adds the
+Phase B validation-anchor assets for capped/suppressed cumulus, humid
+low-cloud contrast, and low stratus. These are planned runnable anchors, not
+accepted reference outputs, until real local CM1 output is generated, ingested,
+and manually inspected. The batch report remains ignored local output under
 `data/reference/cm1/validation-runs/<timestamp>/validation-report.json`.
 
 ## Current Phase Goal

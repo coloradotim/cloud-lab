@@ -1,0 +1,112 @@
+{
+  "schema_version": "cloud-lab-cm1-reference-case-v1",
+  "case_id": "cm1-capped-suppressed-cumulus-v1",
+  "case_name": "Capped / Suppressed Cumulus",
+  "lab_served": "Lower Atmosphere Cloud Basics",
+  "source_model": "CM1",
+  "cm1_version": "cm1r21.1 expected",
+  "created_at": null,
+  "status": "case_assets_committed_output_not_committed",
+  "validation_phase": "B",
+  "validation_status": "planned",
+  "experiment_served": "Capped / Suppressed Cumulus",
+  "user_facing_controls_represented": {
+    "low_level_moisture": "baseline",
+    "surface_heating": "baseline_or_moderate",
+    "cap_strength": "strong",
+    "dry_air_aloft": "baseline"
+  },
+  "description": "Phase B CM1 validation-anchor case for a moist lower atmosphere limited by a stronger cap or stable layer.",
+  "physical_question": "How does a stable layer above a moist lower atmosphere limit shallow-cloud growth?",
+  "expected_outcome": "Cloud delayed, shallow/capped, or suppressed by stronger stability aloft.",
+  "expected_regime": "Cloud delayed, shallow/capped, or suppressed by stronger stability aloft.",
+  "namelist_input_concept": {
+    "namelist_path": "reference/cm1/cases/capped-suppressed-cumulus/namelist.input",
+    "sounding_path": "reference/cm1/cases/capped-suppressed-cumulus/input_sounding",
+    "grid_target": {
+      "nx": 60,
+      "ny": 60,
+      "nz": 40,
+      "dx_m": 2000.0,
+      "dy_m": 2000.0,
+      "dz_m": 500.0,
+      "runtime_seconds": 7200.0,
+      "output_interval_seconds": 300.0
+    },
+    "forcing_concept": "Baseline-like moderate sensible heating and moisture supply beneath a stronger cap/inversion.",
+    "output_format": "NetCDF requested with output_format = 2"
+  },
+  "sounding_profile_concept": {
+    "format_reference": "CM1 input_sounding format: first line surface pressure, theta, qv; following lines z, theta, qv, u, v.",
+    "near_surface_qv_g_per_kg": 12.8,
+    "free_atmosphere": "Moist lower layer capped by a stronger theta increase near 1.8-2.2 km and drier air above.",
+    "final_level_note": "Final sounding level is above ztop/grid top."
+  },
+  "local_output_path": "data/reference/cm1/runs/capped-suppressed-cumulus-<timestamp>/",
+  "expected_output_files": [
+    "cm1out_*.nc",
+    "cm1out_stats.nc or cm1out_stats.dat/ctl depending on CM1 output settings",
+    "cm1.stdout.log",
+    "cm1.stderr.log",
+    "namelist.input",
+    "input_sounding",
+    "CASE_README.md",
+    "case_manifest.json"
+  ],
+  "required_fields": [
+    "time",
+    "x coordinate",
+    "z coordinate",
+    "temperature or potential temperature",
+    "water vapor / mixing ratio",
+    "cloud liquid water",
+    "vertical velocity",
+    "horizontal velocity if available",
+    "pressure or pressure-derived metadata if available"
+  ],
+  "diagnostics_to_compute": [
+    "first cloud time if any",
+    "cloud base/top if any",
+    "cloud top relative to cap/inversion",
+    "max cloud liquid water",
+    "integrated cloud liquid water",
+    "max updraft",
+    "cap/suppression status",
+    "missing-field warnings",
+    "source provenance"
+  ],
+  "storage_policy": {
+    "commit_outputs": false,
+    "ignored_output_root": "data/reference/cm1/",
+    "commit_allowed": [
+      "case configs",
+      "scripts",
+      "manifests",
+      "docs",
+      "tiny fixtures"
+    ],
+    "do_not_commit": [
+      "large NetCDF outputs",
+      "compiled CM1 binaries",
+      "CM1 source code",
+      "local machine build products",
+      "runtime support files such as LANDUSE.TBL"
+    ]
+  },
+  "how_to_run": [
+    "scripts/reference/cm1/run_cm1_case.sh --case-dir reference/cm1/cases/capped-suppressed-cumulus --cm1-run-dir ~/src/cm1/CM1/run",
+    "Add --execute to run locally.",
+    "scripts/reference/cm1/run_validation_batch.sh --cm1-run-dir ~/src/cm1/CM1/run --case-id cm1-capped-suppressed-cumulus-v1"
+  ],
+  "how_to_ingest": "After local output exists, use scripts/reference/cm1/run_validation_batch.sh --execute or scripts/reference/cm1/ingest_cm1_output.py with this case id to map selected output into reference-run-v1/reference-frame-v1 data.",
+  "known_limitations": [
+    "First-pass configuration may need calibration after output inspection.",
+    "If generated output forms a deep uncapped cloud, mark the case needs calibration.",
+    "If generated output is dynamically inert, inspect forcing/cap balance before acceptance."
+  ],
+  "notes": [
+    "CM1 is offline reference-model output; Cloud Lab does not run CM1 in normal app sessions.",
+    "No generated CM1 output is committed with this manifest.",
+    "Validation status remains planned until real local output is generated, ingested, and manually inspected."
+  ]
+}

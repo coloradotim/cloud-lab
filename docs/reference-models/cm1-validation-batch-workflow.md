@@ -58,15 +58,21 @@ scripts/reference/cm1/run_validation_batch.sh \
   --execute
 ```
 
-The current committed runnable batch includes the Phase A anchors:
+The current committed runnable batch includes the accepted Phase A anchors and
+the planned Phase B validation-anchor assets:
 
 ```text
 cm1-dry-failed-cumulus-v1
 cm1-shallow-cumulus-baseline-v1
+cm1-capped-suppressed-cumulus-v1
+cm1-humid-low-cloud-contrast-v1
+cm1-low-stratus-develops-v1
 ```
 
-Future Phase B/C/D cases should become runnable only after their case assets
-are committed. Do not add new case configs from this batch script alone.
+Run a focused subset with repeated `--case-id` flags when needed. Future
+Phase C/D/E cases should become runnable only after their case assets are
+committed by scoped implementation issues. Do not add new case configs from
+this batch script alone.
 
 ## Preflight
 
@@ -174,6 +180,11 @@ The batch does not score exact cloud morphology. It checks regime and core
 diagnostics such as cloud timing, cloud base/top, max cloud water, max updraft,
 and rain onset where available.
 
+Phase B cases should still be manually inspected before being promoted from
+planned/generated to accepted. The automatic QC is a guardrail for obvious
+regime failures, not a substitute for the #234 validation-matrix acceptance
+review.
+
 ## Known Failure Messages
 
 The report and console output surface common local-repeatability problems:
@@ -211,4 +222,3 @@ The batch reads the validation matrix to attach expected regimes and existing
 validation status to runnable committed cases. It does not create missing Phase
 B/C/D/E cases. Those cases need their own scoped implementation issues before
 they can enter the batch.
-

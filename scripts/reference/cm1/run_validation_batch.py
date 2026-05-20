@@ -501,6 +501,73 @@ def evaluate_case_qc(
             "next_action": next_action,
         }
 
+    if case.case_id == "cm1-capped-suppressed-cumulus-v1":
+        if max_cloud is None:
+            return _qc_needs_calibration("cloud water unavailable", "Inspect missing cloud-water field.")
+        if cloud_top is not None and cloud_top > 3_000.0:
+            return _qc_needs_calibration(
+                "deep uncapped cloud",
+                "Capped/suppressed anchor exceeded the expected cap layer; inspect case setup.",
+            )
+        status = QC_ACCEPTED_WITH_NOTES if warnings or first_cloud is None else QC_ACCEPTED
+        observed = "suppressed cloud" if first_cloud is None else "delayed/shallow capped cloud"
+        return {
+            "agreement_status": status,
+            "observed_regime": observed,
+            "next_action": "Review cap/top relationship manually before marking Phase B accepted.",
+        }
+
+    if case.case_id == "cm1-humid-low-cloud-contrast-v1":
+        if max_cloud is None or max_cloud <= CLOUD_MEANINGFUL_THRESHOLD_KG_PER_KG:
+            return _qc_needs_calibration(
+                "no meaningful cloud",
+                "Humid low-cloud anchor did not produce cloud; inspect moisture/forcing setup.",
+            )
+        if first_cloud is None or cloud_base is None:
+            return _qc_needs_calibration(
+                "cloud diagnostics incomplete",
+                "Inspect adapter diagnostics for first cloud time and cloud base.",
+            )
+        if cloud_base > 1_250.0:
+            return _qc_needs_calibration(
+                "cloud base not lower than baseline",
+                "Humid low-cloud anchor did not lower cloud base relative to the baseline acceptance value.",
+            )
+        status = QC_ACCEPTED_WITH_NOTES if warnings else QC_ACCEPTED
+        return {
+            "agreement_status": status,
+            "observed_regime": "humid low-cloud contrast forms",
+            "next_action": "Review low-LCL/cloud-base contrast manually before marking Phase B accepted.",
+        }
+
+    if case.case_id == "cm1-low-stratus-develops-v1":
+        if max_cloud is None or max_cloud <= CLOUD_MEANINGFUL_THRESHOLD_KG_PER_KG:
+            return _qc_needs_calibration(
+                "no meaningful low cloud",
+                "Low-stratus anchor did not produce cloud; inspect moisture/stability setup.",
+            )
+        if first_cloud is None or cloud_base is None or cloud_top is None:
+            return _qc_needs_calibration(
+                "low-cloud diagnostics incomplete",
+                "Inspect adapter diagnostics for low-cloud timing and cloud bounds.",
+            )
+        if cloud_base > 500.0:
+            return _qc_needs_calibration(
+                "cloud base too high for low-stratus anchor",
+                "Low-stratus anchor is not low enough; inspect setup before accepting.",
+            )
+        if cloud_top > 2_500.0:
+            return _qc_needs_calibration(
+                "cloud too deep for low-stratus anchor",
+                "Low-stratus anchor grew deeper than intended; inspect setup before accepting.",
+            )
+        status = QC_ACCEPTED_WITH_NOTES if warnings else QC_ACCEPTED
+        return {
+            "agreement_status": status,
+            "observed_regime": "low stratus-like cloud develops",
+            "next_action": "Review low-cloud/stratus label manually before marking Phase B accepted.",
+        }
+
     return {
         "agreement_status": QC_ACCEPTED_WITH_NOTES,
         "observed_regime": "not automatically classified",

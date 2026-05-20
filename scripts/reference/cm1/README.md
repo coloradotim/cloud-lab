@@ -93,6 +93,19 @@ The default mode is a dry run: it writes a local validation report with
 runnable cases, ingest successful output, apply lightweight QC, and update the
 ignored local frontend reference index.
 
+The committed runnable batch now includes the accepted Phase A pair and the
+planned Phase B validation-anchor assets:
+
+```text
+cm1-dry-failed-cumulus-v1
+cm1-shallow-cumulus-baseline-v1
+cm1-capped-suppressed-cumulus-v1
+cm1-humid-low-cloud-contrast-v1
+cm1-low-stratus-develops-v1
+```
+
+Use `--case-id <case-id>` to dry-run or execute a focused subset.
+
 The batch stops on fatal preflight problems such as a missing `cm1.exe`, missing
 `LANDUSE.TBL` for surface-enabled cases, soundings below grid top, missing
 NetCDF tooling for `output_format = 2`, or unavailable Python NetCDF ingestion
