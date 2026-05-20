@@ -285,8 +285,8 @@ preflights NetCDF tooling and required runtime files, runs each committed
 runnable case, ingests successful outputs, and writes a local
 `validation-report.json` under `data/reference/cm1/validation-runs/<timestamp>/`.
 
-As of #223, the batch discovers the accepted Phase A pair plus the planned
-Phase B validation anchors:
+As of #254, the batch discovers the Phase A pair plus the planned Phase B
+validation anchors using the committed cloud-scale configs:
 
 ```text
 cm1-dry-failed-cumulus-v1
@@ -308,6 +308,13 @@ scripts/reference/cm1/run_validation_batch.sh \
 The Phase B cases are validation anchors with committed assets only. Do not
 mark them accepted until real output has been generated, ingested, and manually
 inspected.
+
+The previous 120 km / 2 km-grid Phase A outputs remain workflow/provisional
+evidence only. Rerun Phase A/B with the cloud-scale configs before treating
+those outputs as final visual validation or before using them as the basis for
+Phase C sensitivity sweeps. The batch preflight now rejects committed Lower
+Atmosphere cases wider than 20 km or outside the documented 50-250 m horizontal
+grid-spacing envelope.
 
 ## Output Storage
 

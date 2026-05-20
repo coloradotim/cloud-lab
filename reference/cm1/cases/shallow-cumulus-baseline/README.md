@@ -21,7 +21,7 @@ How do lower-atmosphere heating and moisture produce visible shallow cumulus?
 
 ## Configuration Concept
 
-This case uses the same grid, runtime, and output cadence as the dry-failed
+This case uses the same cloud-scale grid, runtime, and output cadence as the dry-failed
 case, but with a moister lower layer and stronger moisture supply. The intended
 teaching contrast is cloud/no-cloud outcome, not exact cell placement.
 

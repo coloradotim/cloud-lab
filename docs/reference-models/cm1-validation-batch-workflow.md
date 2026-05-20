@@ -58,8 +58,8 @@ scripts/reference/cm1/run_validation_batch.sh \
   --execute
 ```
 
-The current committed runnable batch includes the accepted Phase A anchors and
-the planned Phase B validation-anchor assets:
+The current committed runnable batch includes the Phase A anchors and the
+planned Phase B validation-anchor assets:
 
 ```text
 cm1-dry-failed-cumulus-v1
@@ -74,6 +74,11 @@ Phase C/D/E cases should become runnable only after their case assets are
 committed by scoped implementation issues. Do not add new case configs from
 this batch script alone.
 
+The earlier 120 km / 2 km-grid Phase A outputs remain workflow/provisional
+evidence only. The current committed Phase A/B configs use the #254 cloud-scale
+policy and should be rerun before final visual validation or Phase C sensitivity
+sweeps.
+
 ## Preflight
 
 Before executing, the batch checks:
@@ -85,6 +90,8 @@ Before executing, the batch checks:
 - cases with `output_format = 2` have `nf-config` available.
 - Python NetCDF ingestion packages are available when NetCDF output is needed:
   `xarray` and `netCDF4`.
+- committed Lower Atmosphere case configs satisfy the cloud-scale policy:
+  horizontal domain <=20 km and horizontal grid spacing between 50 m and 250 m.
 
 If preflight fails in execute mode, the batch stops before creating per-case
 runs and prints actionable instructions.

@@ -14,18 +14,22 @@ CM1 is the reference/validation backbone and source of credible reference fields
 
 Completed foundations:
 
-- First real local CM1 pair accepted:
+- First real local CM1 pair accepted as workflow/provisional evidence:
   - `cm1-dry-failed-cumulus-v1`
   - `cm1-shallow-cumulus-baseline-v1`
 - Lower Atmosphere guided experiment UI exists after #233.
 - CM1/reference field and appearance rendering was improved in #231.
 - CM1 lower-atmosphere validation matrix exists from #234.
 - #223 has been reopened/rescoped as Phase B validation-anchor implementation.
+- #254 replaces the old 120 km / 2 km-grid Phase A/B configs with a
+  cloud-scale 16 km x 16 km, 200 m-grid policy.
 
 Still needed before adding many new reference cases:
 
 - Finish the current guided-experiment interaction so the product loop is usable.
 - Automate CM1 batch run/ingest/QC so future validation cases do not require manual babysitting.
+- Rerun and inspect Phase A/B with the cloud-scale configs before treating them
+  as final visual validation or starting Phase C sensitivity sweeps.
 
 ## Execution Order
 
@@ -127,7 +131,8 @@ Do not mark a case accepted just because it ran successfully.
 
 ### 5. #241 — Implement Phase C CM1 one-factor sensitivity sweeps around baseline
 
-Work #241 only after #235 and #223 are complete and Phase B results are known.
+Work #241 only after #235 and #223 are complete, Phase A/B have been rerun with
+the cloud-scale #254 configs, and Phase B results are known.
 
 Purpose:
 
@@ -142,7 +147,9 @@ less/more dry air aloft
 
 Phase C should remain a curated one-factor sweep, not a full factorial.
 
-If Phase B results change the expected control behavior, update the validation matrix before implementing Phase C.
+If Phase B results change the expected control behavior, update the validation
+matrix before implementing Phase C. Do not run Phase C against the superseded
+120 km / 2 km-grid setup.
 
 ## Issues To Create Later
 

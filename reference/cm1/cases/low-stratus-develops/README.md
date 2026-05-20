@@ -22,7 +22,7 @@ cloud rather than isolated fair-weather cumulus?
 
 ## Configuration Concept
 
-This case uses the same runnable CM1 framework as the Phase A pair but chooses a
+This case uses the same cloud-scale CM1 framework as the Phase A pair but chooses a
 very moist shallow layer, weak heating, and a stable lower-atmosphere profile.
 Because this is not a radiative-cooling fog setup, the committed case is named
 low stratus rather than fog.

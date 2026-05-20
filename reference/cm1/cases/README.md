@@ -46,10 +46,33 @@ data/reference/cm1/runs/
 
 Do not commit generated CM1 output, CM1 binaries, or local build products.
 
+## Cloud-Scale Domain Policy
+
+The committed Phase A/B assets now use the first Lower Atmosphere CM1
+cloud-scale policy:
+
+```text
+horizontal domain: 16 km x 16 km
+horizontal grid spacing: 200 m
+vertical domain: 6 km
+nominal vertical spacing: 125 m
+runtime: 7200 s
+output cadence: 300 s
+```
+
+The old 120 km / 2 km-grid outputs proved the run/ingest/replay workflow and
+broad regimes, but they are workflow/provisional evidence rather than final
+cloud-scale visual validation. Rerun the Phase A/B cases with the committed
+cloud-scale configs before promoting them as final visual anchors or before
+using them as the basis for Phase C sensitivity sweeps.
+
 ## Case Status
 
-The Phase A dry-failed and shallow-cumulus outputs have been manually accepted
-as the first real local pair. The Phase B case assets are first-pass planned
+The old Phase A dry-failed and shallow-cumulus outputs were manually accepted
+as the first real local pair and remain useful workflow/provisional evidence.
+The current committed cloud-scale configs still need fresh generated output,
+ingestion, and scientific inspection before they can be treated as final
+cloud-scale visual validation. The Phase B case assets are first-pass planned
 validation anchors. They are designed to be runnable, but generated outputs
 still need scientific inspection before they can be marked accepted.
 

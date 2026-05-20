@@ -229,17 +229,16 @@ experiment and are labeled as exploratory when they differ from the selected
 experiment default. They do not expose lift strength/duration in the normal UI,
 do not mutate CM1/reference fields, and do not imply live CM1 execution.
 
-After #251, CM1/reference replay views include horizontal-domain sanity
-handling. The current Phase A/B committed CM1 cases use `nx = 60` and `dx =
-2000 m`, so their full x-domain is approximately 120 km. That width is real
-case metadata, not a frontend meter/kilometer double-scale. Scientific Fields
-may show the full centered CM1 x-domain when useful, but it should label the
-domain width and centered coordinate clearly and warn when a shallow-cloud case
-has a wide display domain. Cloud Appearance should default to a cloud-focused
-horizontal window for wide domains, with a Show full domain toggle and text such
-as "Viewing cloud-focused 12 km x-window of 118 km CM1 domain." Axis ticks must
-describe the displayed window honestly and must not imply that the app is
-inventing or rescaling source fields.
+After #251 and #254, CM1/reference replay views should still include
+horizontal-domain sanity handling, but the committed Lower Atmosphere CM1 case
+configs are now cloud-scale rather than 120 km wide. The current Phase A/B
+configs target a 16 km x 16 km domain at 200 m horizontal spacing. Scientific
+Fields may show the full centered CM1 x-domain when useful, but it should label
+the domain width and centered coordinate clearly. Cloud Appearance may still
+use a focused display window when helpful, but that window should be an honest
+view into a cloud-scale source domain rather than a workaround for a
+mesoscale-style case. Axis ticks must describe the displayed window honestly
+and must not imply that the app is inventing or rescaling source fields.
 
 ### Cloud Appearance View
 

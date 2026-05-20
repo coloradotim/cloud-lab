@@ -12,6 +12,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[2]
 BATCH_SCRIPT_PATH = ROOT / "scripts/reference/cm1/run_validation_batch.py"
 SHELL_WRAPPER = ROOT / "scripts/reference/cm1/run_validation_batch.sh"
+CASE_ROOT = ROOT / "reference/cm1/cases"
 
 spec = importlib.util.spec_from_file_location("cm1_validation_batch", BATCH_SCRIPT_PATH)
 assert spec is not None
@@ -275,6 +276,58 @@ def test_validation_batch_records_missing_netcdf_output_as_cm1_failure(tmp_path:
     assert case["status"] == "cm1_failed"
     assert case["agreement_status"] == "failed"
     assert any("expected output" in warning.lower() for warning in case["warnings"])
+
+
+def test_validation_batch_cloud_scale_policy_rejects_old_mesoscale_domain(tmp_path: Path) -> None:
+    case_dir = tmp_path / "old-mesoscale-case"
+    case_dir.mkdir()
+    (case_dir / "namelist.input").write_text(
+        """
+ &param0
+ nx = 60,
+ ny = 60,
+ nz = 40,
+ /
+ &param1
+ dx = 2000.0,
+ dy = 2000.0,
+ dz = 500.0,
+ /
+ &param6
+ ztop = 18000.0,
+ /
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+    (case_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "namelist_input_concept": {
+                    "grid_target": {
+                        "nx": 60,
+                        "ny": 60,
+                        "nz": 40,
+                        "dx_m": 2000.0,
+                        "dy_m": 2000.0,
+                        "dz_m": 500.0,
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    errors = batch.validate_cloud_scale_case(case_dir)
+
+    assert any("CM1 x-domain is 120000 m" in error for error in errors)
+    assert any("dx is 2000 m" in error for error in errors)
+    assert any("cloud-scale policy metadata" in error for error in errors)
+
+
+def test_validation_batch_accepts_committed_cloud_scale_case_domains() -> None:
+    for case_dir in sorted(path.parent for path in CASE_ROOT.glob("*/manifest.json")):
+        assert batch.validate_cloud_scale_case(case_dir) == []
 
 
 def test_validation_batch_help_and_syntax() -> None:

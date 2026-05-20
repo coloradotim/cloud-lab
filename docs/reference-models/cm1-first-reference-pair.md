@@ -71,7 +71,7 @@ with the rebuild instruction instead of treating the run as successful.
 
 The committed `input_sounding` files must extend above the configured grid top.
 Both first-pair soundings include a 20000 m final level so they cover the
-60 x 60 x 40 grid with 500 m vertical spacing. Keep that invariant when
+80 x 80 x 48 cloud-scale grid with a 6 km vertical domain. Keep that invariant when
 adjusting the soundings.
 
 ## Case 1: Dry Failed Cumulus
@@ -82,11 +82,11 @@ adjusting the soundings.
 | Description | First-pass local CM1 dry-failed-cumulus reference case. |
 | Physical question | How can heating and thermal motion occur while shallow cumulus fails because the lower atmosphere is too dry? |
 | Expected outcome | Rising motion / thermal activity but no meaningful cloud liquid water. |
-| Namelist/input concept | 60 x 60 x 40 grid, 2 km horizontal spacing, 500 m vertical spacing, 2 hour runtime, 5 minute output cadence, external dry sounding, weak moisture supply. |
+| Namelist/input concept | 80 x 80 x 48 cloud-scale grid, 200 m horizontal spacing, 125 m nominal vertical spacing, 16 km x/y domain, 6 km vertical domain, 2 hour runtime, 5 minute output cadence, external dry sounding, weak moisture supply. |
 | Sounding/profile concept | Near-surface water vapor starts around 5 g/kg and decreases quickly with height, keeping saturation unfavorable. |
 | Output fields required | time, x/z grid, temperature or potential temperature, water vapor, cloud liquid water, vertical velocity, horizontal velocity if available, pressure metadata if available. |
 | Diagnostics expected | max updraft, no / negligible cloud water, no first cloud time, high LCL or unfavorable saturation state. |
-| Runtime/domain/grid target | 7200 s, 60 x 60 x 40, 2 km x/y grid, 500 m z grid, no terrain. |
+| Runtime/domain/grid target | 7200 s, 80 x 80 x 48, 200 m x/y grid, 125 m nominal z grid, 16 km x/y by 6 km z, no terrain. |
 | Storage location | `data/reference/cm1/runs/<timestamp>-dry-failed-cumulus/` |
 | How to run | `scripts/reference/cm1/run_cm1_case.sh --case-dir reference/cm1/cases/dry-failed-cumulus --cm1-run-dir ~/src/cm1/CM1/run` |
 | How to ingest | Use the #179 CM1 reference adapter path after local output exists and fields are inspected. |
@@ -104,7 +104,7 @@ adjusting the soundings.
 | Sounding/profile concept | Near-surface water vapor starts around 13.5 g/kg, decreases above the lower layer, and keeps the expected cloud shallow. |
 | Output fields required | time, x/z grid, temperature or potential temperature, water vapor, cloud liquid water, vertical velocity, horizontal velocity if available, pressure metadata if available. |
 | Diagnostics expected | first cloud time, cloud base, cloud top, max cloud liquid water, max updraft, integrated cloud water, LCL comparison. |
-| Runtime/domain/grid target | 7200 s, 60 x 60 x 40, 2 km x/y grid, 500 m z grid, no terrain. |
+| Runtime/domain/grid target | 7200 s, 80 x 80 x 48, 200 m x/y grid, 125 m nominal z grid, 16 km x/y by 6 km z, no terrain. |
 | Storage location | `data/reference/cm1/runs/<timestamp>-shallow-cumulus-baseline/` |
 | How to run | `scripts/reference/cm1/run_cm1_case.sh --case-dir reference/cm1/cases/shallow-cumulus-baseline --cm1-run-dir ~/src/cm1/CM1/run` |
 | How to ingest | Use the #179 CM1 reference adapter path after local output exists and fields are inspected. |

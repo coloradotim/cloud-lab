@@ -142,15 +142,14 @@ is prescribed/internal in this reduced-model flow. Tweaked setups are labeled as
 reduced-model exploratory until they have direct CM1 validation coverage; the
 offline CM1 reference artifacts are not changed or rerun.
 
-#251 clarifies and fixes the horizontal-domain presentation for CM1/reference
-replay. The committed Phase A/B CM1 case assets currently target `nx = 60` with
-`dx = 2000 m`, so the full x-domain is about 120 km. That is too wide to be the
-default visual mental model for a guided shallow-cumulus experiment. The
-scientific field view may still expose the full centered CM1 domain with clear
-domain-width labeling, but the Cloud Appearance view should default to a
-cloud-focused horizontal window and offer full-domain inspection explicitly.
-This is display-window behavior only; it does not tune CM1 cases, alter
-reference fields, or change reduced-model science.
+#251 confirmed that the old Phase A/B CM1 horizontal scale was real case
+metadata, and #254 redesigns the committed reference case configs around a
+cloud-scale domain. Current Lower Atmosphere CM1 assets target a 16 km x 16 km
+domain with 200 m horizontal spacing and a 6 km vertical domain. The earlier
+120 km / 2 km-grid output remains useful workflow/provisional evidence, but it
+is not final product-valid visual validation. Rerun and inspect the
+cloud-scale outputs before treating Phase A/B as final visual anchors or before
+starting Phase C sensitivity sweeps.
 
 The v2 user should be able to ask:
 

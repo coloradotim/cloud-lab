@@ -14,6 +14,10 @@ PHASE_B_CASE_IDS = {
     "cm1-humid-low-cloud-contrast-v1",
     "cm1-low-stratus-develops-v1",
 }
+CLOUD_SCALE_POLICY_VERSION = "lower-atmosphere-cm1-cloud-scale-v1"
+CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M = 20_000.0
+CLOUD_SCALE_MIN_DX_M = 50.0
+CLOUD_SCALE_MAX_DX_M = 250.0
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -236,6 +240,47 @@ def test_committed_reference_pair_soundings_cover_configured_grid_top() -> None:
 
         assert _namelist_value(namelist, "output_format") == 2
         assert _sounding_top(sounding) >= grid_top
+
+
+def test_committed_cm1_cases_use_cloud_scale_domain_policy() -> None:
+    case_dirs = sorted(path.parent for path in CASE_ROOT.glob("*/manifest.json"))
+    assert {case_dir.name for case_dir in case_dirs} == {
+        "capped-suppressed-cumulus",
+        "dry-failed-cumulus",
+        "humid-low-cloud-contrast",
+        "low-stratus-develops",
+        "shallow-cumulus-baseline",
+    }
+
+    for case_dir in case_dirs:
+        namelist = case_dir / "namelist.input"
+        manifest = json.loads((case_dir / "manifest.json").read_text(encoding="utf-8"))
+        grid = manifest["namelist_input_concept"]["grid_target"]
+        policy = manifest["namelist_input_concept"]["cloud_scale_policy"]
+        nx = _namelist_value(namelist, "nx")
+        ny = _namelist_value(namelist, "ny")
+        nz = _namelist_value(namelist, "nz")
+        dx_m = _namelist_value(namelist, "dx")
+        dy_m = _namelist_value(namelist, "dy")
+        dz_m = _namelist_value(namelist, "dz")
+        ztop_m = _namelist_value(namelist, "ztop")
+        horizontal_width_m = nx * dx_m
+        horizontal_depth_m = ny * dy_m
+        vertical_height_m = max(nz * dz_m, ztop_m)
+
+        assert horizontal_width_m <= CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M
+        assert horizontal_depth_m <= CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M
+        assert CLOUD_SCALE_MIN_DX_M <= dx_m <= CLOUD_SCALE_MAX_DX_M
+        assert CLOUD_SCALE_MIN_DX_M <= dy_m <= CLOUD_SCALE_MAX_DX_M
+        assert grid["horizontal_domain_width_m"] == horizontal_width_m
+        assert grid["horizontal_domain_depth_m"] == horizontal_depth_m
+        assert grid["vertical_domain_height_m"] == vertical_height_m
+        assert grid["dx_m"] == dx_m
+        assert grid["dy_m"] == dy_m
+        assert grid["dz_m"] == dz_m
+        assert policy["policy_version"] == CLOUD_SCALE_POLICY_VERSION
+        assert policy["horizontal_domain_width_m"] == horizontal_width_m
+        assert policy["horizontal_grid_spacing_m"] == dx_m
 
 
 def test_committed_cm1_case_manifests_have_unique_ids_and_phase_b_anchors() -> None:

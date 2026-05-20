@@ -70,11 +70,18 @@ real user decisions.
 ### Phase A: Existing Anchor Cases
 
 These are already generated/accepted as the first real local reference pair.
+That acceptance proved the local CM1 run/ingest/replay workflow and broad dry
+versus cloudy regimes. It is now provisional for product-valid visual
+validation because those outputs used the old 120 km / 2 km-grid configuration.
+The committed Phase A/B case assets now use the #254 cloud-scale policy
+(`16 km x 16 km`, `200 m` horizontal spacing, `6 km` vertical domain), and Phase
+A should be rerun and re-inspected under that policy before it is treated as
+final cloud-scale visual validation.
 
 | Case id | Experiment served | Controls represented | Expected regime | Validation status |
 | --- | --- | --- | --- | --- |
-| `cm1-dry-failed-cumulus-v1` | Dry failed cumulus | low moisture, baseline heating, baseline cap/dry-air context | motion without meaningful cloud | accepted |
-| `cm1-shallow-cumulus-baseline-v1` | Baseline shallow cloud | baseline moisture, baseline heating, baseline cap/dry-air context | shallow cumulus forms | accepted |
+| `cm1-dry-failed-cumulus-v1` | Dry failed cumulus | low moisture, baseline heating, baseline cap/dry-air context | motion without meaningful cloud | workflow/provisional accepted |
+| `cm1-shallow-cumulus-baseline-v1` | Baseline shallow cloud | baseline moisture, baseline heating, baseline cap/dry-air context | shallow cumulus forms | workflow/provisional accepted |
 
 Phase A anchors the first binary contrast:
 
@@ -103,6 +110,12 @@ stratus name because the committed first-pass setup is weak-heating and shallow
 stable-layer driven, not a full radiative-cooling fog design.
 
 ### Phase C: One-Factor Sensitivity Sweeps Around Baseline
+
+Do not start Phase C from the old 120 km / 2 km-grid setup. Phase C depends on
+cloud-scale Phase A/B case configs and at least a rerun/reinspection decision
+for the cloud-scale shallow-cumulus baseline. Sensitivity sweeps should inherit
+the #254 cloud-scale policy unless a specific exception is documented in the
+case manifest and validation report.
 
 Phase C validates directional trends around the accepted shallow-cumulus
 baseline without requiring a full `3^4` factorial.
@@ -184,8 +197,8 @@ Every CM1 validation case should eventually be tracked with these fields:
 
 | Phase | Case id | Experiment served | Controls represented | Expected regime | CM1 observed regime | Simplified model expected regime | Cloud outcome | First cloud time | Cloud base | Cloud top | Max cloud water | Max updraft | Rain onset | Agreement target | Validation status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| A | `cm1-dry-failed-cumulus-v1` | Dry failed cumulus | low moisture; baseline heating; baseline cap; dry aloft | motion without meaningful cloud | dry failed / no meaningful cloud | dry failed | no cloud | unavailable | unavailable | unavailable | 0.00 kg/kg observed in acceptance | 0.558 m/s observed in acceptance | unavailable | qualitative regime; diagnostics plausible | accepted | Existing real local output accepted in #221. |
-| A | `cm1-shallow-cumulus-baseline-v1` | Baseline shallow cloud | baseline moisture; baseline heating; baseline cap; dry aloft | shallow cumulus forms | cloud formed | cloud formed | cloud | 600 s observed in acceptance | 1250 m observed | 4250 m observed | 0.00191 kg/kg observed | 6.56 m/s observed | 1800 s observed | qualitative regime; timing/base/top approximate | accepted | Existing real local output accepted in #221. |
+| A | `cm1-dry-failed-cumulus-v1` | Dry failed cumulus | low moisture; baseline heating; baseline cap; dry aloft | motion without meaningful cloud | dry failed / no meaningful cloud | dry failed | no cloud | unavailable | unavailable | unavailable | 0.00 kg/kg observed in old acceptance | 0.558 m/s observed in old acceptance | unavailable | qualitative regime; diagnostics plausible | accepted_workflow_provisional | Existing real local output accepted in #221 using old 120 km / 2 km-grid setup; rerun with #254 cloud-scale config before final visual validation. |
+| A | `cm1-shallow-cumulus-baseline-v1` | Baseline shallow cloud | baseline moisture; baseline heating; baseline cap; dry aloft | shallow cumulus forms | cloud formed | cloud formed | cloud | 600 s observed in old acceptance | 1250 m observed | 4250 m observed | 0.00191 kg/kg observed | 6.56 m/s observed | 1800 s observed | qualitative regime; timing/base/top approximate | accepted_workflow_provisional | Existing real local output accepted in #221 using old 120 km / 2 km-grid setup; rerun with #254 cloud-scale config before final visual validation. |
 | B | `cm1-capped-suppressed-cumulus-v1` | Capped / suppressed cloud | baseline moisture; baseline/moderate heating; strong cap | delayed/shallow/capped or suppressed cloud | TBD | capped/suppressed | delayed/capped/suppressed | TBD | TBD | below/near cap | TBD | TBD | unavailable unless produced | regime required; cap relationship approximate | planned | #223 commits case assets/manifests/run hooks; real output still must be generated, ingested, and inspected. |
 | B | `cm1-humid-low-cloud-contrast-v1` | Humid low-cloud contrast | high low-level moisture; moderate heating; baseline/weak cap | low-base cloud forms more easily | TBD | low-base cloud favorable | cloud | TBD, likely earlier than baseline | lower than baseline | TBD | TBD | TBD | TBD | regime required; base/timing approximate | planned | #223 commits case assets/manifests/run hooks; real output still must be generated, ingested, and inspected. |
 | B | `cm1-low-stratus-develops-v1` | Low-cloud / fog-like contrast | very high near-surface moisture; weak heating or near-saturation/cooling setup; shallow stable layer | low stratus-like low cloud | TBD | low-cloud favorable | low cloud/stratus | TBD | near surface / very low | shallow | TBD | weak to moderate | likely unavailable | regime required; low-cloud base/top approximate | planned | #223 chose low stratus because the committed setup is weak-heating/stable-layer, not a full radiative-cooling fog design. Real output still must be generated, ingested, and inspected. |
@@ -237,15 +250,16 @@ This issue only defines the policy. UI implementation should be separate.
 
 ## Execution Plan
 
-1. Keep Phase A as the accepted dry-failed and shallow-cumulus baseline anchors.
+1. Treat the old Phase A run as workflow/provisional evidence and rerun Phase A
+   with the cloud-scale #254 configs before final visual validation claims.
 2. Use `scripts/reference/cm1/run_validation_batch.sh` to rerun/ingest/QC the
    committed runnable anchors as a local validation batch when needed.
 3. Implement Phase B as the next validation-anchor batch before adding ad hoc
    visual cases.
 4. Generate and ingest Phase B outputs through the existing local CM1 workflow.
 5. Manually accept/reject Phase B using the metrics in this matrix.
-6. Add Phase C one-factor sensitivity cases only after Phase B anchors are
-   accepted or explicitly marked exploratory.
+6. Add Phase C one-factor sensitivity cases only after cloud-scale Phase A/B
+   anchors are accepted or explicitly marked exploratory.
 7. Add Phase D threshold cases when the app is ready to label validated versus
    exploratory control ranges.
 8. Defer Phase E rain cases until warm-cloud/no-rain behavior and warm-rain

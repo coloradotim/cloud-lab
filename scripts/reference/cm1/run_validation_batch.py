@@ -10,7 +10,7 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -39,6 +39,10 @@ QC_ACCEPTED_WITH_NOTES = "accepted_with_notes"
 QC_NEEDS_CALIBRATION = "needs_calibration"
 QC_FAILED = "failed"
 CLOUD_MEANINGFUL_THRESHOLD_KG_PER_KG = 1.0e-8
+CLOUD_SCALE_POLICY_VERSION = "lower-atmosphere-cm1-cloud-scale-v1"
+CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M = 20_000.0
+CLOUD_SCALE_MIN_DX_M = 50.0
+CLOUD_SCALE_MAX_DX_M = 250.0
 
 
 @dataclass(frozen=True)
@@ -253,6 +257,8 @@ def run_preflight(
         sounding_error = validate_sounding_top(namelist, sounding)
         if sounding_error:
             errors.append(f"{case.case_id}: {sounding_error}")
+        domain_errors = validate_cloud_scale_case(case.case_dir)
+        errors.extend(f"{case.case_id}: {error}" for error in domain_errors)
 
     if any_netcdf:
         if shutil.which("nf-config") is None:
@@ -292,6 +298,69 @@ def run_preflight(
         "netcdf_requested": any_netcdf,
         "data_policy": local_policy,
     }
+
+
+def validate_cloud_scale_case(case_dir: Path) -> list[str]:
+    """Validate committed Lower Atmosphere CM1 cases against the cloud-scale policy."""
+
+    errors: list[str] = []
+    namelist = case_dir / "namelist.input"
+    manifest_path = case_dir / "manifest.json"
+    nx = namelist_int(namelist, "nx", default=0)
+    ny = namelist_int(namelist, "ny", default=0)
+    nz = namelist_int(namelist, "nz", default=0)
+    dx_m = namelist_float(namelist, "dx", default=0.0)
+    dy_m = namelist_float(namelist, "dy", default=0.0)
+    dz_m = namelist_float(namelist, "dz", default=0.0)
+    ztop_m = namelist_float(namelist, "ztop", default=0.0)
+    width_m = nx * dx_m
+    depth_m = ny * dy_m
+    height_m = max(nz * dz_m, ztop_m)
+
+    if width_m > CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M:
+        errors.append(
+            f"CM1 x-domain is {width_m:g} m; Lower Atmosphere cloud-scale cases must be <= "
+            f"{CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M:g} m."
+        )
+    if depth_m > CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M:
+        errors.append(
+            f"CM1 y-domain is {depth_m:g} m; Lower Atmosphere cloud-scale cases must be <= "
+            f"{CLOUD_SCALE_MAX_HORIZONTAL_DOMAIN_M:g} m."
+        )
+    for axis, spacing in (("dx", dx_m), ("dy", dy_m)):
+        if not CLOUD_SCALE_MIN_DX_M <= spacing <= CLOUD_SCALE_MAX_DX_M:
+            errors.append(
+                f"{axis} is {spacing:g} m; Lower Atmosphere cloud-scale spacing must be "
+                f"{CLOUD_SCALE_MIN_DX_M:g}-{CLOUD_SCALE_MAX_DX_M:g} m."
+            )
+    if height_m <= 0:
+        errors.append("Vertical domain height is invalid.")
+
+    if manifest_path.is_file():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        grid = manifest.get("namelist_input_concept", {}).get("grid_target", {})
+        policy = manifest.get("namelist_input_concept", {}).get("cloud_scale_policy", {})
+        if policy.get("policy_version") != CLOUD_SCALE_POLICY_VERSION:
+            errors.append(f"Manifest is missing {CLOUD_SCALE_POLICY_VERSION} cloud-scale policy metadata.")
+        expected_grid = {
+            "nx": nx,
+            "ny": ny,
+            "nz": nz,
+            "dx_m": dx_m,
+            "dy_m": dy_m,
+            "dz_m": dz_m,
+            "horizontal_domain_width_m": width_m,
+            "horizontal_domain_depth_m": depth_m,
+            "vertical_domain_height_m": height_m,
+        }
+        for key, expected in expected_grid.items():
+            actual = grid.get(key)
+            if not _numbers_equal(actual, expected):
+                errors.append(f"Manifest grid_target.{key}={actual!r} does not match namelist value {expected:g}.")
+    else:
+        errors.append(f"Manifest not found: {manifest_path}")
+
+    return errors
 
 
 def run_case_workflow(
@@ -710,6 +779,13 @@ def _optional_float(value: object) -> float | None:
     return float(value)
 
 
+def _numbers_equal(actual: object, expected: float | int) -> bool:
+    try:
+        return abs(float(actual) - float(expected)) <= 1.0e-6
+    except (TypeError, ValueError):
+        return False
+
+
 def _resolve_path(path: Path) -> Path:
     return path if path.is_absolute() else ROOT_DIR / path
 
@@ -728,11 +804,11 @@ def _git_head_short() -> str | None:
 
 
 def _utc_now() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def _utc_now_compact() -> str:
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 class BatchFatalError(RuntimeError):

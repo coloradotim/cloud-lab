@@ -21,7 +21,7 @@ the lower atmosphere remains too dry or the LCL stays too high?
 
 ## Configuration Concept
 
-This case uses the same grid, output cadence, and basic forcing shape as the
+This case uses the same cloud-scale grid, output cadence, and basic forcing shape as the
 shallow-cumulus baseline, but with a drier moisture profile and weaker latent
 moisture supply. The contrast should be interpreted through diagnostics rather
 than exact turbulent morphology.

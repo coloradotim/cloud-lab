@@ -231,15 +231,20 @@ direct radiative transfer, preserves source provenance, and keeps the scientific
 field view available. It does not run CM1, perform ingestion itself, render
 precipitation, or compare against reduced models.
 
-The replay views should handle horizontal domain metadata explicitly. The
-current committed lower-atmosphere CM1 cases target `nx = 60` and `dx = 2000 m`,
-so the full x-domain is about 120 km. With CM1 `output_km = 1`, NetCDF
+The replay views should handle horizontal domain metadata explicitly. Issue
+#251 confirmed that the earlier committed lower-atmosphere CM1 cases targeted
+`nx = 60` and `dx = 2000 m`, so the full x-domain was about 120 km. That was
+real case metadata, not a frontend scale bug. With CM1 `output_km = 1`, NetCDF
 coordinates may arrive in kilometers; the local ingester scales small coordinate
 values into the `x_coordinates_m` / `z_coordinates_m` reference-frame contract.
-If the full domain appears as roughly `-60 km` to `60 km`, that is the centered
-CM1 domain, not automatically a frontend scale bug. The guided Appearance view
-should focus on a smaller cloud-relevant x-window for wide domains, while
-Scientific Fields can expose the full domain with explicit labels and warnings.
+
+Issue #254 replaces that mesoscale-style default for Lower Atmosphere reference
+cases. Current Phase A/B case configs target a 16 km x 16 km horizontal domain
+with 200 m horizontal spacing and a 6 km lower-troposphere vertical domain. The
+old 120 km / 2 km-grid outputs remain workflow/provisional evidence only; they
+should not be treated as final cloud-scale visual validation. Rerun and accept
+the cloud-scale outputs before using Phase C sensitivity sweeps as validation
+anchors.
 
 The #222 display polish keeps this contract unchanged but improves how the
 accepted real-output path is presented. Scientific replay should show readable
@@ -264,10 +269,12 @@ docs/reference-models/cm1-lower-atmosphere-validation-matrix.md
 ```
 
 Use it before adding new CM1 cases. It defines the staged validation path for
-user-facing controls, including existing Phase A anchors, immediate Phase B
+user-facing controls, including Phase A anchors, immediate Phase B
 capped/humid/low-cloud anchors, one-factor sensitivity sweeps, threshold cases,
-and later rain cases. It prioritizes cloud timing, cloud base/top, and regime
-agreement over exact morphology.
+and later rain cases. After #254, the old Phase A acceptance is
+workflow/provisional for visual validation until the cloud-scale configs are
+rerun and inspected. The matrix prioritizes cloud timing, cloud base/top, and
+regime agreement over exact morphology.
 
 The #233 guided UX rebuild keeps the same science and data contracts but
 changes the Lower Atmosphere presentation order. CM1 should be the
@@ -448,8 +455,8 @@ scripts/reference/cm1/run_validation_batch.sh \
 ```
 
 Omit `--execute` for a dry run. Add `--execute` to run the committed runnable
-cases locally. The current runnable batch includes the accepted Phase A pair
-and the planned Phase B validation-anchor assets:
+cases locally. The current runnable batch includes the Phase A pair and the
+planned Phase B validation-anchor assets:
 
 ```text
 cm1-dry-failed-cumulus-v1
@@ -468,7 +475,9 @@ data/reference/cm1/validation-runs/<timestamp>/validation-report.json
 
 The report records per-case statuses, diagnostics, expected/observed regimes,
 agreement status, warnings, and next action. It does not score exact cloud
-morphology. Phase B cases remain `planned`/unaccepted until real local output
-is generated, ingested, and manually inspected against the validation matrix.
+morphology. The old Phase A outputs remain workflow/provisional evidence until
+cloud-scale outputs are generated, ingested, and inspected. Phase B cases remain
+`planned`/unaccepted until real local output is generated, ingested, and
+manually inspected against the validation matrix.
 
 See `docs/reference-models/cm1-validation-batch-workflow.md`.

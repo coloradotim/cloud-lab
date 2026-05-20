@@ -22,10 +22,10 @@ form?
 
 ## Configuration Concept
 
-This case starts from the shallow-cumulus baseline grid, runtime, output cadence,
-and open-domain setup, then increases lower-layer moisture and keeps forcing
-moderate. It is a validation anchor for the high-moisture / low-LCL end of the
-user-facing control range.
+This case starts from the shallow-cumulus baseline cloud-scale grid, runtime,
+output cadence, and open-domain setup, then increases lower-layer moisture and
+keeps forcing moderate. It is a validation anchor for the high-moisture /
+low-LCL end of the user-facing control range.
 
 ## Required Output Fields
 
