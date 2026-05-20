@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import stat
 import subprocess
 import sys
@@ -32,6 +33,20 @@ def _cm1_run_dir(tmp_path: Path, script: str, *, include_landuse: bool = True) -
     if include_landuse:
         (run_dir / "LANDUSE.TBL").write_text("fake landuse table\n", encoding="utf-8")
     return run_dir
+
+
+def _preflight_env(tmp_path: Path) -> dict[str, str]:
+    fake_bin = tmp_path / "fake-bin"
+    fake_pythonpath = tmp_path / "fake-pythonpath"
+    fake_bin.mkdir(exist_ok=True)
+    fake_pythonpath.mkdir(exist_ok=True)
+    _write_executable(fake_bin / "nf-config", "#!/usr/bin/env bash\necho /tmp/fake-netcdf\n")
+    (fake_pythonpath / "xarray.py").write_text("# fake test module\n", encoding="utf-8")
+    (fake_pythonpath / "netCDF4.py").write_text("# fake test module\n", encoding="utf-8")
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}{os.pathsep}{env.get('PATH', '')}"
+    env["PYTHONPATH"] = f"{fake_pythonpath}{os.pathsep}{env.get('PYTHONPATH', '')}"
+    return env
 
 
 def _fake_cm1_script(*, dry_succeeds: bool = True, shallow_succeeds: bool = True) -> str:
@@ -82,6 +97,7 @@ def test_validation_batch_dry_run_reports_planned_cases(tmp_path: Path) -> None:
         text=True,
         capture_output=True,
         cwd=ROOT,
+        env=_preflight_env(tmp_path),
     )
 
     assert result.returncode == 0, result.stderr
@@ -111,6 +127,7 @@ def test_validation_batch_preflight_fails_when_required_landuse_is_missing(
         text=True,
         capture_output=True,
         cwd=ROOT,
+        env=_preflight_env(tmp_path),
     )
 
     assert result.returncode == 1
@@ -137,6 +154,7 @@ def test_validation_batch_records_ingest_success_and_qc_statuses(tmp_path: Path)
         text=True,
         capture_output=True,
         cwd=ROOT,
+        env=_preflight_env(tmp_path),
     )
 
     assert result.returncode == 0, result.stderr
@@ -176,6 +194,7 @@ def test_validation_batch_continues_after_cm1_case_failure(tmp_path: Path) -> No
         text=True,
         capture_output=True,
         cwd=ROOT,
+        env=_preflight_env(tmp_path),
     )
 
     assert result.returncode == 0, result.stderr
@@ -212,6 +231,7 @@ def test_validation_batch_records_missing_netcdf_output_as_cm1_failure(tmp_path:
         text=True,
         capture_output=True,
         cwd=ROOT,
+        env=_preflight_env(tmp_path),
     )
 
     assert result.returncode == 0, result.stderr
