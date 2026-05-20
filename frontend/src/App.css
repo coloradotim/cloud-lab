@@ -1789,6 +1789,15 @@ h2 {
   transform: translateX(-50%);
 }
 
+.reference-axis-tick-x.tick-start em {
+  transform: translateX(0);
+}
+
+.reference-axis-tick-x.tick-end em {
+  right: 0;
+  transform: translateX(0);
+}
+
 .reference-axis-tick-z {
   left: 0;
   right: 0;
@@ -1803,6 +1812,15 @@ h2 {
 .reference-axis-tick-z em {
   left: 5px;
   transform: translateY(50%);
+}
+
+.reference-axis-tick-z.tick-start em {
+  transform: translateY(0);
+}
+
+.reference-axis-tick-z.tick-end em {
+  bottom: 0;
+  transform: translateY(0);
 }
 
 .scientific-field-view {
