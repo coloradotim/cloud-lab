@@ -14,6 +14,7 @@ import {
 } from "./referenceAppearance";
 import {
   buildReferenceReplayViewModel,
+  buildReferenceDomainSummary,
   defaultReferenceFieldKey,
   normalizeReferenceFieldSelection,
   referenceFieldDisplayPolicy,
@@ -152,6 +153,16 @@ describe("CM1 reference replay view model", () => {
     const viewModel = buildReferenceReplayViewModel(nonFinite, "cloud_liquid_water_kg_per_kg", 0);
     expect(viewModel?.cells[0].value).toBe(0);
     expect(viewModel?.fallbackMessage).toContain("NaN or Infinity");
+  });
+
+  it("detects wide shallow-cloud domains and reports centered coordinates", () => {
+    const run = createWideCm1ReferenceRunFixture();
+    const domain = buildReferenceDomainSummary(run);
+
+    expect(domain?.xWidthM).toBe(118_000);
+    expect(domain?.xOrigin).toBe("centered");
+    expect(domain?.label).toContain("118 km wide");
+    expect(domain?.warnings.join(" ")).toContain("Wide CM1 domain detected");
   });
 });
 
@@ -315,11 +326,11 @@ describe("CM1 reference appearance view", () => {
     expect(html).toContain("Cloud Appearance");
     expect(html).toContain('data-display-frame="bounded"');
     expect(html).toContain('data-display-domain="cloud-following"');
-    expect(html).toContain("Viewing 0-");
+    expect(html).toContain("Viewing full 1.5 km CM1 x-domain");
     expect(html).toContain("Appearance view follows cloud-top growth inside a bounded display frame");
     expect(html).toContain("Show full domain");
     expect(html).toContain("Height, z (km)");
-    expect(html).toContain("Horizontal distance, x (km)");
+    expect(html).toContain("Horizontal distance in displayed window, x (km)");
     expect(html).not.toContain("<select");
     expect(html).not.toContain("Synthetic fixture data");
     expect(html).not.toContain("No real local CM1 reference output is available");
@@ -335,6 +346,7 @@ describe("CM1 reference appearance view", () => {
     expect(html).toContain("Scientific field");
     expect(html).toContain('data-display-frame="bounded"');
     expect(html).toContain('data-display-domain="full"');
+    expect(html).toContain("Full CM1 x-domain");
     expect(html).toContain('aria-label="Jump to first cloud at 300 s"');
     expect(html).toContain('aria-label="Jump to final frame at 300 s"');
     expect(html).toContain("Rain onset unavailable");
@@ -354,6 +366,32 @@ describe("CM1 reference appearance view", () => {
     expect(html).toContain("full CM1 domain fit into a bounded display frame");
     expect(html).toContain("Focus on cloud layer");
     expect(html).not.toContain("<select");
+  });
+
+  it("focuses a wide appearance domain on a credible horizontal window by default", () => {
+    const html = renderToStaticMarkup(
+      <ReferenceReplayView
+        referenceRun={createWideCm1ReferenceRunFixture()}
+        initialViewMode="cloud-appearance"
+        showSourceDetails={false}
+      />,
+    );
+
+    expect(html).toContain('data-display-domain="cloud-following"');
+    expect(html).toContain("Viewing cloud-focused");
+    expect(html).toContain("of 118 km CM1 domain");
+    expect(html).toContain("Horizontal distance in displayed window, x (km)");
+    expect(html).toContain("Show full domain");
+  });
+
+  it("labels a wide scientific domain instead of silently showing 120 km-scale spacing", () => {
+    const html = renderToStaticMarkup(
+      <ReferenceReplayView referenceRun={createWideCm1ReferenceRunFixture()} showSourceDetails={false} />,
+    );
+
+    expect(html).toContain("Horizontal distance, x (km, CM1 centered coordinate)");
+    expect(html).toContain("Full CM1 x-domain is 118 km wide with centered x coordinates.");
+    expect(html).toContain("Wide CM1 domain detected");
   });
 });
 
@@ -379,5 +417,52 @@ function createRealLocalReferenceRunFixture(): ReferenceRun {
         source_is_synthetic_fixture: false,
       },
     },
+  };
+}
+
+function createWideCm1ReferenceRunFixture(): ReferenceRun {
+  const fixture = createTinyCm1ReferenceRunFixture();
+  const xCoordinates = Array.from({ length: 60 }, (_, index) => -59_000 + index * 2_000);
+  const wideRows = 3;
+  const wideColumns = xCoordinates.length;
+  const wideCloud = (cloudy: boolean) =>
+    Array.from({ length: wideRows }, (_, rowIndex) =>
+      Array.from({ length: wideColumns }, (_, columnIndex) =>
+        cloudy && rowIndex > 0 && columnIndex >= 29 && columnIndex <= 31 ? 5e-7 : 0,
+      ),
+    );
+  const wideField = (value: number) =>
+    Array.from({ length: wideRows }, () => Array.from({ length: wideColumns }, () => value));
+
+  return {
+    ...fixture,
+    frames: fixture.frames.map((frame, frameIndex) => ({
+      ...frame,
+      grid: {
+        ...frame.grid,
+        columns: wideColumns,
+        rows: wideRows,
+        x_coordinates_m: xCoordinates,
+      },
+      fields: {
+        ...frame.fields,
+        cloud_liquid_water_kg_per_kg: {
+          ...frame.fields.cloud_liquid_water_kg_per_kg,
+          values: wideCloud(frameIndex > 0),
+        },
+        water_vapor_kg_per_kg: {
+          ...frame.fields.water_vapor_kg_per_kg,
+          values: wideField(0.012),
+        },
+        potential_temperature_k: {
+          ...frame.fields.potential_temperature_k,
+          values: wideField(300),
+        },
+        vertical_velocity_m_per_s: {
+          ...frame.fields.vertical_velocity_m_per_s,
+          values: wideCloud(frameIndex > 0).map((row) => row.map((value) => (value > 0 ? 0.28 : 0))),
+        },
+      },
+    })),
   };
 }

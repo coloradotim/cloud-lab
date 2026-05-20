@@ -142,6 +142,16 @@ is prescribed/internal in this reduced-model flow. Tweaked setups are labeled as
 reduced-model exploratory until they have direct CM1 validation coverage; the
 offline CM1 reference artifacts are not changed or rerun.
 
+#251 clarifies and fixes the horizontal-domain presentation for CM1/reference
+replay. The committed Phase A/B CM1 case assets currently target `nx = 60` with
+`dx = 2000 m`, so the full x-domain is about 120 km. That is too wide to be the
+default visual mental model for a guided shallow-cumulus experiment. The
+scientific field view may still expose the full centered CM1 domain with clear
+domain-width labeling, but the Cloud Appearance view should default to a
+cloud-focused horizontal window and offer full-domain inspection explicitly.
+This is display-window behavior only; it does not tune CM1 cases, alter
+reference fields, or change reduced-model science.
+
 The v2 user should be able to ask:
 
 ```text

@@ -68,6 +68,18 @@ export type ReferenceReplayViewModel = {
   overlay: ReferenceReplayOverlay;
 };
 
+export type ReferenceDomainSummary = {
+  xMinM: number;
+  xMaxM: number;
+  xWidthM: number;
+  zMinM: number;
+  zMaxM: number;
+  zHeightM: number;
+  xOrigin: "centered" | "zero_based" | "other";
+  warnings: string[];
+  label: string;
+};
+
 export type ReferenceFieldSignal = {
   minValue: number;
   maxValue: number;
@@ -224,6 +236,70 @@ export function buildReferenceReplayViewModel(
     fallbackMessage: nonFiniteWarning(field),
     overlay: referenceReplayOverlay(frame, run),
   };
+}
+
+export function buildReferenceDomainSummary(
+  run: ReferenceRun | null,
+  frameIndex = 0,
+): ReferenceDomainSummary | null {
+  if (!run?.frames.length) {
+    return null;
+  }
+  const frame = run.frames[clampFrameIndex(run, frameIndex)];
+  if (!hasUsableGrid(frame)) {
+    return null;
+  }
+
+  const x = frame.grid.x_coordinates_m;
+  const z = frame.grid.z_coordinates_m;
+  const xMinM = Math.min(...x);
+  const xMaxM = Math.max(...x);
+  const zMinM = Math.min(...z);
+  const zMaxM = Math.max(...z);
+  const xWidthM = xMaxM - xMinM;
+  const zHeightM = zMaxM - zMinM;
+  const xOrigin = Math.abs(xMinM + xMaxM) <= Math.max(1, xWidthM * 0.02)
+    ? "centered"
+    : xMinM >= 0
+      ? "zero_based"
+      : "other";
+  const warnings = referenceDomainWarnings(run, xWidthM);
+
+  return {
+    xMinM,
+    xMaxM,
+    xWidthM,
+    zMinM,
+    zMaxM,
+    zHeightM,
+    xOrigin,
+    warnings,
+    label: `Full CM1 x-domain is ${formatDomainKm(xWidthM)} km wide${
+      xOrigin === "centered" ? " with centered x coordinates" : ""
+    }.`,
+  };
+}
+
+export function referenceDomainWarnings(run: ReferenceRun, xWidthM: number): string[] {
+  const warnings: string[] = [];
+  const sourceCaseId = run.source_case_id;
+  const shallowCase = sourceCaseId.includes("cumulus") || sourceCaseId.includes("low-cloud") || sourceCaseId.includes("stratus");
+
+  if (xWidthM > 40_000 && shallowCase) {
+    warnings.push(
+      `Wide CM1 domain detected for this shallow-cloud case (${formatDomainKm(xWidthM)} km). The guided Appearance view should focus on a smaller cloud-relevant window by default.`,
+    );
+  }
+  if (xWidthM > 300_000) {
+    warnings.push(
+      `Reference x-coordinate range is unusually large (${formatDomainKm(xWidthM)} km); check for a meter/kilometer unit mismatch.`,
+    );
+  }
+  if (xWidthM <= 0) {
+    warnings.push("Reference x-coordinate range is invalid.");
+  }
+
+  return warnings;
 }
 
 export function referenceFieldDisplayPolicy(fieldKey: string): ReferenceFieldDisplayPolicy {
@@ -503,6 +579,12 @@ function maxFieldPoint(field: ReferenceScalarField2D | undefined): ReferenceRepl
 
 function fieldLabel(fieldKey: string): string {
   return REFERENCE_FIELD_LABELS[fieldKey as ReferenceFieldKey]?.label ?? fieldKey;
+}
+
+function formatDomainKm(valueM: number): string {
+  return (valueM / 1_000).toLocaleString("en-US", {
+    maximumFractionDigits: valueM % 1_000 === 0 ? 0 : 1,
+  });
 }
 
 function isCloudOrRainField(fieldKey: string): boolean {

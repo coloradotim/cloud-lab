@@ -231,6 +231,16 @@ direct radiative transfer, preserves source provenance, and keeps the scientific
 field view available. It does not run CM1, perform ingestion itself, render
 precipitation, or compare against reduced models.
 
+The replay views should handle horizontal domain metadata explicitly. The
+current committed lower-atmosphere CM1 cases target `nx = 60` and `dx = 2000 m`,
+so the full x-domain is about 120 km. With CM1 `output_km = 1`, NetCDF
+coordinates may arrive in kilometers; the local ingester scales small coordinate
+values into the `x_coordinates_m` / `z_coordinates_m` reference-frame contract.
+If the full domain appears as roughly `-60 km` to `60 km`, that is the centered
+CM1 domain, not automatically a frontend scale bug. The guided Appearance view
+should focus on a smaller cloud-relevant x-window for wide domains, while
+Scientific Fields can expose the full domain with explicit labels and warnings.
+
 The #222 display polish keeps this contract unchanged but improves how the
 accepted real-output path is presented. Scientific replay should show readable
 cloud-water contrast, selected-frame min/max readouts, no-cloud/no-signal states
