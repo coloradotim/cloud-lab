@@ -125,6 +125,29 @@ not just cloud/no-cloud outcome.
 | terrain height | Terrain case | m | Required for orographic overlays and terrain-relative diagnostics. |
 | droplet/effective radius | Microphysics/optics cases | m or micrometers, explicitly documented | Optional future field; if absent, optics must label assumed droplet properties. |
 
+## Current Case Domain Note
+
+The committed Phase A/B local CM1 case assets currently use:
+
+```text
+nx = 60
+dx = 2000 m
+```
+
+This means the full horizontal x-domain is approximately 120 km. In ingested
+CM1 NetCDF output, `output_km = 1` may provide coordinates in kilometers; the
+Cloud Lab ingester scales small coordinate values to meters before writing
+`reference-frame-v1` artifacts. A replay display showing roughly `-60 km` to
+`60 km` is therefore the full centered CM1 domain, not necessarily a frontend
+unit-conversion bug.
+
+For guided Lower Atmosphere Cloud Basics, the full 120 km domain should not be
+the default appearance mental model for shallow cumulus. Scientific Fields may
+show the full centered domain with explicit labels and domain-width warnings.
+Cloud Appearance should default to a cloud-focused horizontal viewport and
+offer full-domain inspection separately. This display choice does not change
+source CM1 fields, case physics, or diagnostics.
+
 ## Immediate Case 1: Dry Failed Cumulus
 
 | Required detail | Definition |

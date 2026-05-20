@@ -14,6 +14,7 @@ import {
 } from "./referenceAppearance";
 import {
   buildReferenceReplayViewModel,
+  buildReferenceDomainSummary,
   defaultReferenceFieldKey,
   frameCountLabel,
   referenceFieldHelper,
@@ -76,6 +77,7 @@ export function ReferenceReplayView({
     ? ["Assumed droplet radius", "Not direct radiative transfer", "Not live CM1 simulation"]
     : ["Not live CM1 simulation"];
   const timelineEvents = referenceTimelineEvents(referenceRun);
+  const domainSummary = buildReferenceDomainSummary(referenceRun, displayedFrameIndex);
 
   useEffect(() => {
     if (preferredViewMode) {
@@ -272,7 +274,9 @@ export function ReferenceReplayView({
                 zMaxM={Math.max(...viewModel.frame.grid.z_coordinates_m)}
               />
             </div>
-            <span className="axis-label axis-label-x">Horizontal distance, x (km)</span>
+            <span className="axis-label axis-label-x">
+              Horizontal distance, x (km{domainSummary?.xOrigin === "centered" ? ", CM1 centered coordinate" : ""})
+            </span>
           </div>
           <div className="field-legend" aria-label="CM1 reference field legend">
             <strong>{activeFieldLabel}</strong>
@@ -313,6 +317,12 @@ export function ReferenceReplayView({
             <p className="stage-helper">{viewModel.signal.helper}</p>
           )}
           <p className="stage-helper">{viewModel.displayPolicy.displayNote}</p>
+          {domainSummary ? (
+            <p className="stage-helper reference-domain-note">
+              {domainSummary.label}
+              {domainSummary.warnings.length ? ` ${domainSummary.warnings.join(" ")}` : ""}
+            </p>
+          ) : null}
           {viewModel.fallbackMessage ? <p className="stage-helper">{viewModel.fallbackMessage}</p> : null}
         </div>
       ) : (
@@ -457,7 +467,7 @@ function ReferenceAppearancePanel({ model, fullDomain, onToggleFullDomain }: Ref
         <span className="axis-label axis-label-y">Height, z (km)</span>
         <svg
           className="reference-appearance-view"
-          viewBox={`0 ${viewport.viewBoxY} ${model.columns} ${viewport.visibleRows}`}
+          viewBox={`${viewport.viewBoxX} ${viewport.viewBoxY} ${viewport.visibleColumns} ${viewport.visibleRows}`}
           preserveAspectRatio="none"
         >
           <title>Visual interpretation of CM1 reference field</title>
@@ -512,12 +522,14 @@ function ReferenceAppearancePanel({ model, fullDomain, onToggleFullDomain }: Ref
           </g>
         </svg>
         <AxisTicks
-          xMinM={Math.min(...model.frame.grid.x_coordinates_m)}
-          xMaxM={Math.max(...model.frame.grid.x_coordinates_m)}
+          xMinM={fullDomain ? viewport.xMinM : 0}
+          xMaxM={fullDomain ? viewport.xMaxM : viewport.xMaxM - viewport.xMinM}
           zMinM={viewport.zMinM}
           zMaxM={viewport.zMaxM}
         />
-        <span className="axis-label axis-label-x">Horizontal distance, x (km)</span>
+        <span className="axis-label axis-label-x">
+          {fullDomain ? "Horizontal distance, x (km)" : "Horizontal distance in displayed window, x (km)"}
+        </span>
       </div>
       <div className="reference-viewport-summary">
         <p>{viewport.label}</p>
@@ -663,22 +675,28 @@ function appearanceViewport(
   model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>,
   fullDomain: boolean,
 ): {
+  viewBoxX: number;
   viewBoxY: number;
+  visibleColumns: number;
   visibleRows: number;
+  xMinM: number;
+  xMaxM: number;
   zMinM: number;
   zMaxM: number;
   label: string;
 } {
+  const xViewport = appearanceHorizontalViewport(model, fullDomain);
   const zCoordinates = model.frame.grid.z_coordinates_m;
   const domainBottomM = Math.min(...zCoordinates);
   const domainTopM = Math.max(...zCoordinates);
   if (fullDomain) {
     return {
+      ...xViewport,
       viewBoxY: 0,
       visibleRows: model.rows,
       zMinM: domainBottomM,
       zMaxM: domainTopM,
-      label: `Viewing ${formatKm(domainBottomM)}-${formatKm(domainTopM)} km; full CM1 domain fit into a bounded display frame.`,
+      label: `Viewing full ${formatKm(xViewport.xMaxM - xViewport.xMinM)} km x-domain and ${formatKm(domainBottomM)}-${formatKm(domainTopM)} km height; full CM1 domain fit into a bounded display frame.`,
     };
   }
 
@@ -688,12 +706,79 @@ function appearanceViewport(
   const visibleRows = Math.min(model.rows, Math.max(2, topRow + 1));
   const visibleTopM = zCoordinates[visibleRows - 1] ?? targetTopM;
   return {
+    ...xViewport,
     viewBoxY: model.rows - visibleRows,
     visibleRows,
     zMinM: domainBottomM,
     zMaxM: visibleTopM,
-    label: `Viewing ${formatKm(domainBottomM)}-${formatKm(visibleTopM)} km; Appearance view follows cloud-top growth inside a bounded display frame.`,
+    label: `${xViewport.label} Viewing ${formatKm(domainBottomM)}-${formatKm(visibleTopM)} km height; Appearance view follows cloud-top growth inside a bounded display frame.`,
   };
+}
+
+function appearanceHorizontalViewport(
+  model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>,
+  fullDomain: boolean,
+): {
+  viewBoxX: number;
+  visibleColumns: number;
+  xMinM: number;
+  xMaxM: number;
+  label: string;
+} {
+  const xCoordinates = model.frame.grid.x_coordinates_m;
+  const domainMinM = Math.min(...xCoordinates);
+  const domainMaxM = Math.max(...xCoordinates);
+  const domainWidthM = domainMaxM - domainMinM;
+  if (fullDomain || domainWidthM <= 20_000) {
+    return {
+      viewBoxX: 0,
+      visibleColumns: model.columns,
+      xMinM: domainMinM,
+      xMaxM: domainMaxM,
+      label: `Viewing full ${formatKm(domainWidthM)} km CM1 x-domain.`,
+    };
+  }
+
+  const targetWidthM = Math.min(12_000, domainWidthM);
+  const centerM = cloudCenterXM(model) ?? (domainMinM + domainMaxM) / 2;
+  const xMinM = Math.max(domainMinM, Math.min(centerM - targetWidthM / 2, domainMaxM - targetWidthM));
+  const xMaxM = Math.min(domainMaxM, xMinM + targetWidthM);
+  const firstColumn = Math.max(0, firstIndexAtOrAbove(xCoordinates, xMinM) - 1);
+  const lastColumn = Math.min(model.columns - 1, lastIndexAtOrBelow(xCoordinates, xMaxM) + 1);
+  const visibleColumns = Math.max(2, lastColumn - firstColumn + 1);
+  const visibleMinM = xCoordinates[firstColumn] ?? xMinM;
+  const visibleMaxM = xCoordinates[lastColumn] ?? xMaxM;
+
+  return {
+    viewBoxX: firstColumn,
+    visibleColumns,
+    xMinM: visibleMinM,
+    xMaxM: visibleMaxM,
+    label: `Viewing cloud-focused ${formatKm(visibleMaxM - visibleMinM)} km x-window of ${formatKm(domainWidthM)} km CM1 domain.`,
+  };
+}
+
+function cloudCenterXM(model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>): number | null {
+  const cloudyColumns: number[] = [];
+  for (const frame of model.run.frames) {
+    const cloudWater = frame.fields.cloud_liquid_water_kg_per_kg;
+    if (!cloudWater) {
+      continue;
+    }
+    cloudWater.values.forEach((row) => {
+      row.forEach((value, columnIndex) => {
+        if (Number.isFinite(value) && value > 0) {
+          cloudyColumns.push(columnIndex);
+        }
+      });
+    });
+  }
+  if (!cloudyColumns.length) {
+    return null;
+  }
+  const averageColumn = cloudyColumns.reduce((sum, column) => sum + column, 0) / cloudyColumns.length;
+  const nearestColumn = Math.max(0, Math.min(model.columns - 1, Math.round(averageColumn)));
+  return model.frame.grid.x_coordinates_m[nearestColumn] ?? null;
 }
 
 function cloudTopForFrame(model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>): number | null {
@@ -712,6 +797,15 @@ function lastIndexAtOrBelow(values: number[], target: number): number {
     }
   }
   return 0;
+}
+
+function firstIndexAtOrAbove(values: number[], target: number): number {
+  for (let index = 0; index < values.length; index += 1) {
+    if (values[index] >= target) {
+      return index;
+    }
+  }
+  return values.length - 1;
 }
 
 function AxisTicks({

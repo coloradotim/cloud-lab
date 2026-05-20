@@ -348,6 +348,15 @@ helper, rerun the reduced-model explanation side, and label modified setups as
 exploratory until CM1 validation coverage exists. Keep lift strength and lift
 duration hidden from the normal UI; they remain prescribed/internal details.
 
+CM1/reference replay now treats horizontal scale as a trust issue. The current
+Phase A/B case assets use `nx = 60` and `dx = 2000 m`, so the full CM1
+x-domain is about 120 km. That is true case metadata, not a km/m label bug.
+Scientific Fields can show the full centered CM1 domain, but it should label
+the domain width and warn when the shallow-cloud domain is very wide. Cloud
+Appearance should default to a cloud-focused horizontal window and offer a Show
+full domain toggle. Do not hide the real domain; explain it and focus the guided
+view.
+
 Manual real-output acceptance for #221 is documented in
 `docs/reference-models/cm1-real-output-acceptance.md`. The first real local CM1
 reference pair is scientifically usable for the current milestone: dry failed
@@ -542,6 +551,11 @@ Use the current open issue state to decide, but as of this handoff:
   moisture, heating, cap/stability, and dry-air mixing. Do not expose normal
   lift strength/duration controls, do not rerun CM1, and keep tweaked setups
   labeled as exploratory reduced-model runs until validation coverage exists.
+
+  #251 fixes the apparent huge CM1 horizontal scale in replay/appearance views.
+  The full Phase A/B x-domain is approximately 120 km from `nx = 60` and `dx =
+  2000 m`. Keep Scientific Fields honest/full-domain with labels/warnings, but
+  default Cloud Appearance to a cloud-focused x-window for wide domains.
 
   #234 defines the CM1 lower-atmosphere validation matrix before adding more
   cases ad hoc. It should document Phase A accepted anchors, Phase B
