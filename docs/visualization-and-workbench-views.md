@@ -210,6 +210,16 @@ show x and z axis labels with major tick marks. Timeline event chips such as
 first cloud, rain onset, and final frame are buttons that jump to the nearest
 frame when the event is available; unavailable events are disabled or hidden.
 
+After #243, the guided Lower Atmosphere replay keeps the same viewport logic
+inside a bounded display frame. Appearance mode follows cloud-top growth by
+changing the displayed data window, not by letting the plot/card grow taller
+than the practical browser viewport. Scientific Fields still shows the full
+x-z domain by default, but that domain is fit into the same bounded plot area
+so the view-mode control, Scientific field picker, frame readout, and replay
+controls remain close to the cloud field. The run-mode buttons, Run experiment /
+Run again, Reset, view mode, and field selector belong in the compact control
+bar attached to the replay rather than in detached page-level actions.
+
 ### Cloud Appearance View
 
 The cloud appearance view uses cloud liquid water and documented assumptions to produce a more cloud-like image.

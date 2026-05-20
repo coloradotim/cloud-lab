@@ -384,7 +384,7 @@ function GuidedExperimentControlBar({
   onReset: () => void;
 }) {
   return (
-    <div className="guided-experiment-control-bar" aria-label="Experiment controls near cloud replay">
+    <div className="guided-experiment-control-bar" aria-label="Run mode and experiment actions">
       <fieldset className="segmented-control guided-flow-selector">
         <legend>Run mode</legend>
         <div role="group" aria-label="Lower Atmosphere run mode">

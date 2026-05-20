@@ -143,6 +143,12 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(html).toContain("The reference cloud evolution is already available because it is offline");
     expect(html).toContain("Watch the cloud evolve");
     expect(html).toContain("Replay the experiment");
+    expect(html).toContain('aria-label="Run mode and experiment actions"');
+    expect(html).toContain('aria-label="Cloud replay controls"');
+    expect(html).toContain('aria-label="Reference replay controls"');
+    expect(html).toContain("Run mode");
+    expect(html).toContain("Run experiment");
+    expect(html).toContain("Reset");
     expect(html).toContain("Understand why");
     expect(html).toContain("Try next");
     expect(html).toContain("Model details / Why trust this?");

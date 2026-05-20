@@ -27,6 +27,7 @@ type ReferenceReplayViewProps = {
   referenceRun: ReferenceRun | null;
   initialViewMode?: ReferenceAppearanceMode;
   preferredViewMode?: ReferenceAppearanceMode;
+  initialAppearanceFullDomain?: boolean;
   autoReplayKey?: string | number | null;
   workingControls?: ReactNode;
   title?: string;
@@ -40,6 +41,7 @@ export function ReferenceReplayView({
   referenceRun,
   initialViewMode = "scientific-field",
   preferredViewMode,
+  initialAppearanceFullDomain = false,
   autoReplayKey = null,
   workingControls = null,
   title = "Watch cloud evolution",
@@ -52,7 +54,7 @@ export function ReferenceReplayView({
   const [frameIndex, setFrameIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ReferenceAppearanceMode>(initialViewMode);
   const [playing, setPlaying] = useState(false);
-  const [appearanceFullDomain, setAppearanceFullDomain] = useState(false);
+  const [appearanceFullDomain, setAppearanceFullDomain] = useState(initialAppearanceFullDomain);
   const fieldOptions = referenceFieldOptions(referenceRun);
   const viewModel = buildReferenceReplayViewModel(referenceRun, selectedFieldKey, frameIndex);
   const fallback = referenceReplayFallback(referenceRun, selectedFieldKey, frameIndex);
@@ -123,7 +125,7 @@ export function ReferenceReplayView({
         </div>
       </div>
 
-      <div className="stage-toolbar reference-replay-toolbar">
+      <div className="stage-toolbar reference-replay-toolbar" aria-label="Cloud replay controls">
         {workingControls ? <div className="reference-working-controls">{workingControls}</div> : null}
         <fieldset className="segmented-control reference-view-mode-control">
           <legend>Reference view</legend>
@@ -186,10 +188,13 @@ export function ReferenceReplayView({
           </div>
         )
       ) : viewModel ? (
-        <div className="scientific-field-shell reference-field-shell">
-          <div className="scientific-plot-frame">
-            <span className="axis-label axis-label-y">Height, z (km)</span>
-            <div className="scientific-plot-area reference-plot-area">
+          <div className="scientific-field-shell reference-field-shell" data-display-domain="full">
+            <div className="scientific-plot-frame">
+              <span className="axis-label axis-label-y">Height, z (km)</span>
+              <div
+                className="scientific-plot-area reference-plot-area"
+                data-display-frame="bounded"
+              >
               <svg
                 className="scientific-field-view"
                 viewBox={`0 0 ${viewModel.columns} ${viewModel.rows}`}
@@ -317,7 +322,7 @@ export function ReferenceReplayView({
         </div>
       )}
 
-      <section className="reference-replay-timeline" aria-label="Reference timeline scrubber">
+      <section className="reference-replay-timeline" aria-label="Reference replay controls">
         <div className="boundary-layer-replay-heading">
           <strong>{replayLabel}</strong>
           <span>{timelineEvents.summary}</span>
@@ -444,6 +449,8 @@ function ReferenceAppearancePanel({ model, fullDomain, onToggleFullDomain }: Ref
     <div className="reference-appearance-shell">
       <div
         className={`reference-appearance-canvas${fullDomain ? " full-domain" : " focused-domain"}`}
+        data-display-frame="bounded"
+        data-display-domain={fullDomain ? "full" : "cloud-following"}
         role="img"
         aria-label="Cloud appearance view from CM1 reference field"
       >
@@ -663,14 +670,15 @@ function appearanceViewport(
   label: string;
 } {
   const zCoordinates = model.frame.grid.z_coordinates_m;
+  const domainBottomM = Math.min(...zCoordinates);
   const domainTopM = Math.max(...zCoordinates);
   if (fullDomain) {
     return {
       viewBoxY: 0,
       visibleRows: model.rows,
-      zMinM: Math.min(...zCoordinates),
+      zMinM: domainBottomM,
       zMaxM: domainTopM,
-      label: `Viewing full ${formatKm(domainTopM)} km CM1 domain.`,
+      label: `Viewing ${formatKm(domainBottomM)}-${formatKm(domainTopM)} km; full CM1 domain fit into a bounded display frame.`,
     };
   }
 
@@ -682,9 +690,9 @@ function appearanceViewport(
   return {
     viewBoxY: model.rows - visibleRows,
     visibleRows,
-    zMinM: Math.min(...zCoordinates),
+    zMinM: domainBottomM,
     zMaxM: visibleTopM,
-    label: `Viewing lower ${formatKm(visibleTopM)} km of ${formatKm(domainTopM)} km CM1 domain; viewport follows cloud top in Appearance mode.`,
+    label: `Viewing ${formatKm(domainBottomM)}-${formatKm(visibleTopM)} km; Appearance view follows cloud-top growth inside a bounded display frame.`,
   };
 }
 

@@ -318,6 +318,14 @@ ignored local report under
 current runnable batch is the accepted Phase A dry-failed/shallow-cumulus pair;
 do not add Phase B cases without a scoped case-asset issue.
 
+The post-#240 Lower Atmosphere replay should keep controls attached to the
+visual field. After #243, Appearance mode uses a bounded display frame with a
+cloud-top-following data window and a concise visible-range label. Scientific
+Fields shows the full x-z domain by default but fits it into the bounded frame.
+Run mode, Run experiment / Run again, Reset, view mode, Scientific field
+selection, frame readout, and replay controls should stay close enough that the
+user does not lose them when inspecting the plot.
+
 Manual real-output acceptance for #221 is documented in
 `docs/reference-models/cm1-real-output-acceptance.md`. The first real local CM1
 reference pair is scientifically usable for the current milestone: dry failed
