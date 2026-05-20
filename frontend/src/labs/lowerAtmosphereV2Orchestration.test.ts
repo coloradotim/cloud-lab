@@ -8,8 +8,10 @@ import {
   lowerAtmosphereV2ObservedCloudStatus,
   lowerAtmosphereV2ProfileFrames,
   profileToCloudColumnConfig,
+  resetLowerAtmosphereV2IngredientSelections,
   runLowerAtmosphereV2Flow,
   selectLowerAtmosphereV2ProfileFrame,
+  updateLowerAtmosphereV2IngredientSelection,
   type CloudColumnRun,
   type LowerAtmosphereV2Client,
 } from "./lowerAtmosphereV2Orchestration";
@@ -76,6 +78,40 @@ describe("Lower Atmosphere v2 orchestration", () => {
       source_time_hours_from_sunrise: 2,
       source_scenario_id: baselineContract.id,
     });
+  });
+
+  it("uses modified ingredient controls as the next profile run input", async () => {
+    const state = updateLowerAtmosphereV2IngredientSelection(
+      createInitialLowerAtmosphereV2State(baselineContract.id),
+      "lowerAtmosphereHumidity",
+      "drier",
+    );
+    const client = mockClient(sampleProfileRun(), sampleCloudRun("dry_failed"));
+
+    await runLowerAtmosphereV2Flow(state, "atmosphere_evolution", client);
+
+    expect(state.profileConfig.initial_relative_humidity).toBe(0.58);
+    expect(client.runProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        initial_relative_humidity: 0.58,
+      }),
+    );
+  });
+
+  it("resets tweaked ingredient controls back to the selected scenario default", () => {
+    const initial = createInitialLowerAtmosphereV2State(baselineContract.id);
+    const tweaked = updateLowerAtmosphereV2IngredientSelection(
+      initial,
+      "capStrength",
+      "strong",
+    );
+    const reset = resetLowerAtmosphereV2IngredientSelections(tweaked);
+
+    expect(tweaked.profileConfig.inversion_strength_k).toBe(6);
+    expect(reset.profileConfig.inversion_strength_k).toBe(1.5);
+    expect(reset.ingredientSelections).toEqual(initial.ingredientSelections);
+    expect(reset.profileRun).toBeNull();
+    expect(reset.cloudColumnRun).toBeNull();
   });
 
   it("lets users select a different evolved profile time before prescribed lift", async () => {

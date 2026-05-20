@@ -220,6 +220,15 @@ controls remain close to the cloud field. The run-mode buttons, Run experiment /
 Run again, Reset, view mode, and field selector belong in the compact control
 bar attached to the replay rather than in detached page-level actions.
 
+After #248, Try Next includes real editable Lower Atmosphere ingredient
+controls instead of planned/dead tweak buttons. The controls are semantic
+relative presets for lower-atmosphere humidity, surface moisture, surface
+heating, cap strength, cap height, dry air above the cloud layer, and mixing
+with dry air. They rerun the reduced-model profile side of the guided
+experiment and are labeled as exploratory when they differ from the selected
+experiment default. They do not expose lift strength/duration in the normal UI,
+do not mutate CM1/reference fields, and do not imply live CM1 execution.
+
 ### Cloud Appearance View
 
 The cloud appearance view uses cloud liquid water and documented assumptions to produce a more cloud-like image.

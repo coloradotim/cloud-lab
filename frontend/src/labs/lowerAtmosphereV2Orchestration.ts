@@ -1,7 +1,5 @@
 import {
-  boundaryLayer1DScenarioPresets,
   boundaryLayerPreviewFrame,
-  cloneProfileConfig,
   formatHoursAfterSunrise,
   statusLabel,
   usableBoundaryLayerFrames,
@@ -11,6 +9,13 @@ import {
   type BoundaryLayer1DRun,
   type CloudFormationPotentialStatus,
 } from "./evolvingBoundaryLayer";
+import {
+  buildLowerAtmosphereV2ProfileConfig,
+  defaultLowerAtmosphereV2IngredientSelections,
+  type LowerAtmosphereV2IngredientControlId,
+  type LowerAtmosphereV2IngredientOptionId,
+  type LowerAtmosphereV2IngredientSelections,
+} from "./lowerAtmosphereV2ExperimentControls";
 import {
   lowerAtmosphereV2ScenarioContracts,
   type LowerAtmosphereV2CloudColumnStatus,
@@ -119,6 +124,7 @@ export type LowerAtmosphereV2ProfileProvenance = {
 export type LowerAtmosphereV2State = {
   selectedScenarioId: string;
   profileConfig: BoundaryLayer1DConfig;
+  ingredientSelections: LowerAtmosphereV2IngredientSelections;
   profileRun: BoundaryLayer1DRun | null;
   selectedProfileFrameIndex: number;
   profileStatus: LowerAtmosphereV2RunStatus;
@@ -213,7 +219,8 @@ export function createInitialLowerAtmosphereV2State(
 
   return {
     selectedScenarioId: contract.id,
-    profileConfig: profileConfigForScenario(contract),
+    profileConfig: buildLowerAtmosphereV2ProfileConfig(contract),
+    ingredientSelections: defaultLowerAtmosphereV2IngredientSelections(contract),
     profileRun: null,
     selectedProfileFrameIndex: 0,
     profileStatus: "ready",
@@ -223,6 +230,53 @@ export function createInitialLowerAtmosphereV2State(
     cloudColumnProvenance: null,
     message:
       "Ready to run Lower Atmosphere v2. Choose a flow, then run profile evolution, prescribed lift, or both.",
+  };
+}
+
+export function updateLowerAtmosphereV2IngredientSelection(
+  state: LowerAtmosphereV2State,
+  controlId: LowerAtmosphereV2IngredientControlId,
+  optionId: LowerAtmosphereV2IngredientOptionId,
+): LowerAtmosphereV2State {
+  const contract = lowerAtmosphereV2ScenarioForId(state.selectedScenarioId) ?? lowerAtmosphereV2ScenarioContracts[0];
+  const ingredientSelections = {
+    ...state.ingredientSelections,
+    [controlId]: optionId,
+  };
+
+  return {
+    ...state,
+    profileConfig: buildLowerAtmosphereV2ProfileConfig(contract, ingredientSelections),
+    ingredientSelections,
+    profileRun: null,
+    selectedProfileFrameIndex: 0,
+    profileStatus: "ready",
+    cloudColumnRun: null,
+    cloudColumnStatus: "ready",
+    profileProvenance: null,
+    cloudColumnProvenance: null,
+    message: "Setup tweaked. Run the experiment again to see how the reduced-model result changes.",
+  };
+}
+
+export function resetLowerAtmosphereV2IngredientSelections(
+  state: LowerAtmosphereV2State,
+): LowerAtmosphereV2State {
+  const contract = lowerAtmosphereV2ScenarioForId(state.selectedScenarioId) ?? lowerAtmosphereV2ScenarioContracts[0];
+  const ingredientSelections = defaultLowerAtmosphereV2IngredientSelections(contract);
+
+  return {
+    ...state,
+    profileConfig: buildLowerAtmosphereV2ProfileConfig(contract, ingredientSelections),
+    ingredientSelections,
+    profileRun: null,
+    selectedProfileFrameIndex: 0,
+    profileStatus: "ready",
+    cloudColumnRun: null,
+    cloudColumnStatus: "ready",
+    profileProvenance: null,
+    cloudColumnProvenance: null,
+    message: "Experiment setup reset to the selected scenario default.",
   };
 }
 
@@ -700,22 +754,6 @@ async function runCloudColumnOnly(
   }
 }
 
-function profileConfigForScenario(contract: LowerAtmosphereV2ScenarioContract): BoundaryLayer1DConfig {
-  const preset =
-    boundaryLayer1DScenarioPresets.find(
-      (candidate) => candidate.slug === contract.configDefaults.profilePresetId,
-    ) ?? boundaryLayer1DScenarioPresets[0];
-  const nextConfig = cloneProfileConfig(preset.config);
-
-  for (const [key, value] of Object.entries(contract.configDefaults.profileControls)) {
-    if (typeof value === "number" && key in nextConfig) {
-      (nextConfig as Record<string, unknown>)[key] = value;
-    }
-  }
-
-  return nextConfig;
-}
-
 function lowerAtmosphereV2Why(
   status:
     | CloudFormationPotentialStatus
@@ -981,10 +1019,7 @@ function numberFromDefaults(value: string | number | undefined, fallback: number
 }
 
 function stateSeedFromContract(contract: LowerAtmosphereV2ScenarioContract): number {
-  const preset = boundaryLayer1DScenarioPresets.find(
-    (candidate) => candidate.slug === contract.configDefaults.profilePresetId,
-  );
-  return preset?.config.seed ?? 1;
+  return buildLowerAtmosphereV2ProfileConfig(contract).seed;
 }
 
 function sameFiniteLength(values: number[] | undefined, expectedLength: number): values is number[] {

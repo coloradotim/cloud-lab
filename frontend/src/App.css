@@ -861,14 +861,117 @@ h2 {
 
 .try-next-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 0.6fr);
   gap: 14px;
+  align-items: start;
 }
 
 .try-next-grid h4 {
   margin: 0 0 8px;
   color: #24423d;
   font-size: 0.92rem;
+}
+
+.ingredient-control-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.ingredient-control-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(180px, auto);
+  gap: 10px;
+  align-items: start;
+}
+
+.ingredient-control-heading p,
+.ingredient-control-note {
+  font-size: 0.88rem;
+}
+
+.ingredient-setup-labels {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.ingredient-setup-labels span {
+  border: 1px solid #b8cdc5;
+  border-radius: 999px;
+  padding: 5px 8px;
+  color: #24423d;
+  background: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.ingredient-control-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.ingredient-control-group {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  border: 1px solid #cfe0d9;
+  border-radius: 8px;
+  padding: 10px;
+  background: rgb(255 255 255 / 0.78);
+}
+
+.ingredient-control-group h5 {
+  margin: 0;
+  color: #153137;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ingredient-control-row legend {
+  display: grid;
+  gap: 2px;
+}
+
+.ingredient-control-row legend span {
+  color: #526761;
+  font-size: 0.78rem;
+  font-weight: 650;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+.ingredient-control-row button {
+  display: grid;
+  gap: 1px;
+  align-content: center;
+  min-height: 46px;
+}
+
+.ingredient-control-row button small {
+  color: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  opacity: 0.82;
+}
+
+.ingredient-warning {
+  margin: 0;
+  color: #67512f !important;
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.ingredient-control-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ingredient-details-list dd {
+  overflow-wrap: anywhere;
 }
 
 .guided-model-details {

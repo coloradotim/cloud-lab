@@ -135,6 +135,15 @@ inside the same bounded plot frame. Run mode, Run experiment / Run again, Reset,
 view mode, field selection, and replay controls should remain visually grouped
 with the cloud field.
 
+Issue #248 adds the first real editable Lower Atmosphere ingredient controls to
+the guided Try Next loop. Planned tweak buttons should be gone; users can change
+lower-atmosphere humidity, surface moisture, surface heating, cap strength, cap
+height, dry air above the cloud layer, and mixing with dry air through relative
+presets. These presets map to reduced-model profile controls from existing
+scenario/default anchors. Lift strength/duration stay hidden from normal UI, and
+tweaked setups are exploratory reduced-model runs unless CM1 validation coverage
+exists.
+
 Issue #234 defines the CM1 lower-atmosphere validation matrix before more cases
 are added ad hoc. The matrix should guide Phase B validation anchors
 (capped/suppressed, humid low-cloud, and fog/low-stratus), later one-factor

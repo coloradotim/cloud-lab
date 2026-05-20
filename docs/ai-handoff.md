@@ -339,6 +339,15 @@ Run mode, Run experiment / Run again, Reset, view mode, Scientific field
 selection, frame readout, and replay controls should stay close enough that the
 user does not lose them when inspecting the plot.
 
+Lower Atmosphere Try Next now uses real editable ingredient controls instead of
+planned buttons. The normal UI exposes semantic relative presets for
+lower-atmosphere humidity, surface moisture, surface heating, cap strength, cap
+height, dry air above the cloud layer, and mixing with dry air. Those controls
+map to `boundary_layer_1d` profile controls through a shared frontend mapping
+helper, rerun the reduced-model explanation side, and label modified setups as
+exploratory until CM1 validation coverage exists. Keep lift strength and lift
+duration hidden from the normal UI; they remain prescribed/internal details.
+
 Manual real-output acceptance for #221 is documented in
 `docs/reference-models/cm1-real-output-acceptance.md`. The first real local CM1
 reference pair is scientifically usable for the current milestone: dry failed
@@ -525,9 +534,14 @@ Use the current open issue state to decide, but as of this handoff:
   primary controls grouped near the replay, Cloud Appearance as the default
   post-run view, display-only cloud-top-following viewport for Appearance,
   full-domain Scientific Fields, x/z axis labels and tick marks, atmospheric
-  clue cards, Try Next split into planned setup tweaks and scenario-switch
+  clue cards, Try Next split into setup tweaks and scenario-switch
   buttons, clickable timeline event chips, and a clearer top breadcrumb. Model
   details / Why trust this remains collapsed for provenance and validation.
+
+  #248 turns those setup tweaks into real editable relative-preset controls for
+  moisture, heating, cap/stability, and dry-air mixing. Do not expose normal
+  lift strength/duration controls, do not rerun CM1, and keep tweaked setups
+  labeled as exploratory reduced-model runs until validation coverage exists.
 
   #234 defines the CM1 lower-atmosphere validation matrix before adding more
   cases ad hoc. It should document Phase A accepted anchors, Phase B

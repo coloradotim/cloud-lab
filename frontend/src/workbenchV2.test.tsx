@@ -301,7 +301,17 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Change one cloud ingredient");
     expect(html).toContain("Tweak this setup");
     expect(html).toContain("Try another experiment");
-    expect(html).toContain("Make this atmosphere drier (planned)");
+    expect(html).toContain("Lower-atmosphere humidity");
+    expect(html).toContain("Surface moisture");
+    expect(html).toContain("Surface heating");
+    expect(html).toContain("Cap strength");
+    expect(html).toContain("Cap height");
+    expect(html).toContain("Dry air above cloud layer");
+    expect(html).toContain("Mixing with dry air");
+    expect(html).toContain("Run current setup");
+    expect(html).toContain("Reset to experiment default");
+    expect(html).toContain("Reference-backed default");
+    expect(html).not.toContain("(planned)");
     expect(html).toContain("Model details / Why trust this?");
     expect(html).toContain('<details class="guided-model-details">');
     expect(html).toContain("Offline reference plus simplified explanation");
