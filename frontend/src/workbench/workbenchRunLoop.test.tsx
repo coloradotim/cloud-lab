@@ -287,9 +287,9 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
       <LabWorkbench lab={fairWeatherLab} onBackToLabs={vi.fn()} />,
     );
 
-    expect(matchCount(html, ">Run experiment<")).toBe(2);
+    expect(matchCount(html, ">Run experiment<")).toBe(1);
     expect(matchCount(html, ">Stop<")).toBe(0);
-    expect(matchCount(html, ">Reset<")).toBe(2);
+    expect(matchCount(html, ">Reset<")).toBe(1);
     expect(html).not.toContain("saved-runs-panel");
     expect(html).not.toContain("comparison-panel");
     expect(html).not.toContain(">Compare<");

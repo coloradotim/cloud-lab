@@ -107,6 +107,20 @@ details / Why trust this rather than in the main user flow. The main story
 should say "cloud formed" or "cloud did not form" in atmospheric language, not
 "both models formed cloud."
 
+#240 finishes the first guided interaction pass. After an experiment is
+selected, the full card gallery should collapse into a compact selected
+experiment summary with a Change experiment action and a few scenario switches.
+The main working controls belong near the replay: run mode, Run experiment /
+Run again, Reset, Cloud Appearance / Scientific Fields, Scientific field
+selector, and replay controls. Cloud Appearance uses a display-only vertical
+viewport that starts in the lower atmosphere and expands upward with cloud-top
+growth; Scientific Fields shows the full x-z domain by default. Both views
+should show x/z labels and major tick marks. Understand Why should explain
+moisture, lift, stability, cloud depth, rain signal, and no-cloud outcomes in
+atmospheric language. Try Next should separate planned setup tweaks from
+switching to another scenario. Model details / Why trust this remains collapsed
+for CM1/reference provenance, validation, and qualitative diagnostic checks.
+
 The v2 user should be able to ask:
 
 ```text

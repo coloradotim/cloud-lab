@@ -488,6 +488,16 @@ Use the current open issue state to decide, but as of this handoff:
   fields/provenance, and avoid new CM1 cases, case tuning, Boussinesq changes,
   or warm-rain work.
 
+  #240 is the focused guided-interaction finish after #233/#231. It keeps the
+  science fixed while making Lower Atmosphere feel less like a prototype:
+  compact/collapsed selected-experiment summary, Change experiment flow,
+  primary controls grouped near the replay, Cloud Appearance as the default
+  post-run view, display-only cloud-top-following viewport for Appearance,
+  full-domain Scientific Fields, x/z axis labels and tick marks, atmospheric
+  clue cards, Try Next split into planned setup tweaks and scenario-switch
+  buttons, clickable timeline event chips, and a clearer top breadcrumb. Model
+  details / Why trust this remains collapsed for provenance and validation.
+
   #234 defines the CM1 lower-atmosphere validation matrix before adding more
   cases ad hoc. It should document Phase A accepted anchors, Phase B
   capped/suppressed + humid low-cloud + fog/low-stratus anchors, Phase C

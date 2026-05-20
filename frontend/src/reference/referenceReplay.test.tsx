@@ -313,8 +313,27 @@ describe("CM1 reference appearance view", () => {
     expect(html).toContain("Cloud appearance view");
     expect(html).toContain("Scientific Fields");
     expect(html).toContain("Cloud Appearance");
+    expect(html).toContain("Viewing lower");
+    expect(html).toContain("viewport follows cloud top in Appearance mode");
+    expect(html).toContain("Show full domain");
+    expect(html).toContain("Height, z (km)");
+    expect(html).toContain("Horizontal distance, x (km)");
+    expect(html).not.toContain("<select");
     expect(html).not.toContain("Synthetic fixture data");
     expect(html).not.toContain("No real local CM1 reference output is available");
+  });
+
+  it("keeps scientific fields full-domain with axis labels and clickable event chips", () => {
+    const html = renderToStaticMarkup(
+      <ReferenceReplayView referenceRun={createTinyCm1ReferenceRunFixture()} />,
+    );
+
+    expect(html).toContain("Height, z (km)");
+    expect(html).toContain("Horizontal distance, x (km)");
+    expect(html).toContain("Scientific field");
+    expect(html).toContain('aria-label="Jump to first cloud at 300 s"');
+    expect(html).toContain('aria-label="Jump to final frame at 300 s"');
+    expect(html).toContain("Rain onset unavailable");
   });
 });
 
