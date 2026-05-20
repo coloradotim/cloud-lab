@@ -313,8 +313,10 @@ describe("CM1 reference appearance view", () => {
     expect(html).toContain("Cloud appearance view");
     expect(html).toContain("Scientific Fields");
     expect(html).toContain("Cloud Appearance");
-    expect(html).toContain("Viewing lower");
-    expect(html).toContain("viewport follows cloud top in Appearance mode");
+    expect(html).toContain('data-display-frame="bounded"');
+    expect(html).toContain('data-display-domain="cloud-following"');
+    expect(html).toContain("Viewing 0-");
+    expect(html).toContain("Appearance view follows cloud-top growth inside a bounded display frame");
     expect(html).toContain("Show full domain");
     expect(html).toContain("Height, z (km)");
     expect(html).toContain("Horizontal distance, x (km)");
@@ -331,9 +333,27 @@ describe("CM1 reference appearance view", () => {
     expect(html).toContain("Height, z (km)");
     expect(html).toContain("Horizontal distance, x (km)");
     expect(html).toContain("Scientific field");
+    expect(html).toContain('data-display-frame="bounded"');
+    expect(html).toContain('data-display-domain="full"');
     expect(html).toContain('aria-label="Jump to first cloud at 300 s"');
     expect(html).toContain('aria-label="Jump to final frame at 300 s"');
     expect(html).toContain("Rain onset unavailable");
+  });
+
+  it("can fit the full CM1 appearance domain into the bounded display frame", () => {
+    const html = renderToStaticMarkup(
+      <ReferenceReplayView
+        referenceRun={createTinyCm1ReferenceRunFixture()}
+        initialViewMode="cloud-appearance"
+        initialAppearanceFullDomain
+      />,
+    );
+
+    expect(html).toContain('data-display-frame="bounded"');
+    expect(html).toContain('data-display-domain="full"');
+    expect(html).toContain("full CM1 domain fit into a bounded display frame");
+    expect(html).toContain("Focus on cloud layer");
+    expect(html).not.toContain("<select");
   });
 });
 

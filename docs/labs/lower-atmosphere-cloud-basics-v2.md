@@ -121,6 +121,16 @@ atmospheric language. Try Next should separate planned setup tweaks from
 switching to another scenario. Model details / Why trust this remains collapsed
 for CM1/reference provenance, validation, and qualitative diagnostic checks.
 
+#243 refines that guided replay layout without changing the science. The visual
+field should use a stable bounded display frame in both Appearance and
+Scientific Fields modes, so the field picker, frame readout, and replay
+controls remain usable without excessive scrolling. Appearance mode should keep
+following cloud-top growth through display-only x-z viewport mapping and label
+the visible range, while Scientific Fields should keep the full domain by
+default and fit it into the bounded frame. Run mode, Run experiment / Run
+again, Reset, view mode, and Scientific field selection should read as one
+control group attached to the cloud replay.
+
 The v2 user should be able to ask:
 
 ```text

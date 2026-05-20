@@ -127,6 +127,14 @@ should separate planned setup tweaks from scenario-switch buttons, event chips
 should jump to their frames, and Model details / Why trust this should stay
 collapsed as the provenance/validation home.
 
+Issue #243 is a focused usability refinement on that replay area. The visual
+field should be bounded to a stable viewport-relative display height, Appearance
+mode should follow cloud-top growth by changing the display window rather than
+expanding the DOM height, and Scientific Fields should fit the full x-z domain
+inside the same bounded plot frame. Run mode, Run experiment / Run again, Reset,
+view mode, field selection, and replay controls should remain visually grouped
+with the cloud field.
+
 Issue #234 defines the CM1 lower-atmosphere validation matrix before more cases
 are added ad hoc. The matrix should guide Phase B validation anchors
 (capped/suppressed, humid low-cloud, and fog/low-stratus), later one-factor

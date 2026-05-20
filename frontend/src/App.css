@@ -1245,7 +1245,16 @@ h2 {
 }
 
 .reference-replay-toolbar {
+  position: sticky;
+  top: 70px;
+  z-index: 8;
   align-items: end;
+  border: 1px solid #d5e2dd;
+  border-radius: 8px;
+  padding: 10px;
+  background: rgb(248 251 248 / 96%);
+  box-shadow: 0 8px 20px rgb(21 49 55 / 8%);
+  backdrop-filter: blur(8px);
 }
 
 .reference-working-controls {
@@ -1254,9 +1263,10 @@ h2 {
 
 .guided-experiment-control-bar {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) auto;
+  grid-template-columns: minmax(260px, max-content) minmax(220px, max-content);
   gap: 10px;
   align-items: end;
+  justify-content: start;
   width: 100%;
   border: 1px solid #d5e2dd;
   border-radius: 8px;
@@ -1267,7 +1277,7 @@ h2 {
 .guided-run-actions {
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
 }
 
@@ -1280,18 +1290,20 @@ h2 {
 }
 
 .reference-field-shell {
-  min-height: 370px;
+  min-height: 0;
 }
 
 .reference-field-shell .scientific-plot-frame {
   grid-template-columns: 22px minmax(0, 1fr);
-  grid-template-rows: minmax(330px, 1fr) auto;
-  min-height: 360px;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
 }
 
 .reference-field-shell .scientific-plot-area {
   grid-column: 2;
-  min-height: 330px;
+  height: clamp(300px, 46vh, 520px);
+  min-height: 0;
+  max-height: min(520px, max(300px, calc(100vh - 260px)));
   margin-bottom: 22px;
   margin-left: 34px;
 }
@@ -1347,8 +1359,10 @@ h2 {
 .reference-replay-timeline {
   display: grid;
   gap: 8px;
-  border-top: 1px solid #dbe5e0;
-  padding-top: 10px;
+  border: 1px solid #d5e2dd;
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
 }
 
 .reference-replay-timeline input {
@@ -1410,7 +1424,9 @@ h2 {
 
 .reference-appearance-canvas {
   position: relative;
-  min-height: 360px;
+  height: clamp(300px, 46vh, 520px);
+  min-height: 0;
+  max-height: min(520px, max(300px, calc(100vh - 260px)));
   overflow: hidden;
   border: 1px solid #bcd1cc;
   border-radius: 8px;
@@ -1434,27 +1450,11 @@ h2 {
   bottom: 8px;
 }
 
-.reference-appearance-canvas.focused-domain {
-  min-height: clamp(300px, 38vw, 460px);
-}
-
-.reference-appearance-canvas.full-domain {
-  min-height: clamp(420px, 54vw, 680px);
-}
-
 .reference-appearance-view {
   display: block;
   width: 100%;
   height: 100%;
-  min-height: 360px;
-}
-
-.reference-appearance-canvas.focused-domain .reference-appearance-view {
-  min-height: clamp(300px, 38vw, 460px);
-}
-
-.reference-appearance-canvas.full-domain .reference-appearance-view {
-  min-height: clamp(420px, 54vw, 680px);
+  min-height: 0;
 }
 
 .reference-viewport-summary {
