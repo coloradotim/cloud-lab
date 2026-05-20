@@ -198,6 +198,18 @@ final frame. CM1/reference provenance, diagnostic comparison, and validation
 details should remain available under collapsed Model details / Why trust this
 rather than dominating the first screen.
 
+After #240, the guided Lower Atmosphere replay is the primary working area.
+The experiment chooser collapses after selection, while Change experiment and
+scenario-switch buttons reopen or switch the setup. Run mode, Run/Reset, view
+mode, Scientific field selection, and replay actions are grouped around the
+cloud field. Cloud Appearance uses a display-only focused viewport that keeps
+the lower atmosphere anchored and expands upward as cloud top rises; the UI
+states the visible z-range and offers Show full domain / Focus on cloud layer.
+Scientific Fields shows the full x-z reference domain by default. Both modes
+show x and z axis labels with major tick marks. Timeline event chips such as
+first cloud, rain onset, and final frame are buttons that jump to the nearest
+frame when the event is available; unavailable events are disabled or hidden.
+
 ### Cloud Appearance View
 
 The cloud appearance view uses cloud liquid water and documented assumptions to produce a more cloud-like image.

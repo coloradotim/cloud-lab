@@ -51,7 +51,8 @@ type LowerAtmosphereGuidedExperienceProps = {
 type TryNext = {
   title: string;
   description: string;
-  targetScenarioId?: string;
+  tweaks: Array<{ label: string; description: string; enabled: boolean }>;
+  scenarios: Array<{ scenarioId: string; reason: string }>;
 };
 
 export function LowerAtmosphereGuidedExperience({
@@ -68,6 +69,7 @@ export function LowerAtmosphereGuidedExperience({
 }: LowerAtmosphereGuidedExperienceProps) {
   const referenceRunPreview = useMemo(() => createTinyCm1ReferenceRunFixture(), []);
   const [localReferenceRuns, setLocalReferenceRuns] = useState<ReferenceRun[]>([]);
+  const [experimentChooserOpen, setExperimentChooserOpen] = useState(false);
   const scenario = selectedLabScenario(lab, workbench);
   const contract = lowerAtmosphereV2ScenarioForId(scenario?.id) ?? lowerAtmosphereV2ScenarioContracts[0];
   const runStatus = lowerAtmosphereV2RunStatus(state);
@@ -112,6 +114,7 @@ export function LowerAtmosphereGuidedExperience({
   function chooseScenario(scenarioId: string) {
     setWorkbench((current) => selectWorkbenchScenario(current, lab, scenarioId));
     setState((current) => selectLowerAtmosphereV2Scenario(current, scenarioId));
+    setExperimentChooserOpen(false);
   }
 
   return (
@@ -126,61 +129,53 @@ export function LowerAtmosphereGuidedExperience({
               atmospheric clues to decide what to try next.
             </p>
           </div>
-          <div className="guided-action-card" aria-label="Experiment run controls">
-            <span className={`run-state run-state-${runStatus}`}>Status: {runStatusLabel(runStatus)}</span>
-            <button type="button" onClick={onRun} disabled={isRunning}>
-              {hasRun ? "Run again" : "Run experiment"}
-            </button>
-            <button type="button" className="ghost-button" onClick={onReset}>
-              Reset
-            </button>
-          </div>
+          <p className={`run-state run-state-${runStatus}`}>Status: {runStatusLabel(runStatus)}</p>
         </div>
       </div>
 
-      <section className="experiment-chooser" aria-labelledby="experiment-chooser-title">
+      <section className={`experiment-chooser${experimentChooserOpen ? " expanded" : " collapsed"}`} aria-labelledby="experiment-chooser-title">
         <div className="section-title-row">
           <div>
-            <p className="region-label">Choose an experiment</p>
-            <h3 id="experiment-chooser-title">What cloud question do you want to test?</h3>
+            <p className="region-label">{experimentChooserOpen ? "Choose an experiment" : "Selected experiment"}</p>
+            <h3 id="experiment-chooser-title">{experimentChooserOpen ? "What cloud question do you want to test?" : contract.name}</h3>
+            <p className="selected-experiment-question">
+              <strong>Question:</strong> {contract.physicalQuestion}
+            </p>
           </div>
-          <fieldset className="segmented-control guided-flow-selector">
-            <legend>Run mode</legend>
-            <div role="group" aria-label="Lower Atmosphere run mode">
-              <button
-                type="button"
-                aria-pressed={flowMode === "evolution_lifted_cloud"}
-                onClick={() => setFlowMode("evolution_lifted_cloud")}
-              >
-                Evolve + lift
-              </button>
-              <button
-                type="button"
-                aria-pressed={flowMode === "atmosphere_evolution"}
-                onClick={() => setFlowMode("atmosphere_evolution")}
-              >
-                Atmosphere only
-              </button>
-              <button
-                type="button"
-                aria-pressed={flowMode === "lifted_cloud"}
-                onClick={() => setFlowMode("lifted_cloud")}
-              >
-                Lift only
-              </button>
+          <button type="button" className="ghost-button change-experiment-button" onClick={() => setExperimentChooserOpen((current) => !current)}>
+            {experimentChooserOpen ? "Keep selected experiment" : "Change experiment"}
+          </button>
+        </div>
+        {!experimentChooserOpen ? (
+          <div className="selected-experiment-summary">
+            <span className="experiment-status-badge">{experimentSummary(contract.id).status}</span>
+            <p>
+              {contract.shortDescription} {experimentSummary(contract.id).visual}
+            </p>
+            <div className="compact-scenario-links" aria-label="Try another experiment">
+              <strong>Try another:</strong>
+              {relatedScenarioIds(contract).map((scenarioId) => {
+                const related = lowerAtmosphereV2ScenarioForId(scenarioId);
+                return related ? (
+                  <button type="button" key={scenarioId} onClick={() => chooseScenario(scenarioId)}>
+                    {related.name}
+                  </button>
+                ) : null;
+              })}
             </div>
-          </fieldset>
-        </div>
-        <div className="experiment-card-grid">
-          {lowerAtmosphereV2ScenarioContracts.map((candidate) => (
-            <ExperimentCard
-              key={candidate.id}
-              contract={candidate}
-              selected={candidate.id === state.selectedScenarioId}
-              onChoose={() => chooseScenario(candidate.id)}
-            />
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="experiment-card-grid">
+            {lowerAtmosphereV2ScenarioContracts.map((candidate) => (
+              <ExperimentCard
+                key={candidate.id}
+                contract={candidate}
+                selected={candidate.id === state.selectedScenarioId}
+                onChoose={() => chooseScenario(candidate.id)}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="guided-result-card" aria-labelledby="guided-result-title">
@@ -212,6 +207,17 @@ export function LowerAtmosphereGuidedExperience({
         initialViewMode={hasRun ? "cloud-appearance" : "scientific-field"}
         preferredViewMode={hasRun ? "cloud-appearance" : undefined}
         autoReplayKey={autoReplayKey}
+        workingControls={
+          <GuidedExperimentControlBar
+            flowMode={flowMode}
+            setFlowMode={setFlowMode}
+            runStatus={runStatus}
+            hasRun={hasRun}
+            isRunning={isRunning}
+            onRun={onRun}
+            onReset={onReset}
+          />
+        }
         title="Watch the cloud evolve"
         regionLabel="Cloud evolution"
         replayLabel="Replay the experiment"
@@ -223,13 +229,15 @@ export function LowerAtmosphereGuidedExperience({
         <div>
           <p className="region-label">Understand why</p>
           <h3 id="guided-science-title">Atmospheric clues</h3>
-          <p>{hasRun ? userFacingWhy(diagnosticView.why) : "Run the experiment to connect the replay with moisture, LCL, stability, and lift clues."}</p>
+          <p>{hasRun ? mainStory.body : "Run the experiment to connect the replay with moisture, LCL, stability, and lift clues."}</p>
         </div>
-        <div className="variable-explainer-grid" aria-label="Scientific field explanations">
-          <VariableExplainer label="Cloud liquid water" detail="Where condensed cloud exists in the vertical slice." />
-          <VariableExplainer label="Water vapor / RH" detail="How close the air is to saturation before cloud appears." />
-          <VariableExplainer label="Potential temperature" detail="A temperature-like field that helps reveal stability and lifted motion." />
-          <VariableExplainer label="Vertical velocity" detail="Where air is rising or sinking; rising air can cool toward saturation." />
+        <div className="atmospheric-clue-grid" aria-label="Scenario-specific atmospheric clues">
+          {atmosphericClues(contract, displayedReferenceRun, diagnosticView, hasRun).map((clue) => (
+            <article key={clue.label}>
+              <strong>{clue.label}</strong>
+              <p>{clue.detail}</p>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -237,15 +245,37 @@ export function LowerAtmosphereGuidedExperience({
         <p className="region-label">Try next</p>
         <h3 id="try-next-title">{tryNext.title}</h3>
         <p>{tryNext.description}</p>
-        <div className="try-next-actions">
-          {tryNext.targetScenarioId ? (
-            <button type="button" onClick={() => chooseScenario(tryNext.targetScenarioId!)}>
-              Choose suggested experiment
-            </button>
-          ) : null}
-          <button type="button" onClick={onRun} disabled={isRunning}>
-            Run with current setup
-          </button>
+        <div className="try-next-grid">
+          <div>
+            <h4>Tweak this setup</h4>
+            <div className="try-next-actions">
+              {tryNext.tweaks.map((tweak) => (
+                <button type="button" key={tweak.label} disabled={!tweak.enabled} title={tweak.description}>
+                  {tweak.label}
+                  {!tweak.enabled ? " (planned)" : ""}
+                </button>
+              ))}
+              <button type="button" onClick={onRun} disabled={isRunning}>
+                Run current setup again
+              </button>
+            </div>
+          </div>
+          <div>
+            <h4>Try another experiment</h4>
+            <div className="try-next-actions">
+              {tryNext.scenarios.map((option) => {
+                const next = lowerAtmosphereV2ScenarioForId(option.scenarioId);
+                return next ? (
+                  <button type="button" key={option.scenarioId} onClick={() => chooseScenario(option.scenarioId)} title={option.reason}>
+                    {next.name}
+                  </button>
+                ) : null;
+              })}
+              <button type="button" className="ghost-button" onClick={() => setExperimentChooserOpen(true)}>
+                Open experiment picker
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -336,12 +366,61 @@ function ExperimentCard({
   );
 }
 
-function VariableExplainer({ label, detail }: { label: string; detail: string }) {
+function GuidedExperimentControlBar({
+  flowMode,
+  setFlowMode,
+  runStatus,
+  hasRun,
+  isRunning,
+  onRun,
+  onReset,
+}: {
+  flowMode: LowerAtmosphereV2FlowMode;
+  setFlowMode: Dispatch<SetStateAction<LowerAtmosphereV2FlowMode>>;
+  runStatus: string;
+  hasRun: boolean;
+  isRunning: boolean;
+  onRun: () => void;
+  onReset: () => void;
+}) {
   return (
-    <article>
-      <strong>{label}</strong>
-      <p>{detail}</p>
-    </article>
+    <div className="guided-experiment-control-bar" aria-label="Experiment controls near cloud replay">
+      <fieldset className="segmented-control guided-flow-selector">
+        <legend>Run mode</legend>
+        <div role="group" aria-label="Lower Atmosphere run mode">
+          <button
+            type="button"
+            aria-pressed={flowMode === "evolution_lifted_cloud"}
+            onClick={() => setFlowMode("evolution_lifted_cloud")}
+          >
+            Evolve + lift
+          </button>
+          <button
+            type="button"
+            aria-pressed={flowMode === "atmosphere_evolution"}
+            onClick={() => setFlowMode("atmosphere_evolution")}
+          >
+            Atmosphere only
+          </button>
+          <button
+            type="button"
+            aria-pressed={flowMode === "lifted_cloud"}
+            onClick={() => setFlowMode("lifted_cloud")}
+          >
+            Lift only
+          </button>
+        </div>
+      </fieldset>
+      <div className="guided-run-actions">
+        <span className={`run-state run-state-${runStatus}`}>Status: {runStatusLabel(runStatus)}</span>
+        <button type="button" onClick={onRun} disabled={isRunning}>
+          {hasRun ? "Run again" : "Run experiment"}
+        </button>
+        <button type="button" className="ghost-button" onClick={onReset}>
+          Reset
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -463,34 +542,52 @@ function guidedKeyNumbers(
 }
 
 function guidedTryNext(contract: LowerAtmosphereV2ScenarioContract, fallback: string[]): TryNext {
+  const tweaks = tweakOptionsForScenario(contract.id, fallback);
   switch (contract.id) {
     case "lower-atmosphere-v2-dry-failed-cumulus":
       return {
         title: "Add moisture and compare with shallow cumulus",
         description:
-          "Switch to the baseline shallow-cloud experiment to see how a moister lower layer changes rising motion into visible cloud.",
-        targetScenarioId: "lower-atmosphere-v2-baseline-shallow-cloud",
+          "Stay with the dry case to ask what would need to change, or switch to a wetter reference-backed contrast.",
+        tweaks,
+        scenarios: [
+          { scenarioId: "lower-atmosphere-v2-baseline-shallow-cloud", reason: "Adds enough lower-layer moisture for shallow cloud." },
+          { scenarioId: "lower-atmosphere-v2-humid-low-cloud-contrast", reason: "Shows the low-cloud contrast when the LCL is lower." },
+        ],
       };
     case "lower-atmosphere-v2-baseline-shallow-cloud":
       return {
-        title: "Make the same atmosphere drier",
+        title: "Change one cloud ingredient",
         description:
-          "Try the dry failed cumulus experiment next. The contrast shows why warm rising air still needs enough water vapor to condense.",
-        targetScenarioId: "lower-atmosphere-v2-dry-failed-cumulus",
+          "Compare the baseline against a drier, capped, or more humid setup to see which atmospheric ingredient controls the result.",
+        tweaks,
+        scenarios: [
+          { scenarioId: "lower-atmosphere-v2-dry-failed-cumulus", reason: "Removes enough moisture to keep rising air cloud-free." },
+          { scenarioId: "lower-atmosphere-v2-capped-suppressed-cloud", reason: "Adds a stronger cap that limits vertical growth." },
+          { scenarioId: "lower-atmosphere-v2-humid-low-cloud-contrast", reason: "Lowers cloud base with a more humid lower layer." },
+        ],
       };
     case "lower-atmosphere-v2-capped-suppressed-cloud":
       return {
-        title: "Remove the cap contrast",
+        title: "Test what happens when the cap weakens",
         description:
-          "Compare against baseline shallow cloud to see how weakening the stable layer lets the cloud grow deeper.",
-        targetScenarioId: "lower-atmosphere-v2-baseline-shallow-cloud",
+          "Keep the cap in mind, then switch to a setup where cloud can grow deeper or where moisture becomes the limiting factor.",
+        tweaks,
+        scenarios: [
+          { scenarioId: "lower-atmosphere-v2-baseline-shallow-cloud", reason: "Weakens the cap enough for shallow cumulus." },
+          { scenarioId: "lower-atmosphere-v2-dry-failed-cumulus", reason: "Changes the limiting factor from stability to moisture." },
+        ],
       };
     case "lower-atmosphere-v2-humid-low-cloud-contrast":
       return {
-        title: "Lower humidity and watch cloud base rise",
+        title: "Raise the cloud base again",
         description:
-          "Compare against the dry failed or baseline experiment to see how near-surface humidity controls cloud base.",
-        targetScenarioId: "lower-atmosphere-v2-dry-failed-cumulus",
+          "Use a drier contrast or the baseline to see how lower-layer humidity controls LCL and cloud base.",
+        tweaks,
+        scenarios: [
+          { scenarioId: "lower-atmosphere-v2-baseline-shallow-cloud", reason: "Returns to the reference-backed baseline." },
+          { scenarioId: "lower-atmosphere-v2-dry-failed-cumulus", reason: "Raises the LCL until cloud fails." },
+        ],
       };
     default:
       return {
@@ -499,8 +596,112 @@ function guidedTryNext(contract: LowerAtmosphereV2ScenarioContract, fallback: st
           fallback.length > 0
             ? `Try to ${fallback[0]}. Keep the rest of the setup fixed so the cause is easier to see.`
             : "Choose one moisture, heating, stability, or lift contrast and run again.",
+        tweaks,
+        scenarios: relatedScenarioIds(contract).map((scenarioId) => ({
+          scenarioId,
+          reason: "Switch scenario while keeping the guided Lower Atmosphere lab context.",
+        })),
       };
   }
+}
+
+function tweakOptionsForScenario(scenarioId: string, fallback: string[]): TryNext["tweaks"] {
+  const planned = (label: string, description: string) => ({ label, description, enabled: false });
+  switch (scenarioId) {
+    case "lower-atmosphere-v2-dry-failed-cumulus":
+      return [
+        planned("Increase lower-layer humidity", "Planned control: lower the LCL by adding low-level moisture."),
+        planned("Reduce dry air aloft", "Planned control: reduce entrainment drying above the mixed layer."),
+      ];
+    case "lower-atmosphere-v2-baseline-shallow-cloud":
+      return [
+        planned("Make this atmosphere drier", "Planned control: lower initial humidity while holding lift similar."),
+        planned("Strengthen the cap", "Planned control: make the stable layer harder to penetrate."),
+        planned("Reduce surface heating", "Planned control: weaken mixed-layer growth."),
+      ];
+    case "lower-atmosphere-v2-capped-suppressed-cloud":
+      return [
+        planned("Weaken the cap", "Planned control: reduce inversion strength."),
+        planned("Raise the cap", "Planned control: move the stable layer upward."),
+      ];
+    case "lower-atmosphere-v2-humid-low-cloud-contrast":
+      return [
+        planned("Lower humidity", "Planned control: raise LCL and cloud base."),
+        planned("Add dry air aloft", "Planned control: make cloud erosion easier."),
+      ];
+    default:
+      return [
+        planned("Change one physical ingredient", fallback[0] ?? "Planned control: vary moisture, heating, stability, or lift."),
+      ];
+  }
+}
+
+function atmosphericClues(
+  contract: LowerAtmosphereV2ScenarioContract,
+  referenceRun: ReferenceRun | null,
+  diagnosticView: ReturnType<typeof buildLowerAtmosphereV2DiagnosticViewModel>,
+  hasRun: boolean,
+): Array<{ label: string; detail: string }> {
+  const diagnostics = referenceRun?.diagnostics ?? null;
+  const firstCloud = formatSeconds(diagnostics?.first_cloud_time_seconds ?? null);
+  const cloudBase = formatMeters(diagnostics?.cloud_base_m ?? null);
+  const cloudTop = formatMeters(diagnostics?.cloud_top_m ?? null);
+  const rainOnset = formatSeconds(diagnostics?.first_rain_time_seconds ?? null);
+
+  if (!hasRun) {
+    return [
+      { label: "Moisture", detail: "Look for whether the LCL is low enough for lifted air to saturate." },
+      { label: "Lift", detail: "Rising air cools as it moves upward; cloud appears only if it reaches saturation." },
+      { label: "Stability", detail: "A cap or inversion can stop growth even when low-level air is moist." },
+      { label: "Scientific fields", detail: "Switch to Scientific Fields to inspect cloud water, vapor, theta, and vertical velocity." },
+    ];
+  }
+
+  if (contract.id === "lower-atmosphere-v2-dry-failed-cumulus") {
+    return [
+      { label: "Moisture limit", detail: "The air did not reach enough saturation for meaningful cloud water." },
+      { label: "Motion without cloud", detail: "Vertical motion can occur even when cloud water stays near zero." },
+      { label: "What to change", detail: "Increase lower-layer humidity or reduce dry air aloft to lower the LCL." },
+      { label: "Updraft clue", detail: `The reference max updraft is ${formatUnit(diagnostics?.max_updraft_m_per_s ?? null, "m/s")}.` },
+    ];
+  }
+
+  if (contract.id === "lower-atmosphere-v2-capped-suppressed-cloud") {
+    return [
+      { label: "Cap strength", detail: "A stable layer limits how high lifted air can rise." },
+      { label: "Cloud depth", detail: `Cloud depth should be read against the cap; current cloud layer is ${cloudBase} to ${cloudTop}.` },
+      { label: "What to change", detail: "Weaken or raise the cap, then compare against the baseline shallow-cloud setup." },
+      { label: "Run clue", detail: userFacingWhy(diagnosticView.why) },
+    ];
+  }
+
+  if (contract.id === "lower-atmosphere-v2-humid-low-cloud-contrast") {
+    return [
+      { label: "Low LCL", detail: "More low-level humidity lowers the height where cloud can first appear." },
+      { label: "Cloud base", detail: `Use cloud base (${cloudBase}) as the main clue for this contrast.` },
+      { label: "What to change", detail: "Lower humidity to raise cloud base, or add dry air aloft to erode cloud." },
+      { label: "Run clue", detail: userFacingWhy(diagnosticView.why) },
+    ];
+  }
+
+  return [
+    { label: "Moisture", detail: `Cloud formed because lower air was moist enough; first cloud appears around ${firstCloud}.` },
+    { label: "Lift", detail: "Rising air cooled toward saturation and produced cloud liquid water." },
+    { label: "Cloud depth", detail: `The reference cloud layer extends from about ${cloudBase} to ${cloudTop}.` },
+    {
+      label: "Rain signal",
+      detail: rainOnset === "unavailable"
+        ? "No rain onset is available for this reference frame set."
+        : `Rain water appears around ${rainOnset} in the reference case.`,
+    },
+  ];
+}
+
+function relatedScenarioIds(contract: LowerAtmosphereV2ScenarioContract): string[] {
+  const suggestions = contract.comparisonSuggestions.length
+    ? contract.comparisonSuggestions
+    : ["lower-atmosphere-v2-baseline-shallow-cloud", "lower-atmosphere-v2-dry-failed-cumulus"];
+  return suggestions.filter((scenarioId) => scenarioId !== contract.id).slice(0, 3);
 }
 
 function experimentSummary(scenarioId: string): { status: string; visual: string; controls: string } {

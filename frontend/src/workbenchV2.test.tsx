@@ -276,16 +276,17 @@ describe("Workbench V2 shell", () => {
     );
 
     expect(html).toContain("Choose an experiment");
-    expect(html).toContain("What cloud question do you want to test?");
+    expect(html).toContain("Selected experiment");
+    expect(html).toContain("Question:");
+    expect(html).toContain("Change experiment");
     expect(html).toContain("Baseline shallow cloud");
     expect(html).toContain("Dry failed cumulus");
     expect(html).toContain("Capped / suppressed cloud");
-    expect(html).toContain("Moist surface enables cloud");
+    expect(html).toContain("Humid low-cloud contrast");
     expect(html).toContain("Reference-backed baseline");
-    expect(html).toContain("Reference-backed contrast");
+    expect(html).toContain("Try another:");
     expect(html).toContain("watch the cloud field evolve");
     expect(html).toContain("Shallow cloud appears, grows, and fades.");
-    expect(html).toContain("Motion without meaningful cloud water.");
     expect(html).toContain("Atmosphere only");
     expect(html).toContain("Lift only");
     expect(html).toContain("Evolve + lift");
@@ -297,7 +298,10 @@ describe("Workbench V2 shell", () => {
     expect(html).toContain("Cloud liquid water");
     expect(html).toContain("Vertical velocity");
     expect(html).toContain("Potential temperature");
-    expect(html).toContain("Make the same atmosphere drier");
+    expect(html).toContain("Change one cloud ingredient");
+    expect(html).toContain("Tweak this setup");
+    expect(html).toContain("Try another experiment");
+    expect(html).toContain("Make this atmosphere drier (planned)");
     expect(html).toContain("Model details / Why trust this?");
     expect(html).toContain('<details class="guided-model-details">');
     expect(html).toContain("Offline reference plus simplified explanation");
@@ -330,7 +334,7 @@ describe("Workbench V2 shell", () => {
 
     expect(html).toContain("Choose an experiment");
     expect(html).toContain("Baseline shallow cloud");
-    expect(html).toContain("Rain-capable warm cloud later");
+    expect(html).toContain("Change experiment");
     for (const scenarioSlug of boussinesqScenarioSlugs) {
       expect(html).not.toContain(`value="${scenarioSlug}"`);
     }

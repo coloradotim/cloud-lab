@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
 
 import { formatSeconds } from "../workbench/workbenchRunLoop";
 import {
@@ -28,6 +28,7 @@ type ReferenceReplayViewProps = {
   initialViewMode?: ReferenceAppearanceMode;
   preferredViewMode?: ReferenceAppearanceMode;
   autoReplayKey?: string | number | null;
+  workingControls?: ReactNode;
   title?: string;
   regionLabel?: string;
   replayLabel?: string;
@@ -40,6 +41,7 @@ export function ReferenceReplayView({
   initialViewMode = "scientific-field",
   preferredViewMode,
   autoReplayKey = null,
+  workingControls = null,
   title = "Watch cloud evolution",
   regionLabel = "Cloud replay",
   replayLabel = "Replay cloud evolution",
@@ -50,6 +52,7 @@ export function ReferenceReplayView({
   const [frameIndex, setFrameIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ReferenceAppearanceMode>(initialViewMode);
   const [playing, setPlaying] = useState(false);
+  const [appearanceFullDomain, setAppearanceFullDomain] = useState(false);
   const fieldOptions = referenceFieldOptions(referenceRun);
   const viewModel = buildReferenceReplayViewModel(referenceRun, selectedFieldKey, frameIndex);
   const fallback = referenceReplayFallback(referenceRun, selectedFieldKey, frameIndex);
@@ -121,6 +124,7 @@ export function ReferenceReplayView({
       </div>
 
       <div className="stage-toolbar reference-replay-toolbar">
+        {workingControls ? <div className="reference-working-controls">{workingControls}</div> : null}
         <fieldset className="segmented-control reference-view-mode-control">
           <legend>Reference view</legend>
           <div>
@@ -140,21 +144,22 @@ export function ReferenceReplayView({
             </button>
           </div>
         </fieldset>
-        <label className="field-selector">
-          <span>{fieldSelectorLabel}</span>
-          <select
-            aria-label="Reference field"
-            value={selectedFieldKey}
-            disabled={viewMode === "cloud-appearance"}
-            onChange={(event) => setSelectedFieldKey(event.currentTarget.value)}
-          >
-            {fieldOptions.map((field) => (
-              <option key={field.key} value={field.key}>
-                {field.label} ({field.unit || "unit unavailable"})
-              </option>
-            ))}
-          </select>
-        </label>
+        {viewMode === "scientific-field" ? (
+          <label className="field-selector">
+            <span>{fieldSelectorLabel}</span>
+            <select
+              aria-label="Reference field"
+              value={selectedFieldKey}
+              onChange={(event) => setSelectedFieldKey(event.currentTarget.value)}
+            >
+              {fieldOptions.map((field) => (
+                <option key={field.key} value={field.key}>
+                  {field.label} ({field.unit || "unit unavailable"})
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <p className="field-scale-title">
           {viewMode === "cloud-appearance"
             ? "Cloud appearance view - visual interpretation"
@@ -169,7 +174,11 @@ export function ReferenceReplayView({
 
       {viewMode === "cloud-appearance" ? (
         appearanceModel ? (
-          <ReferenceAppearancePanel model={appearanceModel} />
+          <ReferenceAppearancePanel
+            model={appearanceModel}
+            fullDomain={appearanceFullDomain}
+            onToggleFullDomain={() => setAppearanceFullDomain((current) => !current)}
+          />
         ) : (
           <div className="stage-empty-state" role="status" aria-label="Reference appearance fallback">
             <strong>{appearanceFallback ?? "Reference cloud appearance unavailable."}</strong>
@@ -179,7 +188,7 @@ export function ReferenceReplayView({
       ) : viewModel ? (
         <div className="scientific-field-shell reference-field-shell">
           <div className="scientific-plot-frame">
-            <span className="axis-label axis-label-y">Height, z (m)</span>
+            <span className="axis-label axis-label-y">Height, z (km)</span>
             <div className="scientific-plot-area reference-plot-area">
               <svg
                 className="scientific-field-view"
@@ -251,8 +260,14 @@ export function ReferenceReplayView({
                   />
                 ) : null}
               </svg>
+              <AxisTicks
+                xMinM={Math.min(...viewModel.frame.grid.x_coordinates_m)}
+                xMaxM={Math.max(...viewModel.frame.grid.x_coordinates_m)}
+                zMinM={Math.min(...viewModel.frame.grid.z_coordinates_m)}
+                zMaxM={Math.max(...viewModel.frame.grid.z_coordinates_m)}
+              />
             </div>
-            <span className="axis-label axis-label-x">Horizontal distance, x (m)</span>
+            <span className="axis-label axis-label-x">Horizontal distance, x (km)</span>
           </div>
           <div className="field-legend" aria-label="CM1 reference field legend">
             <strong>{activeFieldLabel}</strong>
@@ -353,7 +368,21 @@ export function ReferenceReplayView({
         </div>
         <div className="reference-timeline-events" aria-label="Reference timeline events">
           {timelineEvents.events.map((event) => (
-            <span key={event}>{event}</span>
+            event.enabled ? (
+              <button
+                type="button"
+                key={event.label}
+                className="reference-event-chip"
+                onClick={() => setFrameIndex(event.frameIndex)}
+                aria-label={event.ariaLabel}
+              >
+                {event.label}
+              </button>
+            ) : (
+              <span key={event.label} className="reference-event-chip disabled" aria-disabled="true">
+                {event.label}
+              </span>
+            )
           ))}
         </div>
       </section>
@@ -403,17 +432,25 @@ export function ReferenceReplayView({
 
 type ReferenceAppearancePanelProps = {
   model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>;
+  fullDomain: boolean;
+  onToggleFullDomain: () => void;
 };
 
-function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
+function ReferenceAppearancePanel({ model, fullDomain, onToggleFullDomain }: ReferenceAppearancePanelProps) {
   const hasCloud = referenceAppearanceHasMeaningfulCloud(model);
+  const viewport = appearanceViewport(model, fullDomain);
 
   return (
     <div className="reference-appearance-shell">
-      <div className="reference-appearance-canvas" role="img" aria-label="Cloud appearance view from CM1 reference field">
+      <div
+        className={`reference-appearance-canvas${fullDomain ? " full-domain" : " focused-domain"}`}
+        role="img"
+        aria-label="Cloud appearance view from CM1 reference field"
+      >
+        <span className="axis-label axis-label-y">Height, z (km)</span>
         <svg
           className="reference-appearance-view"
-          viewBox={`0 0 ${model.columns} ${model.rows}`}
+          viewBox={`0 ${viewport.viewBoxY} ${model.columns} ${viewport.visibleRows}`}
           preserveAspectRatio="none"
         >
           <title>Visual interpretation of CM1 reference field</title>
@@ -467,6 +504,19 @@ function ReferenceAppearancePanel({ model }: ReferenceAppearancePanelProps) {
             ))}
           </g>
         </svg>
+        <AxisTicks
+          xMinM={Math.min(...model.frame.grid.x_coordinates_m)}
+          xMaxM={Math.max(...model.frame.grid.x_coordinates_m)}
+          zMinM={viewport.zMinM}
+          zMaxM={viewport.zMaxM}
+        />
+        <span className="axis-label axis-label-x">Horizontal distance, x (km)</span>
+      </div>
+      <div className="reference-viewport-summary">
+        <p>{viewport.label}</p>
+        <button type="button" className="ghost-button" onClick={onToggleFullDomain}>
+          {fullDomain ? "Focus on cloud layer" : "Show full domain"}
+        </button>
       </div>
       <dl className="stage-stats reference-appearance-summary">
         <div>
@@ -518,10 +568,17 @@ function dedupe(labels: string[]): string[] {
   return [...new Set(labels.filter(Boolean))];
 }
 
+type ReferenceTimelineEvent = {
+  label: string;
+  frameIndex: number;
+  enabled: boolean;
+  ariaLabel: string;
+};
+
 function referenceTimelineEvents(run: ReferenceRun | null): {
   summary: string;
   guidance: string;
-  events: string[];
+  events: ReferenceTimelineEvent[];
 } {
   const frameCount = frameCountLabel(run);
   const frames = run?.frames ?? [];
@@ -539,7 +596,15 @@ function referenceTimelineEvents(run: ReferenceRun | null): {
     return {
       summary: `${frameCount}; ${timeRange}`,
       guidance: "No cloud formed during this replay. Inspect vertical velocity to see motion without cloud water.",
-      events: [`No cloud formed during ${timeRange}`, finalTime !== null ? `${formatSeconds(finalTime)} - final frame` : "Final frame unavailable"],
+      events: [
+        {
+          label: `No cloud formed during ${timeRange}`,
+          frameIndex: 0,
+          enabled: false,
+          ariaLabel: `No cloud formed during ${timeRange}`,
+        },
+        timelineEventForTime(frames, finalTime, "final frame"),
+      ],
     };
   }
 
@@ -547,9 +612,174 @@ function referenceTimelineEvents(run: ReferenceRun | null): {
     summary: `${frameCount}; ${timeRange}`,
     guidance: "Replay the cloud evolution to see when cloud water appears.",
     events: [
-      firstCloud !== null ? `${formatSeconds(firstCloud)} - first cloud` : "First cloud unavailable",
-      firstRain !== null ? `${formatSeconds(firstRain)} - rain onset` : "Rain onset unavailable",
-      finalTime !== null ? `${formatSeconds(finalTime)} - final frame` : "Final frame unavailable",
+      timelineEventForTime(frames, firstCloud, "first cloud"),
+      timelineEventForTime(frames, firstRain, "rain onset"),
+      timelineEventForTime(frames, finalTime, "final frame"),
     ],
   };
+}
+
+function timelineEventForTime(frames: ReferenceRun["frames"], timeSeconds: number | null, label: string): ReferenceTimelineEvent {
+  if (timeSeconds === null || !frames.length) {
+    const unavailable = `${sentenceCase(label)} unavailable`;
+    return {
+      label: unavailable,
+      frameIndex: 0,
+      enabled: false,
+      ariaLabel: unavailable,
+    };
+  }
+  const frameIndex = nearestFrameIndex(frames, timeSeconds);
+  const formattedTime = formatSeconds(timeSeconds);
+  return {
+    label: `${formattedTime} - ${label}`,
+    frameIndex,
+    enabled: true,
+    ariaLabel: `Jump to ${label} at ${formattedTime}`,
+  };
+}
+
+function nearestFrameIndex(frames: ReferenceRun["frames"], timeSeconds: number): number {
+  let bestIndex = 0;
+  let bestDelta = Number.POSITIVE_INFINITY;
+  frames.forEach((frame, index) => {
+    const delta = Math.abs(frame.time_seconds - timeSeconds);
+    if (delta < bestDelta) {
+      bestDelta = delta;
+      bestIndex = index;
+    }
+  });
+  return bestIndex;
+}
+
+function appearanceViewport(
+  model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>,
+  fullDomain: boolean,
+): {
+  viewBoxY: number;
+  visibleRows: number;
+  zMinM: number;
+  zMaxM: number;
+  label: string;
+} {
+  const zCoordinates = model.frame.grid.z_coordinates_m;
+  const domainTopM = Math.max(...zCoordinates);
+  if (fullDomain) {
+    return {
+      viewBoxY: 0,
+      visibleRows: model.rows,
+      zMinM: Math.min(...zCoordinates),
+      zMaxM: domainTopM,
+      label: `Viewing full ${formatKm(domainTopM)} km CM1 domain.`,
+    };
+  }
+
+  const cloudTopM = cloudTopForFrame(model) ?? model.run.diagnostics?.cloud_top_m ?? null;
+  const targetTopM = Math.min(domainTopM, Math.max(5_500, (cloudTopM ?? 0) + 1_200));
+  const topRow = Math.max(0, lastIndexAtOrBelow(zCoordinates, targetTopM));
+  const visibleRows = Math.min(model.rows, Math.max(2, topRow + 1));
+  const visibleTopM = zCoordinates[visibleRows - 1] ?? targetTopM;
+  return {
+    viewBoxY: model.rows - visibleRows,
+    visibleRows,
+    zMinM: Math.min(...zCoordinates),
+    zMaxM: visibleTopM,
+    label: `Viewing lower ${formatKm(visibleTopM)} km of ${formatKm(domainTopM)} km CM1 domain; viewport follows cloud top in Appearance mode.`,
+  };
+}
+
+function cloudTopForFrame(model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>): number | null {
+  const cloudyRows = model.cells.filter((cell) => cell.sourceCloudWater > 0).map((cell) => cell.row);
+  if (!cloudyRows.length) {
+    return null;
+  }
+  const row = Math.max(...cloudyRows);
+  return model.frame.grid.z_coordinates_m[row] ?? null;
+}
+
+function lastIndexAtOrBelow(values: number[], target: number): number {
+  for (let index = values.length - 1; index >= 0; index -= 1) {
+    if (values[index] <= target) {
+      return index;
+    }
+  }
+  return 0;
+}
+
+function AxisTicks({
+  xMinM,
+  xMaxM,
+  zMinM,
+  zMaxM,
+}: {
+  xMinM: number;
+  xMaxM: number;
+  zMinM: number;
+  zMaxM: number;
+}) {
+  const xTicks = majorTicks(xMinM, xMaxM, 5);
+  const zTicks = majorTicks(zMinM, zMaxM, 5);
+  return (
+    <div className="reference-axis-ticks" aria-hidden="true">
+      {xTicks.map((tick) => (
+        <span
+          key={`x-${tick}`}
+          className="reference-axis-tick reference-axis-tick-x"
+          style={{ left: `${percent(tick, xMinM, xMaxM)}%` }}
+        >
+          <i />
+          <em>{formatKm(tick)}</em>
+        </span>
+      ))}
+      {zTicks.map((tick) => (
+        <span
+          key={`z-${tick}`}
+          className="reference-axis-tick reference-axis-tick-z"
+          style={{ bottom: `${percent(tick, zMinM, zMaxM)}%` }}
+        >
+          <i />
+          <em>{formatKm(tick)}</em>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function majorTicks(min: number, max: number, targetCount: number): number[] {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
+    return [0];
+  }
+  const spanKm = (max - min) / 1_000;
+  const rawStepKm = spanKm / Math.max(1, targetCount);
+  const stepKm = rawStepKm <= 1 ? 1 : rawStepKm <= 2 ? 2 : rawStepKm <= 5 ? 5 : 10;
+  const step = stepKm * 1_000;
+  const first = Math.ceil(min / step) * step;
+  const ticks: number[] = [];
+  for (let tick = first; tick <= max + step * 0.1; tick += step) {
+    ticks.push(Math.min(max, tick));
+  }
+  if (!ticks.includes(min)) {
+    ticks.unshift(min);
+  }
+  if (!ticks.includes(max)) {
+    ticks.push(max);
+  }
+  return [...new Set(ticks.map((tick) => Math.round(tick)))];
+}
+
+function percent(value: number, min: number, max: number): number {
+  if (max <= min) {
+    return 0;
+  }
+  return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+}
+
+function formatKm(valueM: number): string {
+  return (valueM / 1_000).toLocaleString("en-US", {
+    maximumFractionDigits: valueM % 1_000 === 0 ? 0 : 1,
+  });
+}
+
+function sentenceCase(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }

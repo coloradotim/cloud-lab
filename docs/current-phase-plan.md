@@ -54,7 +54,7 @@ or make Boussinesq part of the credibility path.
 The current Lower Atmosphere product priority is now:
 
 ```text
-real-output acceptance → #222 visual/replay/appearance polish → #230 structure polish → #233 guided experiment rebuild
+real-output acceptance → #222 visual/replay/appearance polish → #230 structure polish → #233 guided experiment rebuild → #240 guided interaction finish
 ```
 
 Generated local reference artifacts and frontend local indexes remain ignored
@@ -114,6 +114,18 @@ should improve scientific field palettes and cloud appearance payoff using the
 accepted dry-failed and shallow-cumulus reference outputs. It should not add
 cases, tune CM1, change reduced-model science, change Boussinesq, or start
 warm-rain work.
+
+Issue #240 finishes the guided Lower Atmosphere interaction without changing
+science. The selected experiment chooser should collapse into a compact summary
+with a clear Change experiment action. Primary run mode, run/reset, view mode,
+field selection, and replay controls should live near the cloud field. Cloud
+Appearance is the default post-run view and uses a display-only viewport that
+starts in the lower atmosphere and follows cloud-top growth; Scientific Fields
+shows the full x-z domain by default. Both views should show clear x/z axes and
+major tick marks. Understand Why should use atmospheric clue cards, Try Next
+should separate planned setup tweaks from scenario-switch buttons, event chips
+should jump to their frames, and Model details / Why trust this should stay
+collapsed as the provenance/validation home.
 
 Issue #234 defines the CM1 lower-atmosphere validation matrix before more cases
 are added ad hoc. The matrix should guide Phase B validation anchors

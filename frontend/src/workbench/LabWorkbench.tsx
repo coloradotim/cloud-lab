@@ -535,17 +535,19 @@ function WorkbenchTopBar({
   const canStop = isRunning && !isProfileLab;
 
   return (
-    <header className="workbench-top-bar">
-      <button type="button" className="ghost-button" onClick={onBackToLabs}>
-        Labs
+    <header className={`workbench-top-bar${isProfileLab ? " profile-lab-top-bar" : ""}`}>
+      <button type="button" className="ghost-button lab-back-button" onClick={onBackToLabs}>
+        ← Labs
       </button>
       <div className="workbench-identity">
-        <span>Cloud Lab</span>
+        <span>{isProfileLab ? "Cloud Lab /" : "Cloud Lab"}</span>
         <strong>{lab.name}</strong>
-        <span>{scenarioName}</span>
+        <button type="button" className="experiment-breadcrumb" onClick={() => document.getElementById("experiment-chooser-title")?.scrollIntoView({ block: "start" })}>
+          Experiment: {scenarioName}
+        </button>
       </div>
       <div className="workbench-actions" aria-label="Workbench actions">
-        {supportsRun ? (
+        {supportsRun && !isProfileLab ? (
           <>
             <button
               type="button"
@@ -562,9 +564,11 @@ function WorkbenchTopBar({
             ) : null}
           </>
         ) : null}
-        <button type="button" onClick={onResetRun}>
+        {!isProfileLab ? (
+          <button type="button" onClick={onResetRun}>
           {supportsRun ? "Reset" : "Reset controls"}
-        </button>
+          </button>
+        ) : null}
         {supportsRun ? (
           <span className={`run-state run-state-${runStatus}`}>Status: {runStatusLabel(runStatus)}</span>
         ) : (
