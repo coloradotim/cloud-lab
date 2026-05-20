@@ -2,16 +2,23 @@
 
 Issue: #208
 
-This directory contains Cloud Lab-side assets for the first local CM1 reference
-pair:
+This directory contains Cloud Lab-side assets for local CM1 reference and
+validation-anchor runs.
+
+The first accepted Phase A reference pair is:
 
 - `dry-failed-cumulus`
 - `shallow-cumulus-baseline`
 
+The planned Phase B validation-anchor assets are:
+
+- `capped-suppressed-cumulus`
+- `humid-low-cloud-contrast`
+- `low-stratus-develops`
+
 These assets are intended to make local CM1 reference runs reproducible enough
-to generate the first credible 2-D lower-atmosphere contrast pair. They are not
-Cloud Lab app runtime dependencies, and they do not include generated CM1
-output.
+to generate credible lower-atmosphere validation anchors. They are not Cloud Lab
+app runtime dependencies, and they do not include generated CM1 output.
 
 ## Run The Pair
 
@@ -41,12 +48,17 @@ Do not commit generated CM1 output, CM1 binaries, or local build products.
 
 ## Case Status
 
-The committed namelists are first-pass local reference-case configurations.
-They are designed to be runnable and to produce a dry/cloud-free versus
-shallow-cumulus contrast, but the generated outputs still need scientific
-inspection after the local runs complete.
+The Phase A dry-failed and shallow-cumulus outputs have been manually accepted
+as the first real local pair. The Phase B case assets are first-pass planned
+validation anchors. They are designed to be runnable, but generated outputs
+still need scientific inspection before they can be marked accepted.
 
 If the dry case produces meaningful cloud water, reduce low-level moisture or
 surface latent heat in the dry case. If the shallow case stays cloud-free,
 increase low-level moisture or forcing in the shallow case. Capture those
 calibrations in the committed case manifests, not in ignored output files.
+
+For Phase B, use the validation matrix policy: mark a generated case
+`needs_calibration` if its observed regime does not match the expected cap,
+humid low-cloud, or low-stratus anchor. Do not use this directory to start
+Phase C sweeps, rain, terrain, or warm-rain work.

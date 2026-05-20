@@ -103,8 +103,9 @@ not just cloud/no-cloud outcome.
 | `cm1-dry-failed-cumulus-v1` | Dry Failed Cumulus | Lower Atmosphere Cloud Basics | Immediate | Rising motion without meaningful cloud liquid water. |
 | `cm1-shallow-cumulus-baseline-v1` | Shallow Cumulus Baseline | Lower Atmosphere Cloud Basics | Immediate | Shallow cumulus forms, grows, and decays in a 2-D field. |
 | `cm1-dry-thermal-clear-motion-v1` | Dry Thermal / Clear Motion | Lower Atmosphere Cloud Basics; Evolving Boundary Layer | Immediate or early | Buoyant motion remains cloud-free. |
-| `cm1-capped-suppressed-cumulus-v1` | Capped / Suppressed Cumulus | Lower Atmosphere Cloud Basics | Early | Cloud is delayed, shallow, or suppressed below a stable layer. |
-| `cm1-humid-low-cloud-contrast-v1` | Humid Low-Cloud Contrast | Lower Atmosphere Cloud Basics | Early | Lower cloud base and easier shallow-cloud formation than baseline. |
+| `cm1-capped-suppressed-cumulus-v1` | Capped / Suppressed Cumulus | Lower Atmosphere Cloud Basics | Early / Phase B | Cloud is delayed, shallow, or suppressed below a stable layer. |
+| `cm1-humid-low-cloud-contrast-v1` | Humid Low-Cloud Contrast | Lower Atmosphere Cloud Basics | Early / Phase B | Lower cloud base and easier shallow-cloud formation than baseline. |
+| `cm1-low-stratus-develops-v1` | Low Stratus Develops | Lower Atmosphere Cloud Basics; future Fog / Stratus | Early / Phase B | Low stratus-like cloud develops from a very moist shallow stable layer. |
 | `cm1-warm-rain-shallow-cloud-v1` | Warm-Rain Shallow Cloud | Warm Rain / Droplet Growth; Lower Atmosphere Cloud Basics | Later | Cloud water transitions toward rain water if the case supports warm-rain microphysics. |
 | `cm1-orographic-terrain-lift-v1` | Orographic / Terrain Cloud | Orographic / Terrain Clouds | Later | Terrain-relative lift produces terrain-locked cloud where moisture and stability allow it. |
 
@@ -234,6 +235,28 @@ not just cloud/no-cloud outcome.
 | Known limitations | A humid case can drift toward stratus-like behavior; keep it scoped as a contrast case unless a fog/stratus lab takes ownership. |
 | Priority | Early |
 
+## Additional Case: Low Stratus Develops
+
+| Required detail | Definition |
+| --- | --- |
+| Case id | `cm1-low-stratus-develops-v1` |
+| User-facing name | Low Stratus Develops |
+| Lab served | Lower Atmosphere Cloud Basics; future Fog / Stratus |
+| Physical question | How can a very moist, shallow stable lower atmosphere produce low cloud rather than isolated fair-weather cumulus? |
+| Intended phenomenon | Low stratus-like cloud formation in a very moist lower layer with weak heating and shallow stability. |
+| Initial profile concept | Near-saturated shallow layer, drying above the low layer, and a stable lower-atmosphere profile. |
+| Forcing concept | Weak surface heating and modest moisture supply; not a full radiative-cooling fog setup. |
+| Expected qualitative behavior | Low cloud develops near the lower atmosphere and remains shallow compared with baseline cumulus. |
+| Expected visual behavior | Cloud liquid water appears near the lower part of the domain with weak to moderate motion. |
+| Fields required from model output | time, x/z grid, temperature or theta, water vapor, cloud liquid water, vertical velocity, horizontal velocity if available, pressure metadata if available. |
+| Diagnostics required | first low-cloud time if available, low cloud base/top or near-surface cloud depth, max cloud water, max updraft or motion indicator, low-cloud/stratus status label. |
+| Visualization modes supported | cloud water, vapor/RH, theta/temperature, vertical velocity, cloud base/top overlays, time replay, appearance view later. |
+| Optics relevance | Provides an early low-cloud appearance and opacity anchor distinct from fair-weather cumulus. |
+| Comparison against reduced models | Compare the low-cloud/fog-like qualitative regime and near-surface moisture relationship; do not score exact cloud deck shape. |
+| Validation use | Phase B validation anchor for the very humid low-cloud end of the user-facing control space. |
+| Known limitations | The committed setup is named low stratus because it uses weak heating and shallow stability rather than a complete fog/radiative-cooling design. Rename only if generated output and setup honestly support a fog label. |
+| Priority | Early / Phase B |
+
 ## Additional Case: Warm-Rain Shallow Cloud
 
 | Required detail | Definition |
@@ -322,6 +345,7 @@ reference case ids:
 | `lower-atmosphere-v2-capped-suppressed-cloud` | `cm1-capped-suppressed-cumulus-v1` | Mapped, but shows missing-reference fallback until a run is loaded. |
 | `lower-atmosphere-v2-humid-low-cloud-contrast` | `cm1-humid-low-cloud-contrast-v1` | Mapped, but shows missing-reference fallback until a run is loaded. |
 | `lower-atmosphere-v2-rain-capable-warm-cloud-later` | `cm1-warm-rain-shallow-cloud-v1` | Mapped for later warm-rain comparison; rain diagnostics remain deferred. |
+| future low-cloud/fog experiment | `cm1-low-stratus-develops-v1` | Case assets are committed as a Phase B validation anchor; a user-facing scenario mapping should wait for a scoped lab/UX issue. |
 
 The first comparison diagnostics are cloud/no-cloud status, first cloud time,
 cloud base, cloud top, max cloud water, max updraft, rain onset, and reduced

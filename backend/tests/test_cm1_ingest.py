@@ -65,6 +65,43 @@ def test_cm1_ingest_reports_dry_failed_cloud_calibration_warning(tmp_path: Path)
     )
 
 
+def test_cm1_ingest_recognizes_phase_b_case_ids(tmp_path: Path) -> None:
+    cases = {
+        "cm1-capped-suppressed-cumulus-v1": _adapter_source(cloud=False),
+        "cm1-humid-low-cloud-contrast-v1": _adapter_source(cloud=True),
+        "cm1-low-stratus-develops-v1": _adapter_source(cloud=True, low_cloud=True),
+    }
+
+    artifacts = []
+    for case_id, source in cases.items():
+        input_dir = tmp_path / f"{case_id}-input"
+        input_dir.mkdir()
+        (input_dir / "cloud_lab_cm1_adapter_input.json").write_text(
+            json.dumps(source),
+            encoding="utf-8",
+        )
+        artifacts.append(
+            ingest_cm1_reference_output(
+                case_id=case_id,
+                input_dir=input_dir,
+                output_dir=tmp_path / "ingested",
+            )
+        )
+
+    by_case = {artifact.case_id: artifact for artifact in artifacts}
+    assert by_case["cm1-capped-suppressed-cumulus-v1"].manifest["case_name"] == (
+        "Capped / Suppressed Cumulus"
+    )
+    assert by_case["cm1-humid-low-cloud-contrast-v1"].manifest["case_name"] == (
+        "Humid Low-Cloud Contrast"
+    )
+    assert by_case["cm1-low-stratus-develops-v1"].manifest["case_name"] == ("Low Stratus Develops")
+    assert (
+        by_case["cm1-low-stratus-develops-v1"].manifest["diagnostics_available"]["cloud_base_m"]
+        == 250.0
+    )
+
+
 def test_cm1_ingest_preserves_missing_field_warnings(tmp_path: Path) -> None:
     input_dir = tmp_path / "missing-input"
     output_dir = tmp_path / "ingested"
@@ -291,8 +328,13 @@ def _write_staggered_cm1_fixture(*, xr: Any, output_path: Path) -> None:
     dataset.to_netcdf(output_path)
 
 
-def _adapter_source(*, cloud: bool) -> dict[str, object]:
-    cloud_frame = [[0.0, 0.0], [2.0e-6, 0.0]] if cloud else [[0.0, 0.0], [0.0, 0.0]]
+def _adapter_source(*, cloud: bool, low_cloud: bool = False) -> dict[str, object]:
+    if not cloud:
+        cloud_frame = [[0.0, 0.0], [0.0, 0.0]]
+    elif low_cloud:
+        cloud_frame = [[2.0e-6, 0.0], [0.0, 0.0]]
+    else:
+        cloud_frame = [[0.0, 0.0], [2.0e-6, 0.0]]
     return {
         "source_case_id": "will-be-overridden",
         "source_is_synthetic_fixture": True,

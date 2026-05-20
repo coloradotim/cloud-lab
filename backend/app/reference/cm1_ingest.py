@@ -14,10 +14,16 @@ from app.reference.reference_schemas import ReferenceRun
 REFERENCE_CASE_IDS = (
     "cm1-dry-failed-cumulus-v1",
     "cm1-shallow-cumulus-baseline-v1",
+    "cm1-capped-suppressed-cumulus-v1",
+    "cm1-humid-low-cloud-contrast-v1",
+    "cm1-low-stratus-develops-v1",
 )
 REFERENCE_CASE_NAMES = {
     "cm1-dry-failed-cumulus-v1": "Dry Failed Cumulus",
     "cm1-shallow-cumulus-baseline-v1": "Shallow Cumulus Baseline",
+    "cm1-capped-suppressed-cumulus-v1": "Capped / Suppressed Cumulus",
+    "cm1-humid-low-cloud-contrast-v1": "Humid Low-Cloud Contrast",
+    "cm1-low-stratus-develops-v1": "Low Stratus Develops",
 }
 CLOUD_MEANINGFUL_THRESHOLD_KG_PER_KG = 1.0e-8
 DEFAULT_ADAPTER_INPUT_NAME = "cloud_lab_cm1_adapter_input.json"
@@ -478,6 +484,46 @@ def _case_expectation_warnings(run: ReferenceRun) -> list[str]:
             "Shallow cumulus baseline output does not contain meaningful cloud water; "
             "case may need calibration."
         ]
+    if run.source_case_id == "cm1-capped-suppressed-cumulus-v1":
+        cloud_top = run.diagnostics.cloud_top_m
+        if cloud_top is not None and cloud_top > 3_000.0:
+            return [
+                "Capped/suppressed output has cloud top above the expected cap layer; "
+                "case may need calibration."
+            ]
+        return []
+    if run.source_case_id == "cm1-humid-low-cloud-contrast-v1":
+        if max_cloud is None or max_cloud <= CLOUD_MEANINGFUL_THRESHOLD_KG_PER_KG:
+            return [
+                "Humid low-cloud contrast output does not contain meaningful cloud water; "
+                "case may need calibration."
+            ]
+        cloud_base = run.diagnostics.cloud_base_m
+        if cloud_base is not None and cloud_base > 1_250.0:
+            return [
+                "Humid low-cloud contrast cloud base is not lower than the accepted "
+                "baseline shallow-cumulus cloud base; case may need calibration."
+            ]
+        return []
+    if run.source_case_id == "cm1-low-stratus-develops-v1":
+        if max_cloud is None or max_cloud <= CLOUD_MEANINGFUL_THRESHOLD_KG_PER_KG:
+            return [
+                "Low-stratus output does not contain meaningful low-cloud water; "
+                "case may need calibration."
+            ]
+        cloud_base = run.diagnostics.cloud_base_m
+        cloud_top = run.diagnostics.cloud_top_m
+        if cloud_base is not None and cloud_base > 500.0:
+            return [
+                "Low-stratus output cloud base is higher than the expected low-cloud "
+                "anchor; case may need calibration."
+            ]
+        if cloud_top is not None and cloud_top > 2_500.0:
+            return [
+                "Low-stratus output grows deeper than the intended shallow low-cloud "
+                "anchor; case may need calibration."
+            ]
+        return []
     return []
 
 

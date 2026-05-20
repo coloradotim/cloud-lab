@@ -285,6 +285,30 @@ preflights NetCDF tooling and required runtime files, runs each committed
 runnable case, ingests successful outputs, and writes a local
 `validation-report.json` under `data/reference/cm1/validation-runs/<timestamp>/`.
 
+As of #223, the batch discovers the accepted Phase A pair plus the planned
+Phase B validation anchors:
+
+```text
+cm1-dry-failed-cumulus-v1
+cm1-shallow-cumulus-baseline-v1
+cm1-capped-suppressed-cumulus-v1
+cm1-humid-low-cloud-contrast-v1
+cm1-low-stratus-develops-v1
+```
+
+Run a single Phase B case with `--case-id` when you want to iterate locally
+without running the whole batch, for example:
+
+```bash
+scripts/reference/cm1/run_validation_batch.sh \
+  --cm1-run-dir /Users/timpeterson/cm1r21.1/run \
+  --case-id cm1-capped-suppressed-cumulus-v1
+```
+
+The Phase B cases are validation anchors with committed assets only. Do not
+mark them accepted until real output has been generated, ingested, and manually
+inspected.
+
 ## Output Storage
 
 Do not commit large CM1 output files to git.

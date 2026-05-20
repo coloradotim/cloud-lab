@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 import stat
 import subprocess
@@ -7,6 +8,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 RUN_CASE_SCRIPT = ROOT / "scripts/reference/cm1/run_cm1_case.sh"
+CASE_ROOT = ROOT / "reference/cm1/cases"
+PHASE_B_CASE_IDS = {
+    "cm1-capped-suppressed-cumulus-v1",
+    "cm1-humid-low-cloud-contrast-v1",
+    "cm1-low-stratus-develops-v1",
+}
 
 
 def _write_executable(path: Path, content: str) -> None:
@@ -219,10 +226,7 @@ def test_run_cm1_case_dry_run_stays_safe(tmp_path: Path) -> None:
 
 
 def test_committed_reference_pair_soundings_cover_configured_grid_top() -> None:
-    for case_dir in [
-        ROOT / "reference/cm1/cases/dry-failed-cumulus",
-        ROOT / "reference/cm1/cases/shallow-cumulus-baseline",
-    ]:
+    for case_dir in sorted(path.parent for path in CASE_ROOT.glob("*/manifest.json")):
         namelist = case_dir / "namelist.input"
         sounding = case_dir / "input_sounding"
         nz = _namelist_value(namelist, "nz")
@@ -234,6 +238,45 @@ def test_committed_reference_pair_soundings_cover_configured_grid_top() -> None:
         assert _sounding_top(sounding) >= grid_top
 
 
+def test_committed_cm1_case_manifests_have_unique_ids_and_phase_b_anchors() -> None:
+    manifests = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(CASE_ROOT.glob("*/manifest.json"))
+    ]
+    case_ids = [manifest["case_id"] for manifest in manifests]
+
+    assert len(case_ids) == len(set(case_ids))
+    assert PHASE_B_CASE_IDS.issubset(set(case_ids))
+    for manifest in manifests:
+        assert manifest["schema_version"] == "cloud-lab-cm1-reference-case-v1"
+        assert manifest["source_model"] == "CM1"
+        assert manifest["storage_policy"]["commit_outputs"] is False
+        assert "cloud liquid water" in manifest["required_fields"]
+    for manifest in manifests:
+        if manifest["case_id"] in PHASE_B_CASE_IDS:
+            assert manifest["validation_phase"] == "B"
+            assert manifest["validation_status"] == "planned"
+            assert "output_not_committed" in manifest["status"]
+
+
+def test_phase_b_cases_dry_run_through_case_runner(tmp_path: Path) -> None:
+    cm1_run_dir = _make_cm1_run_dir(
+        tmp_path,
+        "#!/usr/bin/env bash\nset -euo pipefail\ntouch should-not-run.nc\n",
+        include_landuse=True,
+    )
+    for slug in [
+        "capped-suppressed-cumulus",
+        "humid-low-cloud-contrast",
+        "low-stratus-develops",
+    ]:
+        result = _run_case(tmp_path / slug, CASE_ROOT / slug, cm1_run_dir, execute=False)
+
+        assert result.returncode == 0, result.stderr
+        assert "Dry run only" in result.stdout
+        assert "Expected output: NetCDF (*.nc)" in result.stdout
+
+
 def test_generated_cm1_outputs_and_runtime_files_are_gitignored() -> None:
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8")
 
@@ -241,4 +284,10 @@ def test_generated_cm1_outputs_and_runtime_files_are_gitignored() -> None:
     assert "frontend/public/reference/cm1/local/" in gitignore
     assert not (ROOT / "reference/cm1/cases/dry-failed-cumulus/LANDUSE.TBL").exists()
     assert not (ROOT / "reference/cm1/cases/shallow-cumulus-baseline/LANDUSE.TBL").exists()
+    for slug in [
+        "capped-suppressed-cumulus",
+        "humid-low-cloud-contrast",
+        "low-stratus-develops",
+    ]:
+        assert not (CASE_ROOT / slug / "LANDUSE.TBL").exists()
     assert not list((ROOT / "reference/cm1/cases").glob("**/*.nc"))

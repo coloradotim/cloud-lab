@@ -1,0 +1,111 @@
+{
+  "schema_version": "cloud-lab-cm1-reference-case-v1",
+  "case_id": "cm1-low-stratus-develops-v1",
+  "case_name": "Low Stratus Develops",
+  "lab_served": "Lower Atmosphere Cloud Basics",
+  "source_model": "CM1",
+  "cm1_version": "cm1r21.1 expected",
+  "created_at": null,
+  "status": "case_assets_committed_output_not_committed",
+  "validation_phase": "B",
+  "validation_status": "planned",
+  "experiment_served": "Low Stratus Develops",
+  "user_facing_controls_represented": {
+    "low_level_moisture": "very_high",
+    "surface_heating": "weak",
+    "cap_strength": "shallow_stable_layer",
+    "dry_air_aloft": "baseline_or_drier_above_low_layer"
+  },
+  "description": "Phase B CM1 validation-anchor case for low-cloud behavior in a very moist shallow stable layer.",
+  "physical_question": "How can a very moist, shallow stable lower atmosphere produce low stratus-like cloud?",
+  "expected_outcome": "Low stratus-like low cloud develops near the lower atmosphere.",
+  "expected_regime": "Low stratus-like low cloud develops near the lower atmosphere.",
+  "namelist_input_concept": {
+    "namelist_path": "reference/cm1/cases/low-stratus-develops/namelist.input",
+    "sounding_path": "reference/cm1/cases/low-stratus-develops/input_sounding",
+    "grid_target": {
+      "nx": 60,
+      "ny": 60,
+      "nz": 40,
+      "dx_m": 2000.0,
+      "dy_m": 2000.0,
+      "dz_m": 500.0,
+      "runtime_seconds": 7200.0,
+      "output_interval_seconds": 300.0
+    },
+    "forcing_concept": "Weak surface heating and moisture supply over a near-saturated shallow stable layer.",
+    "output_format": "NetCDF requested with output_format = 2"
+  },
+  "sounding_profile_concept": {
+    "format_reference": "CM1 input_sounding format: first line surface pressure, theta, qv; following lines z, theta, qv, u, v.",
+    "near_surface_qv_g_per_kg": 17.0,
+    "free_atmosphere": "Near-saturated shallow layer below a stable drying profile to favor low-cloud rather than deep cumulus.",
+    "final_level_note": "Final sounding level is above ztop/grid top."
+  },
+  "local_output_path": "data/reference/cm1/runs/low-stratus-develops-<timestamp>/",
+  "expected_output_files": [
+    "cm1out_*.nc",
+    "cm1out_stats.nc or cm1out_stats.dat/ctl depending on CM1 output settings",
+    "cm1.stdout.log",
+    "cm1.stderr.log",
+    "namelist.input",
+    "input_sounding",
+    "CASE_README.md",
+    "case_manifest.json"
+  ],
+  "required_fields": [
+    "time",
+    "x coordinate",
+    "z coordinate",
+    "temperature or potential temperature",
+    "water vapor / mixing ratio",
+    "cloud liquid water",
+    "vertical velocity",
+    "horizontal velocity if available",
+    "pressure or pressure-derived metadata if available"
+  ],
+  "diagnostics_to_compute": [
+    "first low-cloud time if available",
+    "low cloud base/top or near-surface cloud depth",
+    "max cloud liquid water",
+    "integrated cloud liquid water",
+    "max updraft or motion indicator",
+    "low-cloud/stratus status label",
+    "missing-field warnings",
+    "source provenance"
+  ],
+  "storage_policy": {
+    "commit_outputs": false,
+    "ignored_output_root": "data/reference/cm1/",
+    "commit_allowed": [
+      "case configs",
+      "scripts",
+      "manifests",
+      "docs",
+      "tiny fixtures"
+    ],
+    "do_not_commit": [
+      "large NetCDF outputs",
+      "compiled CM1 binaries",
+      "CM1 source code",
+      "local machine build products",
+      "runtime support files such as LANDUSE.TBL"
+    ]
+  },
+  "how_to_run": [
+    "scripts/reference/cm1/run_cm1_case.sh --case-dir reference/cm1/cases/low-stratus-develops --cm1-run-dir ~/src/cm1/CM1/run",
+    "Add --execute to run locally.",
+    "scripts/reference/cm1/run_validation_batch.sh --cm1-run-dir ~/src/cm1/CM1/run --case-id cm1-low-stratus-develops-v1"
+  ],
+  "how_to_ingest": "After local output exists, use scripts/reference/cm1/run_validation_batch.sh --execute or scripts/reference/cm1/ingest_cm1_output.py with this case id to map selected output into reference-run-v1/reference-frame-v1 data.",
+  "known_limitations": [
+    "This is named low stratus because the setup uses weak heating and shallow stability rather than a full radiative-cooling fog design.",
+    "Do not claim fog unless output is surface-attached and the setup supports that label.",
+    "First-pass configuration may need calibration after output inspection."
+  ],
+  "notes": [
+    "CM1 is offline reference-model output; Cloud Lab does not run CM1 in normal app sessions.",
+    "No generated CM1 output is committed with this manifest.",
+    "Validation status remains planned until real local output is generated, ingested, and manually inspected."
+  ]
+}

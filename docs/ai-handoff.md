@@ -283,8 +283,8 @@ through the follow-up CM1 issues.
 The first CM1 lower-atmosphere visual reference case library now lives in
 `docs/reference-models/cm1-lower-atmosphere-cases.md`. It defines the immediate
 dry-failed cumulus and shallow-cumulus baseline pair, plus early/later capped,
-humid low-cloud, warm-rain, and terrain cases. It is docs/design only: no CM1
-was run, no output files were added, and no Boussinesq behavior changed.
+humid low-cloud, low-stratus, warm-rain, and terrain cases. The case-library doc
+is design context; runnable case assets live under `reference/cm1/cases/`.
 
 Local macOS CM1 setup guidance now lives in
 `docs/reference-models/cm1-local-setup-macos.md`, with helper scripts under
@@ -298,6 +298,18 @@ live under `reference/cm1/cases/`, with pair-run guidance in
 `scripts/reference/cm1/run_reference_pair.sh`. Generated CM1 output still
 belongs under ignored local paths such as `data/reference/cm1/`; no large model
 output should be committed.
+
+Phase B CM1 validation-anchor assets now also live under `reference/cm1/cases/`:
+
+```text
+capped-suppressed-cumulus
+humid-low-cloud-contrast
+low-stratus-develops
+```
+
+These are planned runnable anchors for #223, not accepted reference outputs.
+Real local output must still be generated, ingested, and manually inspected
+before any Phase B case is promoted beyond planned/generated status.
 
 The local reference-pair runner now handles the repeatability issues found
 during the first real run attempt. The committed namelists request NetCDF output
@@ -315,8 +327,9 @@ execute committed runnable cases with `--execute`, run CM1 through
 the core diagnostics, continue after nonfatal per-case failures, and write an
 ignored local report under
 `data/reference/cm1/validation-runs/<timestamp>/validation-report.json`. The
-current runnable batch is the accepted Phase A dry-failed/shallow-cumulus pair;
-do not add Phase B cases without a scoped case-asset issue.
+current runnable batch includes the accepted Phase A pair plus the planned
+Phase B anchors from #223. Do not add Phase C sweeps, Phase D boundaries, Phase
+E rain, terrain, or warm-rain work without a scoped issue.
 
 The post-#240 Lower Atmosphere replay should keep controls attached to the
 visual field. After #243, Appearance mode uses a bounded display frame with a
@@ -522,3 +535,9 @@ Use the current open issue state to decide, but as of this handoff:
   one-factor sweeps, Phase D thresholds, Phase E rain later, agreement policy,
   and validated/exploratory/out-of-range labels. Evaluate #223 in the matrix
   and PR summary, but do not mutate #223 unless the user explicitly asks.
+
+  #223 implements the Phase B CM1 validation-anchor assets. It should stay
+  limited to capped/suppressed, humid low-cloud, and low-stratus run assets,
+  manifests, run/ingest recognition, docs, and tests. It should not start
+  Phase C sweeps, tune accepted Phase A science, change reduced-model science,
+  change Boussinesq, or begin warm-rain/PySDM work.
