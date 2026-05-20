@@ -151,6 +151,17 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(html).toContain("Reset");
     expect(html).toContain("Understand why");
     expect(html).toContain("Try next");
+    expect(html).toContain("Tweak this setup");
+    expect(html).toContain("Lower-atmosphere humidity");
+    expect(html).toContain("Surface moisture");
+    expect(html).toContain("Surface heating");
+    expect(html).toContain("Cap strength");
+    expect(html).toContain("Cap height");
+    expect(html).toContain("Dry air above cloud layer");
+    expect(html).toContain("Mixing with dry air");
+    expect(html).toContain("Reference-backed default");
+    expect(html).toContain("Run current setup");
+    expect(html).toContain("Reset to experiment default");
     expect(html).toContain("Model details / Why trust this?");
     expect(html).toContain('<details class="guided-model-details">');
     expect(html).toContain("Scientific Fields");
@@ -164,6 +175,8 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     expect(html).toContain("Not live CM1 simulation");
     expect(html).toContain("Reference cloud evolution is available before you run the interactive experiment");
     expect(html).toContain("Field status");
+    expect(html).not.toContain("(planned)");
+    expect(html).not.toContain("Make this atmosphere drier (planned)");
     expect(html).not.toContain("Lower Atmosphere v2 reduced-model shell");
     expect(html).not.toContain("Run v2 flow");
     expect(html).not.toContain("Experimental 2-D prototype");
@@ -248,6 +261,8 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     );
 
     expect(html).toContain("Model details / Why trust this?");
+    expect(html).toContain("Ingredient controls");
+    expect(html).toContain("This setup is using the selected experiment default.");
     expect(html).toContain("Reduced-model support diagnostics");
     expect(html).toContain("Selected profile time");
     expect(html).toContain("Profile status");
@@ -294,8 +309,10 @@ describe("Workbench V2 lower-atmosphere run loop", () => {
     );
 
     expect(matchCount(html, ">Run experiment<")).toBe(1);
+    expect(matchCount(html, ">Run current setup<")).toBe(1);
     expect(matchCount(html, ">Stop<")).toBe(0);
     expect(matchCount(html, ">Reset<")).toBe(1);
+    expect(matchCount(html, ">Reset to experiment default<")).toBe(1);
     expect(html).not.toContain("saved-runs-panel");
     expect(html).not.toContain("comparison-panel");
     expect(html).not.toContain(">Compare<");

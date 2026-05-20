@@ -17,12 +17,22 @@ import {
 } from "../workbench/workbenchRunLoop";
 import type { LabDefinition } from "./labTypes";
 import {
+  lowerAtmosphereV2IngredientControls,
+  lowerAtmosphereV2IngredientSetupModified,
+  lowerAtmosphereV2SelectedIngredientRows,
+  optionForSelection,
+  type LowerAtmosphereV2IngredientControl,
+  type LowerAtmosphereV2IngredientGroup,
+} from "./lowerAtmosphereV2ExperimentControls";
+import {
   buildLowerAtmosphereV2DiagnosticViewModel,
   lowerAtmosphereV2RunStatus,
   lowerAtmosphereV2ScenarioForId,
   lowerAtmosphereV2StatusLabel,
+  resetLowerAtmosphereV2IngredientSelections,
   selectedLowerAtmosphereV2ProfileFrame,
   selectLowerAtmosphereV2Scenario,
+  updateLowerAtmosphereV2IngredientSelection,
   type LowerAtmosphereV2State,
 } from "./lowerAtmosphereV2Orchestration";
 import {
@@ -51,7 +61,6 @@ type LowerAtmosphereGuidedExperienceProps = {
 type TryNext = {
   title: string;
   description: string;
-  tweaks: Array<{ label: string; description: string; enabled: boolean }>;
   scenarios: Array<{ scenarioId: string; reason: string }>;
 };
 
@@ -89,6 +98,8 @@ export function LowerAtmosphereGuidedExperience({
   const mainStory = guidedStory(contract, state, displayedReferenceRun, hasRun);
   const keyNumbers = guidedKeyNumbers(displayedReferenceRun, diagnosticView);
   const tryNext = guidedTryNext(contract, diagnosticView.tryNext);
+  const setupModified = lowerAtmosphereV2IngredientSetupModified(contract, state.ingredientSelections);
+  const ingredientRows = lowerAtmosphereV2SelectedIngredientRows(contract, state.ingredientSelections);
   const autoReplayKey = hasRun
     ? `${state.selectedScenarioId}-${state.profileRun?.frames.length ?? 0}-${state.cloudColumnRun?.frames.length ?? 0}`
     : null;
@@ -247,18 +258,13 @@ export function LowerAtmosphereGuidedExperience({
         <p>{tryNext.description}</p>
         <div className="try-next-grid">
           <div>
-            <h4>Tweak this setup</h4>
-            <div className="try-next-actions">
-              {tryNext.tweaks.map((tweak) => (
-                <button type="button" key={tweak.label} disabled={!tweak.enabled} title={tweak.description}>
-                  {tweak.label}
-                  {!tweak.enabled ? " (planned)" : ""}
-                </button>
-              ))}
-              <button type="button" onClick={onRun} disabled={isRunning}>
-                Run current setup again
-              </button>
-            </div>
+            <IngredientControlPanel
+              state={state}
+              setState={setState}
+              setupModified={setupModified}
+              isRunning={isRunning}
+              onRun={onRun}
+            />
           </div>
           <div>
             <h4>Try another experiment</h4>
@@ -325,6 +331,27 @@ export function LowerAtmosphereGuidedExperience({
               </div>
             </dl>
           </section>
+
+          <section aria-labelledby="model-details-ingredients-title">
+            <p className="region-label">Editable setup</p>
+            <h3 id="model-details-ingredients-title">Ingredient controls</h3>
+            <p>
+              {setupModified
+                ? "This run uses a tweaked reduced-model setup. The offline CM1 reference remains the default case, so read this as exploratory until validation coverage exists."
+                : "This setup is using the selected experiment default."}
+            </p>
+            <dl className="diagnostic-list ingredient-details-list">
+              {ingredientRows.map((row) => (
+                <div key={row.label}>
+                  <dt>{row.label}</dt>
+                  <dd>
+                    {row.current}
+                    {row.current !== row.defaultValue ? ` (default: ${row.defaultValue})` : ""}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
         </div>
 
         <ReferenceDiagnosticDetails viewModel={referenceComparison} />
@@ -334,6 +361,93 @@ export function LowerAtmosphereGuidedExperience({
         <p className="workbench-message guided-workbench-message">{guidedStatusMessage(state.message)}</p>
       ) : null}
     </section>
+  );
+}
+
+function IngredientControlPanel({
+  state,
+  setState,
+  setupModified,
+  isRunning,
+  onRun,
+}: {
+  state: LowerAtmosphereV2State;
+  setState: Dispatch<SetStateAction<LowerAtmosphereV2State>>;
+  setupModified: boolean;
+  isRunning: boolean;
+  onRun: () => void;
+}) {
+  const groupedControls = groupedIngredientControls();
+
+  return (
+    <div className="ingredient-control-panel" aria-label="Tweak this setup">
+      <div className="ingredient-control-heading">
+        <div>
+          <h4>Tweak this setup</h4>
+          <p>Change one atmospheric ingredient, then run again.</p>
+        </div>
+        <div className="ingredient-setup-labels" aria-label="Current setup validation labels">
+          <span>{setupModified ? "Tweaked reduced-model setup" : "Reference-backed default"}</span>
+          {setupModified ? <span>Exploratory until CM1 validation coverage exists</span> : null}
+        </div>
+      </div>
+
+      <div className="ingredient-control-groups">
+        {groupedControls.map(([group, controls]) => (
+          <section key={group} className="ingredient-control-group" aria-label={group}>
+            <h5>{group}</h5>
+            {controls.map((control) => {
+              const selected = optionForSelection(control, state.ingredientSelections[control.id]);
+              return (
+                <fieldset key={control.id} className="segmented-control ingredient-control-row">
+                  <legend>
+                    {control.label}
+                    <span>{control.explanation}</span>
+                  </legend>
+                  <div role="group" aria-label={control.label}>
+                    {control.options.map((option) => (
+                      <button
+                        type="button"
+                        key={option.id}
+                        aria-pressed={selected.id === option.id}
+                        title={`${option.description} ${option.valueLabel}`}
+                        onClick={() =>
+                          setState((current) =>
+                            updateLowerAtmosphereV2IngredientSelection(current, control.id, option.id),
+                          )
+                        }
+                      >
+                        {option.label}
+                        <small>{option.valueLabel}</small>
+                      </button>
+                    ))}
+                  </div>
+                  {selected.warning ? <p className="ingredient-warning">{selected.warning}</p> : null}
+                </fieldset>
+              );
+            })}
+          </section>
+        ))}
+      </div>
+
+      <div className="ingredient-control-actions">
+        <button type="button" onClick={onRun} disabled={isRunning}>
+          {setupModified ? "Run tweaked setup" : "Run current setup"}
+        </button>
+        <button
+          type="button"
+          className="ghost-button"
+          onClick={() => setState((current) => resetLowerAtmosphereV2IngredientSelections(current))}
+          disabled={!setupModified}
+        >
+          Reset to experiment default
+        </button>
+      </div>
+      <p className="ingredient-control-note">
+        The CM1 reference is offline and stays fixed; these controls rerun the
+        simplified interactive explanation.
+      </p>
+    </div>
   );
 }
 
@@ -422,6 +536,19 @@ function GuidedExperimentControlBar({
       </div>
     </div>
   );
+}
+
+function groupedIngredientControls(): Array<[LowerAtmosphereV2IngredientGroup, LowerAtmosphereV2IngredientControl[]]> {
+  const groups: LowerAtmosphereV2IngredientGroup[] = [
+    "Moisture",
+    "Heating",
+    "Cap / stability",
+    "Dry air and mixing",
+  ];
+  return groups.map((group) => [
+    group,
+    lowerAtmosphereV2IngredientControls.filter((control) => control.group === group),
+  ]);
 }
 
 function ReferenceDiagnosticDetails({
@@ -542,14 +669,12 @@ function guidedKeyNumbers(
 }
 
 function guidedTryNext(contract: LowerAtmosphereV2ScenarioContract, fallback: string[]): TryNext {
-  const tweaks = tweakOptionsForScenario(contract.id, fallback);
   switch (contract.id) {
     case "lower-atmosphere-v2-dry-failed-cumulus":
       return {
         title: "Add moisture and compare with shallow cumulus",
         description:
           "Stay with the dry case to ask what would need to change, or switch to a wetter reference-backed contrast.",
-        tweaks,
         scenarios: [
           { scenarioId: "lower-atmosphere-v2-baseline-shallow-cloud", reason: "Adds enough lower-layer moisture for shallow cloud." },
           { scenarioId: "lower-atmosphere-v2-humid-low-cloud-contrast", reason: "Shows the low-cloud contrast when the LCL is lower." },
@@ -560,7 +685,6 @@ function guidedTryNext(contract: LowerAtmosphereV2ScenarioContract, fallback: st
         title: "Change one cloud ingredient",
         description:
           "Compare the baseline against a drier, capped, or more humid setup to see which atmospheric ingredient controls the result.",
-        tweaks,
         scenarios: [
           { scenarioId: "lower-atmosphere-v2-dry-failed-cumulus", reason: "Removes enough moisture to keep rising air cloud-free." },
           { scenarioId: "lower-atmosphere-v2-capped-suppressed-cloud", reason: "Adds a stronger cap that limits vertical growth." },
@@ -572,7 +696,6 @@ function guidedTryNext(contract: LowerAtmosphereV2ScenarioContract, fallback: st
         title: "Test what happens when the cap weakens",
         description:
           "Keep the cap in mind, then switch to a setup where cloud can grow deeper or where moisture becomes the limiting factor.",
-        tweaks,
         scenarios: [
           { scenarioId: "lower-atmosphere-v2-baseline-shallow-cloud", reason: "Weakens the cap enough for shallow cumulus." },
           { scenarioId: "lower-atmosphere-v2-dry-failed-cumulus", reason: "Changes the limiting factor from stability to moisture." },
@@ -583,7 +706,6 @@ function guidedTryNext(contract: LowerAtmosphereV2ScenarioContract, fallback: st
         title: "Raise the cloud base again",
         description:
           "Use a drier contrast or the baseline to see how lower-layer humidity controls LCL and cloud base.",
-        tweaks,
         scenarios: [
           { scenarioId: "lower-atmosphere-v2-baseline-shallow-cloud", reason: "Returns to the reference-backed baseline." },
           { scenarioId: "lower-atmosphere-v2-dry-failed-cumulus", reason: "Raises the LCL until cloud fails." },
@@ -595,44 +717,12 @@ function guidedTryNext(contract: LowerAtmosphereV2ScenarioContract, fallback: st
         description:
           fallback.length > 0
             ? `Try to ${fallback[0]}. Keep the rest of the setup fixed so the cause is easier to see.`
-            : "Choose one moisture, heating, stability, or lift contrast and run again.",
-        tweaks,
+            : "Choose one moisture, heating, stability, or dry-air contrast and run again.",
         scenarios: relatedScenarioIds(contract).map((scenarioId) => ({
           scenarioId,
           reason: "Switch scenario while keeping the guided Lower Atmosphere lab context.",
         })),
       };
-  }
-}
-
-function tweakOptionsForScenario(scenarioId: string, fallback: string[]): TryNext["tweaks"] {
-  const planned = (label: string, description: string) => ({ label, description, enabled: false });
-  switch (scenarioId) {
-    case "lower-atmosphere-v2-dry-failed-cumulus":
-      return [
-        planned("Increase lower-layer humidity", "Planned control: lower the LCL by adding low-level moisture."),
-        planned("Reduce dry air aloft", "Planned control: reduce entrainment drying above the mixed layer."),
-      ];
-    case "lower-atmosphere-v2-baseline-shallow-cloud":
-      return [
-        planned("Make this atmosphere drier", "Planned control: lower initial humidity while holding lift similar."),
-        planned("Strengthen the cap", "Planned control: make the stable layer harder to penetrate."),
-        planned("Reduce surface heating", "Planned control: weaken mixed-layer growth."),
-      ];
-    case "lower-atmosphere-v2-capped-suppressed-cloud":
-      return [
-        planned("Weaken the cap", "Planned control: reduce inversion strength."),
-        planned("Raise the cap", "Planned control: move the stable layer upward."),
-      ];
-    case "lower-atmosphere-v2-humid-low-cloud-contrast":
-      return [
-        planned("Lower humidity", "Planned control: raise LCL and cloud base."),
-        planned("Add dry air aloft", "Planned control: make cloud erosion easier."),
-      ];
-    default:
-      return [
-        planned("Change one physical ingredient", fallback[0] ?? "Planned control: vary moisture, heating, stability, or lift."),
-      ];
   }
 }
 
@@ -710,13 +800,13 @@ function experimentSummary(scenarioId: string): { status: string; visual: string
       return {
         status: "Reference-backed contrast",
         visual: "Motion without meaningful cloud water.",
-        controls: "Try more lower-layer humidity or longer lift.",
+        controls: "Try more lower-layer humidity or less dry air aloft.",
       };
     case "lower-atmosphere-v2-baseline-shallow-cloud":
       return {
         status: "Reference-backed baseline",
         visual: "Shallow cloud appears, grows, and fades.",
-        controls: "Try drier air, a stronger cap, or lower lift.",
+        controls: "Try drier air, a stronger cap, or weaker surface heating.",
       };
     case "lower-atmosphere-v2-capped-suppressed-cloud":
       return {

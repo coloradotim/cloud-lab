@@ -131,6 +131,17 @@ default and fit it into the bounded frame. Run mode, Run experiment / Run
 again, Reset, view mode, and Scientific field selection should read as one
 control group attached to the cloud replay.
 
+#248 replaces the planned Try Next tweak buttons with real editable atmospheric
+ingredient controls. The primary user-facing controls are lower-atmosphere
+humidity, surface moisture, surface heating, cap strength, cap height, dry air
+above the cloud layer, and mixing with dry air. These controls use relative
+presets such as Drier / Baseline / More humid and map centrally to
+`boundary_layer_1d` profile controls using existing scenario/default anchors.
+Lift strength and lift duration remain hidden from the normal UI because lift
+is prescribed/internal in this reduced-model flow. Tweaked setups are labeled as
+reduced-model exploratory until they have direct CM1 validation coverage; the
+offline CM1 reference artifacts are not changed or rerun.
+
 The v2 user should be able to ask:
 
 ```text
