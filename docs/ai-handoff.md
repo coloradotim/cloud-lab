@@ -327,9 +327,10 @@ execute committed runnable cases with `--execute`, run CM1 through
 the core diagnostics, continue after nonfatal per-case failures, and write an
 ignored local report under
 `data/reference/cm1/validation-runs/<timestamp>/validation-report.json`. The
-current runnable batch includes the accepted Phase A pair plus the planned
-Phase B anchors from #223. Do not add Phase C sweeps, Phase D boundaries, Phase
-E rain, terrain, or warm-rain work without a scoped issue.
+current runnable batch includes the Phase A pair plus the planned Phase B
+anchors from #223. The old Phase A outputs are workflow/provisional until
+rerun with the #254 cloud-scale configs. Do not add Phase C sweeps, Phase D
+boundaries, Phase E rain, terrain, or warm-rain work without a scoped issue.
 
 The post-#240 Lower Atmosphere replay should keep controls attached to the
 visual field. After #243, Appearance mode uses a bounded display frame with a
@@ -348,14 +349,14 @@ helper, rerun the reduced-model explanation side, and label modified setups as
 exploratory until CM1 validation coverage exists. Keep lift strength and lift
 duration hidden from the normal UI; they remain prescribed/internal details.
 
-CM1/reference replay now treats horizontal scale as a trust issue. The current
-Phase A/B case assets use `nx = 60` and `dx = 2000 m`, so the full CM1
-x-domain is about 120 km. That is true case metadata, not a km/m label bug.
-Scientific Fields can show the full centered CM1 domain, but it should label
-the domain width and warn when the shallow-cloud domain is very wide. Cloud
-Appearance should default to a cloud-focused horizontal window and offer a Show
-full domain toggle. Do not hide the real domain; explain it and focus the guided
-view.
+CM1/reference horizontal scale is now a case-design trust issue, not just a
+display issue. #251 confirmed the old Phase A/B assets used `nx = 60` and
+`dx = 2000 m`, so the full x-domain was about 120 km. #254 replaces those
+committed case configs with the first cloud-scale policy: 16 km x 16 km at
+200 m horizontal spacing, 6 km vertical domain, 7200 s runtime, and 300 s
+output cadence. The old 120 km / 2 km-grid outputs remain workflow/provisional
+evidence only; rerun and re-accept Phase A/B under the cloud-scale configs
+before treating them as final visual validation or starting Phase C sweeps.
 
 Manual real-output acceptance for #221 is documented in
 `docs/reference-models/cm1-real-output-acceptance.md`. The first real local CM1
@@ -552,10 +553,11 @@ Use the current open issue state to decide, but as of this handoff:
   lift strength/duration controls, do not rerun CM1, and keep tweaked setups
   labeled as exploratory reduced-model runs until validation coverage exists.
 
-  #251 fixes the apparent huge CM1 horizontal scale in replay/appearance views.
-  The full Phase A/B x-domain is approximately 120 km from `nx = 60` and `dx =
-  2000 m`. Keep Scientific Fields honest/full-domain with labels/warnings, but
-  default Cloud Appearance to a cloud-focused x-window for wide domains.
+  #251 confirmed the apparent huge CM1 horizontal scale was real case metadata,
+  not a frontend double-conversion. #254 then redesigns the committed Phase A/B
+  case configs around the cloud-scale policy: 16 km x 16 km at 200 m horizontal
+  spacing and a 6 km lower-troposphere vertical domain. Treat prior 120 km runs
+  as workflow/provisional evidence only.
 
   #234 defines the CM1 lower-atmosphere validation matrix before adding more
   cases ad hoc. It should document Phase A accepted anchors, Phase B

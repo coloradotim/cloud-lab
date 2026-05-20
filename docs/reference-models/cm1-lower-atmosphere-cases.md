@@ -125,28 +125,45 @@ not just cloud/no-cloud outcome.
 | terrain height | Terrain case | m | Required for orographic overlays and terrain-relative diagnostics. |
 | droplet/effective radius | Microphysics/optics cases | m or micrometers, explicitly documented | Optional future field; if absent, optics must label assumed droplet properties. |
 
-## Current Case Domain Note
+## Cloud-Scale Domain Policy
 
-The committed Phase A/B local CM1 case assets currently use:
+Issue #251 confirmed that the earlier Phase A/B local CM1 case assets used:
 
 ```text
 nx = 60
 dx = 2000 m
 ```
 
-This means the full horizontal x-domain is approximately 120 km. In ingested
-CM1 NetCDF output, `output_km = 1` may provide coordinates in kilometers; the
-Cloud Lab ingester scales small coordinate values to meters before writing
-`reference-frame-v1` artifacts. A replay display showing roughly `-60 km` to
-`60 km` is therefore the full centered CM1 domain, not necessarily a frontend
-unit-conversion bug.
+That real metadata produced an approximately 120 km horizontal domain with 2 km
+grid spacing. It proved the local CM1 workflow and broad qualitative regimes,
+but it is not acceptable as the primary Lower Atmosphere visual/validation basis
+for cloud-scale shallow-cumulus structure.
 
-For guided Lower Atmosphere Cloud Basics, the full 120 km domain should not be
-the default appearance mental model for shallow cumulus. Scientific Fields may
-show the full centered domain with explicit labels and domain-width warnings.
-Cloud Appearance should default to a cloud-focused horizontal viewport and
-offer full-domain inspection separately. This display choice does not change
-source CM1 fields, case physics, or diagnostics.
+Current committed Phase A/B case configs now use this first cloud-scale policy:
+
+```text
+policy_version = lower-atmosphere-cm1-cloud-scale-v1
+horizontal domain = 16 km x 16 km
+horizontal spacing = 200 m
+vertical domain = 6 km
+nominal vertical spacing = 125 m
+runtime = 7200 s
+output cadence = 300 s
+```
+
+This target stays below the <=20 km product cap while keeping the cell count
+practical for local Mac validation runs. The 200 m grid is still an idealized
+first reference target, not a production LES claim. Future calibration may move
+toward finer or stretched vertical spacing, but any committed Lower Atmosphere
+CM1 reference case should document why it remains inside the cloud-scale policy
+or why it is an explicit exception.
+
+The earlier 120 km / 2 km-grid outputs remain useful as workflow/provisional
+evidence: they proved that CM1 can run, ingest, produce diagnostics, and show
+broad dry/cloudy regimes. They should not be cited as final product-valid
+cloud-scale visual validation. Phase A/B must be rerun and re-accepted with the
+cloud-scale configs before Phase C sensitivity sweeps are treated as validation
+anchors.
 
 ## Immediate Case 1: Dry Failed Cumulus
 

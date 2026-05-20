@@ -93,8 +93,8 @@ The default mode is a dry run: it writes a local validation report with
 runnable cases, ingest successful output, apply lightweight QC, and update the
 ignored local frontend reference index.
 
-The committed runnable batch now includes the accepted Phase A pair and the
-planned Phase B validation-anchor assets:
+The committed runnable batch includes the Phase A pair and the planned Phase B
+validation-anchor assets:
 
 ```text
 cm1-dry-failed-cumulus-v1
@@ -108,9 +108,16 @@ Use `--case-id <case-id>` to dry-run or execute a focused subset.
 
 The batch stops on fatal preflight problems such as a missing `cm1.exe`, missing
 `LANDUSE.TBL` for surface-enabled cases, soundings below grid top, missing
-NetCDF tooling for `output_format = 2`, or unavailable Python NetCDF ingestion
-packages. Per-case failures are recorded in the generated report and the batch
+NetCDF tooling for `output_format = 2`, unavailable Python NetCDF ingestion
+packages, or committed Lower Atmosphere case configs that violate the
+cloud-scale policy (`<=20 km` horizontal domain and 50-250 m horizontal grid
+spacing). Per-case failures are recorded in the generated report and the batch
 continues to the next case.
+
+The earlier 120 km / 2 km-grid Phase A outputs remain workflow/provisional
+evidence only. Rerun the Phase A/B batch with the current cloud-scale configs
+before treating the outputs as final product-valid visual anchors or before
+starting Phase C sensitivity sweeps.
 
 Generated reports live under:
 

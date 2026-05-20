@@ -22,10 +22,11 @@ suppress shallow-cloud growth?
 
 ## Configuration Concept
 
-This case starts from the shallow-cumulus baseline grid, runtime, output cadence,
-and general surface-forcing shape, then adds a stronger stable layer/inversion
-near the expected shallow-cloud growth region. It is a validation anchor for the
-cap-strength control, not a tuned accepted reference case.
+This case starts from the shallow-cumulus baseline cloud-scale grid, runtime,
+output cadence, and general surface-forcing shape, then adds a stronger stable
+layer/inversion near the expected shallow-cloud growth region. It is a
+validation anchor for the cap-strength control, not a tuned accepted reference
+case.
 
 ## Required Output Fields
 

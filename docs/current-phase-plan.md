@@ -144,12 +144,14 @@ scenario/default anchors. Lift strength/duration stay hidden from normal UI, and
 tweaked setups are exploratory reduced-model runs unless CM1 validation coverage
 exists.
 
-Issue #251 fixes CM1/reference horizontal-domain trust in the replay views. The
-source of the apparent 120 km width is the committed CM1 case grid
-(`nx = 60`, `dx = 2000 m`), not a frontend double-conversion bug. Scientific
-Fields can show the full centered CM1 domain with explicit domain-width labels
-and warnings, while Cloud Appearance should default to a cloud-focused
-horizontal window for wide domains and offer a full-domain toggle.
+Issue #251 confirmed CM1/reference horizontal-domain trust was a real case
+metadata problem, not a frontend double-conversion bug. Issue #254 redesigns
+the committed Phase A/B CM1 case configs around a cloud-scale domain: 16 km x
+16 km at 200 m horizontal spacing, a 6 km lower-troposphere vertical domain,
+7200 s runtime, and 300 s output cadence. The old 120 km / 2 km-grid outputs
+remain workflow/provisional evidence only; rerun and re-accept Phase A/B with
+the cloud-scale configs before using those runs for final visual validation or
+Phase C sensitivity sweeps.
 
 Issue #234 defines the CM1 lower-atmosphere validation matrix before more cases
 are added ad hoc. The matrix should guide Phase B validation anchors
