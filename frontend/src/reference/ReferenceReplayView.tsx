@@ -52,7 +52,9 @@ export function ReferenceReplayView({
   showSourceDetails = true,
 }: ReferenceReplayViewProps) {
   const [selectedFieldKey, setSelectedFieldKey] = useState(defaultReferenceFieldKey(referenceRun));
-  const [frameIndex, setFrameIndex] = useState(0);
+  const [frameIndex, setFrameIndex] = useState(() =>
+    initialViewMode === "cloud-appearance" ? firstMeaningfulCloudFrameIndex(referenceRun) : 0,
+  );
   const [viewMode, setViewMode] = useState<ReferenceAppearanceMode>(initialViewMode);
   const [playing, setPlaying] = useState(false);
   const [appearanceFullDomain, setAppearanceFullDomain] = useState(initialAppearanceFullDomain);
@@ -82,8 +84,11 @@ export function ReferenceReplayView({
   useEffect(() => {
     if (preferredViewMode) {
       setViewMode(preferredViewMode);
+      if (preferredViewMode === "cloud-appearance" && autoReplayKey === null) {
+        setFrameIndex(firstMeaningfulCloudFrameIndex(referenceRun));
+      }
     }
-  }, [preferredViewMode]);
+  }, [autoReplayKey, preferredViewMode, referenceRun]);
 
   useEffect(() => {
     if (autoReplayKey === null || autoReplayKey === undefined || frameCount <= 0) {
@@ -481,7 +486,13 @@ function ReferenceAppearancePanel({ model, fullDomain, onToggleFullDomain }: Ref
               <feGaussianBlur stdDeviation="0.32" />
             </filter>
           </defs>
-          <rect x="0" y="0" width={model.columns} height={model.rows} fill="url(#reference-appearance-sky)" />
+          <rect
+            x={viewport.viewBoxX}
+            y="0"
+            width={viewport.visibleColumns}
+            height={model.rows}
+            fill="url(#reference-appearance-sky)"
+          />
           <g className="reference-appearance-shadow" filter="url(#reference-cloud-soften)">
             {model.cells.map((cell) => (
               <rect
@@ -740,7 +751,7 @@ function appearanceHorizontalViewport(
   }
 
   const targetWidthM = Math.min(12_000, domainWidthM);
-  const centerM = cloudCenterXM(model) ?? (domainMinM + domainMaxM) / 2;
+  const centerM = cloudCenterXM(model, "current") ?? cloudCenterXM(model, "run") ?? (domainMinM + domainMaxM) / 2;
   const xMinM = Math.max(domainMinM, Math.min(centerM - targetWidthM / 2, domainMaxM - targetWidthM));
   const xMaxM = Math.min(domainMaxM, xMinM + targetWidthM);
   const firstColumn = Math.max(0, firstIndexAtOrAbove(xCoordinates, xMinM) - 1);
@@ -758,16 +769,22 @@ function appearanceHorizontalViewport(
   };
 }
 
-function cloudCenterXM(model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>): number | null {
+function cloudCenterXM(
+  model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>,
+  scope: "current" | "run",
+): number | null {
   const cloudyColumns: number[] = [];
-  for (const frame of model.run.frames) {
+  const frames = scope === "current" ? [model.frame] : model.run.frames;
+  for (const frame of frames) {
     const cloudWater = frame.fields.cloud_liquid_water_kg_per_kg;
     if (!cloudWater) {
       continue;
     }
+    const maxCloudWater = Math.max(...cloudWater.values.flat().filter(Number.isFinite), 0);
+    const threshold = Math.max(1e-10, maxCloudWater * 0.02);
     cloudWater.values.forEach((row) => {
       row.forEach((value, columnIndex) => {
-        if (Number.isFinite(value) && value > 0) {
+        if (Number.isFinite(value) && value >= threshold) {
           cloudyColumns.push(columnIndex);
         }
       });
@@ -779,6 +796,26 @@ function cloudCenterXM(model: NonNullable<ReturnType<typeof buildReferenceAppear
   const averageColumn = cloudyColumns.reduce((sum, column) => sum + column, 0) / cloudyColumns.length;
   const nearestColumn = Math.max(0, Math.min(model.columns - 1, Math.round(averageColumn)));
   return model.frame.grid.x_coordinates_m[nearestColumn] ?? null;
+}
+
+function firstMeaningfulCloudFrameIndex(run: ReferenceRun | null): number {
+  if (!run?.frames.length) {
+    return 0;
+  }
+
+  const diagnosticTime = run.diagnostics?.first_cloud_time_seconds ?? null;
+  if (diagnosticTime !== null && Number.isFinite(diagnosticTime)) {
+    return nearestFrameIndex(run.frames, diagnosticTime);
+  }
+
+  const frameIndex = run.frames.findIndex((frame) => {
+    const cloudWater = frame.fields.cloud_liquid_water_kg_per_kg;
+    if (!cloudWater) {
+      return false;
+    }
+    return Math.max(...cloudWater.values.flat().filter(Number.isFinite), 0) > 0;
+  });
+  return frameIndex >= 0 ? frameIndex : 0;
 }
 
 function cloudTopForFrame(model: NonNullable<ReturnType<typeof buildReferenceAppearanceViewModel>>): number | null {
@@ -826,7 +863,7 @@ function AxisTicks({
       {xTicks.map((tick) => (
         <span
           key={`x-${tick}`}
-          className="reference-axis-tick reference-axis-tick-x"
+          className={`reference-axis-tick reference-axis-tick-x ${tickEdgeClass(percent(tick, xMinM, xMaxM))}`}
           style={{ left: `${percent(tick, xMinM, xMaxM)}%` }}
         >
           <i />
@@ -836,7 +873,7 @@ function AxisTicks({
       {zTicks.map((tick) => (
         <span
           key={`z-${tick}`}
-          className="reference-axis-tick reference-axis-tick-z"
+          className={`reference-axis-tick reference-axis-tick-z ${tickEdgeClass(percent(tick, zMinM, zMaxM))}`}
           style={{ bottom: `${percent(tick, zMinM, zMaxM)}%` }}
         >
           <i />
@@ -874,6 +911,16 @@ function percent(value: number, min: number, max: number): number {
     return 0;
   }
   return Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
+}
+
+function tickEdgeClass(valuePercent: number): string {
+  if (valuePercent <= 2) {
+    return "tick-start";
+  }
+  if (valuePercent >= 98) {
+    return "tick-end";
+  }
+  return "";
 }
 
 function formatKm(valueM: number): string {

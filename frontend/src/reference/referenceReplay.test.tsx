@@ -331,6 +331,9 @@ describe("CM1 reference appearance view", () => {
     expect(html).toContain("Show full domain");
     expect(html).toContain("Height, z (km)");
     expect(html).toContain("Horizontal distance in displayed window, x (km)");
+    expect(html).toContain('data-cloud-water="5e-7"');
+    expect(html).toContain("tick-start");
+    expect(html).toContain("tick-end");
     expect(html).not.toContain("<select");
     expect(html).not.toContain("Synthetic fixture data");
     expect(html).not.toContain("No real local CM1 reference output is available");
