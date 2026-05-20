@@ -308,6 +308,16 @@ directory, and returns nonzero if CM1 exits without the expected `.nc` output.
 Use the workflow: check environment, run reference pair, inspect `.nc` output,
 ingest reference pair, then open the app for acceptance or polish work.
 
+For repeatable local validation runs, use
+`scripts/reference/cm1/run_validation_batch.sh`. It dry-runs by default and can
+execute committed runnable cases with `--execute`, run CM1 through
+`run_cm1_case.sh`, ingest successful output through `ingest_cm1_output.py`, QC
+the core diagnostics, continue after nonfatal per-case failures, and write an
+ignored local report under
+`data/reference/cm1/validation-runs/<timestamp>/validation-report.json`. The
+current runnable batch is the accepted Phase A dry-failed/shallow-cumulus pair;
+do not add Phase B cases without a scoped case-asset issue.
+
 Manual real-output acceptance for #221 is documented in
 `docs/reference-models/cm1-real-output-acceptance.md`. The first real local CM1
 reference pair is scientifically usable for the current milestone: dry failed

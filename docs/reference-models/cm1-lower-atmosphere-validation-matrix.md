@@ -236,16 +236,29 @@ This issue only defines the policy. UI implementation should be separate.
 ## Execution Plan
 
 1. Keep Phase A as the accepted dry-failed and shallow-cumulus baseline anchors.
-2. Implement Phase B as the next validation-anchor batch before adding ad hoc
+2. Use `scripts/reference/cm1/run_validation_batch.sh` to rerun/ingest/QC the
+   committed runnable anchors as a local validation batch when needed.
+3. Implement Phase B as the next validation-anchor batch before adding ad hoc
    visual cases.
-3. Generate and ingest Phase B outputs through the existing local CM1 workflow.
-4. Manually accept/reject Phase B using the metrics in this matrix.
-5. Add Phase C one-factor sensitivity cases only after Phase B anchors are
+4. Generate and ingest Phase B outputs through the existing local CM1 workflow.
+5. Manually accept/reject Phase B using the metrics in this matrix.
+6. Add Phase C one-factor sensitivity cases only after Phase B anchors are
    accepted or explicitly marked exploratory.
-6. Add Phase D threshold cases when the app is ready to label validated versus
+7. Add Phase D threshold cases when the app is ready to label validated versus
    exploratory control ranges.
-7. Defer Phase E rain cases until warm-cloud/no-rain behavior and warm-rain
+8. Defer Phase E rain cases until warm-cloud/no-rain behavior and warm-rain
    diagnostics are ready.
+
+The batch report lives under:
+
+```text
+data/reference/cm1/validation-runs/<timestamp>/validation-report.json
+```
+
+It records per-case statuses (`planned`, `cm1_failed`, `ingest_failed`,
+`qc_failed`, `accepted`, `needs_calibration`), diagnostics, expected/observed
+regimes, agreement status, warnings, and next actions. See
+`docs/reference-models/cm1-validation-batch-workflow.md`.
 
 Generated outputs remain local and ignored under paths such as:
 
@@ -300,4 +313,3 @@ anchors" so it aligns with this matrix.
 - Do not change reduced-model science.
 - Do not change Boussinesq behavior.
 - Do not add PySDM or warm-rain physics.
-

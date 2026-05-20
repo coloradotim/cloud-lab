@@ -185,14 +185,17 @@ to Cloud Lab reference artifacts:
 
 ```bash
 cd backend
-.venv/bin/python -m pytest tests/test_cm1_adapter.py tests/test_cm1_ingest.py -q
+.venv/bin/python -m pytest tests/test_cm1_adapter.py tests/test_cm1_ingest.py tests/test_cm1_validation_batch.py -q
 ```
 
 These checks use tiny adapter-input fixtures only. They verify
 `reference-run-v1` / `reference-frame-v1` artifact generation, manifests,
 provenance, diagnostics, missing-field warnings, invalid-grid failures, and
-script help/syntax. They do not run CM1, read large local output, or require
-NetCDF/xarray in CI.
+script help/syntax. The validation-batch tests use fake CM1 executables and
+temporary ignored-style output directories to verify preflight failures,
+per-case status recording, report generation, ingest success/failure handling,
+and safe dry-run behavior. They do not run CM1, read large local output, or
+commit generated data.
 
 Hard failure policy:
 
