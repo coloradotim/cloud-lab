@@ -133,6 +133,14 @@ are added ad hoc. The matrix should guide Phase B validation anchors
 sweeps, threshold cases, and warm-rain cases. It should keep #223 untouched
 unless the user explicitly asks to retitle/rescope that issue.
 
+Issue #235 adds the local automation layer for that matrix. Use
+`scripts/reference/cm1/run_validation_batch.sh` to dry-run, execute, ingest, QC,
+and report on committed runnable CM1 validation cases. The current runnable
+batch is still the accepted Phase A dry-failed/shallow-cumulus pair; Phase B
+cases should be added only through their own scoped implementation issue. The
+batch report remains ignored local output under
+`data/reference/cm1/validation-runs/<timestamp>/validation-report.json`.
+
 ## Current Phase Goal
 
 Build Workbench V2 and the first usable lower-atmosphere labs:

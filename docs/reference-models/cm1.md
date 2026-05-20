@@ -170,8 +170,9 @@ separate artifact/storage policy is approved.
 The default backend install should not require CM1, xarray, netCDF4, or large
 scientific data dependencies.
 
-If a future issue adds direct NetCDF ingestion, it should use an optional
-dependency path such as:
+Direct NetCDF ingestion remains an optional local reference path. Keep it out
+of the default app/runtime dependency set and install it only for local
+reference work through an optional dependency path such as:
 
 ```text
 [reference]
@@ -408,3 +409,39 @@ view with explicit `Synthetic fixture data`, `Not scientific truth`, and
 
 Do not commit raw CM1 outputs, generated reference artifacts, generated public
 indexes, CM1 binaries, or local build products.
+
+## Local Validation Batch
+
+Issue #235 adds a local batch command for running committed CM1 validation
+cases, ingesting successful output, applying lightweight QC, and writing a
+local report:
+
+```bash
+scripts/reference/cm1/run_validation_batch.sh \
+  --cm1-run-dir /Users/timpeterson/cm1r21.1/run \
+  --matrix docs/reference-models/cm1-lower-atmosphere-validation-matrix.md \
+  --output-root data/reference/cm1/validation-runs \
+  --ingested-output data/reference/cm1/ingested \
+  --public-output frontend/public/reference/cm1/local
+```
+
+Omit `--execute` for a dry run. Add `--execute` to run the committed runnable
+cases locally. The current runnable batch is the accepted Phase A pair:
+
+```text
+cm1-dry-failed-cumulus-v1
+cm1-shallow-cumulus-baseline-v1
+```
+
+The batch delegates CM1 execution to `run_cm1_case.sh`, delegates ingestion to
+`ingest_cm1_output.py`, and writes:
+
+```text
+data/reference/cm1/validation-runs/<timestamp>/validation-report.json
+```
+
+The report records per-case statuses, diagnostics, expected/observed regimes,
+agreement status, warnings, and next action. It does not score exact cloud
+morphology and does not add missing Phase B/C/D/E cases.
+
+See `docs/reference-models/cm1-validation-batch-workflow.md`.

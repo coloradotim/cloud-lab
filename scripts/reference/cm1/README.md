@@ -16,6 +16,7 @@ They are intentionally lightweight:
 check_cm1_environment.sh
 run_cm1_case.sh
 run_reference_pair.sh
+run_validation_batch.sh
 ingest_cm1_output.py
 ingest_reference_pair.sh
 ```
@@ -75,6 +76,37 @@ success when the expected `.nc` output is missing.
 
 See `docs/reference-models/cm1-first-reference-pair.md` for case details,
 required fields, diagnostics, and data policy.
+
+### Run A Validation Batch
+
+```bash
+scripts/reference/cm1/run_validation_batch.sh \
+  --cm1-run-dir ~/src/cm1/CM1/run \
+  --matrix docs/reference-models/cm1-lower-atmosphere-validation-matrix.md \
+  --output-root data/reference/cm1/validation-runs \
+  --ingested-output data/reference/cm1/ingested \
+  --public-output frontend/public/reference/cm1/local
+```
+
+The default mode is a dry run: it writes a local validation report with
+`planned` cases and does not execute CM1. Add `--execute` to run the committed
+runnable cases, ingest successful output, apply lightweight QC, and update the
+ignored local frontend reference index.
+
+The batch stops on fatal preflight problems such as a missing `cm1.exe`, missing
+`LANDUSE.TBL` for surface-enabled cases, soundings below grid top, missing
+NetCDF tooling for `output_format = 2`, or unavailable Python NetCDF ingestion
+packages. Per-case failures are recorded in the generated report and the batch
+continues to the next case.
+
+Generated reports live under:
+
+```text
+data/reference/cm1/validation-runs/<timestamp>/validation-report.json
+```
+
+See `docs/reference-models/cm1-validation-batch-workflow.md` for status
+meanings, QC policy, and data policy.
 
 ### Ingest Local CM1 Output
 

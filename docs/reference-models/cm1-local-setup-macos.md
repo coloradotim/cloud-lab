@@ -268,6 +268,23 @@ Expected local workflow for the reference pair:
 5. Ingest the pair with `scripts/reference/cm1/ingest_reference_pair.sh`.
 6. Open Cloud Lab for the #221 acceptance path.
 
+For validation batches, use the scripted batch workflow instead of running each
+case by hand:
+
+```bash
+scripts/reference/cm1/run_validation_batch.sh \
+  --cm1-run-dir /Users/timpeterson/cm1r21.1/run \
+  --matrix docs/reference-models/cm1-lower-atmosphere-validation-matrix.md \
+  --output-root data/reference/cm1/validation-runs \
+  --ingested-output data/reference/cm1/ingested \
+  --public-output frontend/public/reference/cm1/local
+```
+
+This is a dry run unless `--execute` is added. In execute mode, the batch
+preflights NetCDF tooling and required runtime files, runs each committed
+runnable case, ingests successful outputs, and writes a local
+`validation-report.json` under `data/reference/cm1/validation-runs/<timestamp>/`.
+
 ## Output Storage
 
 Do not commit large CM1 output files to git.
